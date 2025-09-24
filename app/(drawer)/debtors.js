@@ -1,114 +1,152 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  TextInput,
   FlatList,
+  StyleSheet,
   ScrollView,
+  Alert,
+  ActivityIndicator,
+  TextInput,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function DebtorsScreen() {
-  const [search, setSearch] = useState("");
-  const [rowCount, setRowCount] = useState("20");
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const data = [
-    {
-      code: "00918",
-      name: "ARUN KUMAR",
-      ledger: "",
-      invoice: "KALPETTA",
-      place: "KALPETTA",
-      phone: "9946545535",
-      opening: "₹0.00",
-      debit: "₹0.00",
-      credit: "₹0.00",
-      balance: "₹0.00",
-      dept: "GENERAL",
-    },
-    {
-      code: "00930",
-      name: "IN AND OUT",
-      ledger: "",
-      invoice: "FRAZER TOWN",
-      place: "FRAZER TOWN",
-      phone: "N/A",
-      opening: "₹0.00",
-      debit: "₹0.00",
-      credit: "₹0.00",
-      balance: "₹0.00",
-      dept: "GENERAL",
-    },
-  ];
+  const fetchDebtors = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Session Expired", "Please login again.");
+        setLoading(false);
+        return;
+      }
 
-  const filteredData = data.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase())
+      const response = await fetch("https://taskprime.app/api/get-debtors-data/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        Alert.alert("Error", "Failed to fetch debtors. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const result = await response.json();
+      let normalizedData = [];
+
+      if (Array.isArray(result)) {
+        normalizedData = result;
+      } else if (result.data && Array.isArray(result.data)) {
+        normalizedData = result.data;
+      } else if (typeof result === "object" && result.code) {
+        normalizedData = [result];
+      }
+
+      setData(normalizedData);
+    } catch (error) {
+      console.error("🔥 Error fetching debtors:", error);
+      Alert.alert("Network Error", "Could not connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDebtors();
+  }, []);
+
+  const filteredData = data.filter(
+    (item) =>
+      item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff6600" />
+      </View>
+    );
+  }
+
+  const COLUMN_WIDTHS = {
+    code: 80,
+    name: 200, // Give extra width to name column
+    place: 140,
+    phone: 130,
+    number: 120,
+    dept: 120,
+  };
+
+  const renderHeader = () => (
+    <View style={styles.headerRow}>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.code }]}>Code</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.name }]}>Name</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.place }]}>Place</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.phone }]}>Phone</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Opening</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Debit</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Credit</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.dept }]}>Dept</Text>
+    </View>
+  );
+
+  const renderRow = ({ item, index }) => (
+    <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+      <Text style={[styles.cell, { width: COLUMN_WIDTHS.code, textAlign: "center", fontWeight: "bold" }]}>
+        {item.code}
+      </Text>
+      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.name }]}>
+        {item.name}
+      </Text>
+      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.place }]}>
+        {item.place || "-"}
+      </Text>
+      <Text style={[styles.cell, { width: COLUMN_WIDTHS.phone, textAlign: "center" }]}>
+        {item.phone2 || "-"}
+      </Text>
+      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
+        {item.opening_balance}
+      </Text>
+      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
+        {item.master_debit}
+      </Text>
+      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
+        {item.master_credit}
+      </Text>
+      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.dept, textAlign: "center" }]}>
+        {item.openingdepartment}
+      </Text>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Debtors Statement</Text>
+      <Text style={styles.title}>Debtors Statement</Text>
 
-      {/* Search & Row Count */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name..."
-          value={search}
-          onChangeText={setSearch}
-        />
+      <TextInput
+        style={styles.searchBox}
+        placeholder="Search by Code or Name"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={rowCount}
-            style={styles.picker}
-            onValueChange={(value) => setRowCount(value)}
-          >
-            <Picker.Item label="10" value="10" />
-            <Picker.Item label="20" value="20" />
-            <Picker.Item label="50" value="50" />
-          </Picker>
-        </View>
-      </View>
-
-      {/* Table */}
       <ScrollView horizontal>
         <View>
-          {/* Header */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, { width: 70 }]}>Code</Text>
-            <Text style={[styles.headerCell, { width: 140 }]}>Name</Text>
-            <Text style={[styles.headerCell, { width: 80 }]}>Ledger</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Invoice</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Place</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Phone</Text>
-            <Text style={[styles.headerCell, { width: 90 }]}>Opening</Text>
-            <Text style={[styles.headerCell, { width: 90 }]}>Debit</Text>
-            <Text style={[styles.headerCell, { width: 90 }]}>Credit</Text>
-            <Text style={[styles.headerCell, { width: 90 }]}>Balance</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Dept</Text>
-          </View>
-
-          {/* Rows */}
+          {renderHeader()}
           <FlatList
             data={filteredData}
             keyExtractor={(item) => item.code}
-            renderItem={({ item }) => (
-              <View style={styles.tableRow}>
-                <Text style={[styles.cell, { width: 70 }]}>{item.code}</Text>
-                <Text style={[styles.cell, { width: 140 }]}>{item.name}</Text>
-                <Text style={[styles.cell, { width: 80 }]}>{item.ledger}</Text>
-                <Text style={[styles.cell, { width: 100 }]}>{item.invoice}</Text>
-                <Text style={[styles.cell, { width: 120 }]}>{item.place}</Text>
-                <Text style={[styles.cell, { width: 120 }]}>{item.phone}</Text>
-                <Text style={[styles.cell, { width: 90 }]}>{item.opening}</Text>
-                <Text style={[styles.cell, { width: 90 }]}>{item.debit}</Text>
-                <Text style={[styles.cell, { width: 90 }]}>{item.credit}</Text>
-                <Text style={[styles.cell, { width: 90 }]}>{item.balance}</Text>
-                <Text style={[styles.cell, { width: 100 }]}>{item.dept}</Text>
-              </View>
-            )}
+            renderItem={renderRow}
+            showsVerticalScrollIndicator={false}
           />
         </View>
       </ScrollView>
@@ -117,66 +155,44 @@ export default function DebtorsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 10,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#ff6600",
-    textAlign: "center",
-    marginVertical: 10,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 10,
-  },
-  searchInput: {
+  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
+  title: { fontSize: 20, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
+  searchBox: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 6,
+    borderRadius: 8,
     padding: 10,
-    flex: 1,
-    marginRight: 10,
+    marginBottom: 10,
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 6,
-    overflow: "hidden",
-    width: 100,
-    justifyContent: "center",
-  },
-  picker: {
-    height: 40,
-    width: "100%",
-  },
-  tableHeader: {
+  headerRow: {
     flexDirection: "row",
     backgroundColor: "#ff6600",
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
   headerCell: {
-    color: "#fff",
     fontWeight: "bold",
-    padding: 8,
+    color: "#fff",
+    fontSize: 14,
     textAlign: "center",
-    borderRightWidth: 1,
-    borderRightColor: "#fff",
   },
+  row: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingVertical: 14, // more height for multi-line
+    alignItems: "center",
+  },
+  rowEven: { backgroundColor: "#fff" },
+  rowOdd: { backgroundColor: "#f9f9f9" },
   cell: {
-    padding: 8,
-    textAlign: "center",
-    borderRightWidth: 1,
-    borderRightColor: "#ddd",
+    fontSize: 14,
+    paddingHorizontal: 6,
   },
+  multiLineText: {
+    flexWrap: "wrap",
+  },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
