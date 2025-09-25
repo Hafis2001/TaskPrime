@@ -50,21 +50,23 @@ export default function DebtorsScreen() {
 
         const result = await response.json();
 
-        const formattedData = result.map((item) => ({
-          id: item.code,
-          name: item.name,
-          place: item.place || "-",
-          phone: item.phone2 || "-",
-          opening: `₹${item.opening_balance?.toFixed(2) || "0.00"}`,
-          debit: `₹${item.master_debit?.toFixed(2) || "0.00"}`,
-          credit: `₹${item.master_credit?.toFixed(2) || "0.00"}`,
-          balance: `₹${(
-            (item.opening_balance || 0) +
-            (item.master_debit || 0) -
-            (item.master_credit || 0)
-          ).toFixed(2)}`,
-          dept: item.openingdepartment || "-",
-        }));
+        // ✅ Format & calculate balance (debit - credit)
+        const formattedData = result
+          .map((item) => {
+            const debit = item.master_debit || 0;
+            const credit = item.master_credit || 0;
+            const balance = debit - credit;
+            return {
+              id: item.code,
+              name: item.name,
+              place: item.place || "-",
+              phone: item.phone2 || "-",
+              debit,
+              credit,
+              balance,
+            };
+          })
+          .filter((item) => item.balance > 0); // ✅ show only positive balances
 
         setData(formattedData);
         setFilteredData(formattedData);
@@ -87,8 +89,9 @@ export default function DebtorsScreen() {
       const query = searchQuery.toLowerCase();
       const filtered = data.filter(
         (item) =>
-          item.id.toLowerCase().includes(query) ||
-          item.name.toLowerCase().includes(query)
+          item.name.toLowerCase().includes(query) ||
+          item.place.toLowerCase().includes(query) ||
+          item.phone.toLowerCase().includes(query)
       );
       setFilteredData(filtered);
     }
@@ -101,7 +104,7 @@ export default function DebtorsScreen() {
       {/* Search Bar */}
       <TextInput
         style={styles.searchInput}
-        placeholder="Search by Code or Name"
+        placeholder="Search by Name, Place or Phone"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
@@ -113,13 +116,8 @@ export default function DebtorsScreen() {
           <View>
             {/* Table Header */}
             <View style={styles.headerRow}>
-              {["Code", "Name", "Place", "Phone", "Opening", "Debit", "Credit", "Balance", "Dept"].map(
-                (h) => (
-                  <Text style={styles.headerCell} key={h}>
-                    {h}
-                  </Text>
-                )
-              )}
+              <Text style={[styles.headerCell, { flex: 2 }]}>DETAILS</Text>
+              <Text style={[styles.headerCell, { flex: 1 }]}>BALANCE</Text>
             </View>
 
             {/* Table Rows */}
@@ -128,15 +126,17 @@ export default function DebtorsScreen() {
               keyExtractor={(item, index) => item.id?.toString() || index.toString()}
               renderItem={({ item }) => (
                 <View style={styles.row}>
-                  <Text style={styles.cell}>{item.id}</Text>
-                  <Text style={styles.cell}>{item.name}</Text>
-                  <Text style={styles.cell}>{item.place}</Text>
-                  <Text style={styles.cell}>{item.phone}</Text>
-                  <Text style={styles.cell}>{item.opening}</Text>
-                  <Text style={styles.cell}>{item.debit}</Text>
-                  <Text style={styles.cell}>{item.credit}</Text>
-                  <Text style={styles.cell}>{item.balance}</Text>
-                  <Text style={styles.cell}>{item.dept}</Text>
+                  {/* DETAILS Column */}
+                  <View style={[styles.detailsCell, { flex: 2 }]}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.subText}>{item.place}</Text>
+                    <Text style={styles.subText}>{item.phone}</Text>
+                  </View>
+
+                  {/* BALANCE Column */}
+                  <Text style={[styles.balanceCell, { flex: 1 }]}>
+                    ₹{item.balance.toFixed(2)}
+                  </Text>
                 </View>
               )}
             />
@@ -159,24 +159,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#f8f8f8",
   },
-  headerRow: { flexDirection: "row", backgroundColor: "#0d6efd", paddingVertical: 8 },
+  headerRow: {
+    flexDirection: "row",
+    backgroundColor: "#0d6efd",
+    paddingVertical: 8,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
   headerCell: {
-    flex: 1,
     color: "#fff",
     fontWeight: "bold",
     textAlign: "center",
-    minWidth: 90,
+    fontSize: 16,
   },
   row: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
-    paddingVertical: 6,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
   },
-  cell: {
-    flex: 1,
-    textAlign: "center",
-    minWidth: 90,
+  detailsCell: {
+    paddingHorizontal: 8,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+  },
+  subText: {
     fontSize: 14,
+    color: "#475569",
+  },
+  balanceCell: {
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0d6efd",
+    alignSelf: "center",
   },
 });

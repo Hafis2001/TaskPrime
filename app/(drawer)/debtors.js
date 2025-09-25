@@ -50,7 +50,23 @@ export default function DebtorsScreen() {
         normalizedData = [result];
       }
 
-      setData(normalizedData);
+      const formattedData = normalizedData
+        .map((item) => {
+          const debit = Number(item.master_debit ?? 0);
+          const credit = Number(item.master_credit ?? 0);
+          const balance = debit - credit;
+
+          return {
+            id: item.code,
+            name: item.name ?? "-",
+            place: item.place ?? "-",
+            phone: item.phone2 ?? "-",
+            balance: isNaN(balance) ? 0 : balance,
+          };
+        })
+        .filter((item) => item.balance > 0);
+
+      setData(formattedData);
     } catch (error) {
       console.error("🔥 Error fetching debtors:", error);
       Alert.alert("Network Error", "Could not connect to server.");
@@ -65,9 +81,12 @@ export default function DebtorsScreen() {
 
   const filteredData = data.filter(
     (item) =>
-      item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.place?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.phone?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalBalance = filteredData.reduce((sum, d) => sum + (d.balance ?? 0), 0);
 
   if (loading) {
     return (
@@ -77,54 +96,21 @@ export default function DebtorsScreen() {
     );
   }
 
-  const COLUMN_WIDTHS = {
-    code: 80,
-    name: 200, // Give extra width to name column
-    place: 140,
-    phone: 130,
-    number: 120,
-    dept: 120,
-  };
+  const renderCard = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.cardRow}>
+        <View style={{ flex: 3 }}>
+          <Text style={styles.cardValue} numberOfLines={2} ellipsizeMode="tail">
+            {item.name}
+          </Text>
+          <Text style={styles.subText}>{item.phone}</Text>
+          <Text style={styles.subText}>{item.place}</Text>
+        </View>
 
-  const renderHeader = () => (
-    <View style={styles.headerRow}>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.code }]}>Code</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.name }]}>Name</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.place }]}>Place</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.phone }]}>Phone</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Opening</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Debit</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.number }]}>Credit</Text>
-      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.dept }]}>Dept</Text>
-    </View>
-  );
-
-  const renderRow = ({ item, index }) => (
-    <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-      <Text style={[styles.cell, { width: COLUMN_WIDTHS.code, textAlign: "center", fontWeight: "bold" }]}>
-        {item.code}
-      </Text>
-      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.name }]}>
-        {item.name}
-      </Text>
-      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.place }]}>
-        {item.place || "-"}
-      </Text>
-      <Text style={[styles.cell, { width: COLUMN_WIDTHS.phone, textAlign: "center" }]}>
-        {item.phone2 || "-"}
-      </Text>
-      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
-        {item.opening_balance}
-      </Text>
-      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
-        {item.master_debit}
-      </Text>
-      <Text style={[styles.cell, { width: COLUMN_WIDTHS.number, textAlign: "right" }]}>
-        {item.master_credit}
-      </Text>
-      <Text style={[styles.cell, styles.multiLineText, { width: COLUMN_WIDTHS.dept, textAlign: "center" }]}>
-        {item.openingdepartment}
-      </Text>
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceText}>₹{Math.round(item.balance)}</Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -132,31 +118,70 @@ export default function DebtorsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Debtors Statement</Text>
 
+      {/* 🔥 Top Summary Card */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Stores</Text>
+          <Text style={styles.summaryValue}>{filteredData.length}</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Balance</Text>
+          <Text style={styles.summaryValue}>₹{Math.round(totalBalance)}</Text>
+        </View>
+      </View>
+
+      {/* Search Bar */}
       <TextInput
         style={styles.searchBox}
-        placeholder="Search by Code or Name"
+        placeholder="Search by Name, Place or Phone"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
 
-      <ScrollView horizontal>
-        <View>
-          {renderHeader()}
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.code}
-            renderItem={renderRow}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </ScrollView>
+      {/* Table Heading Card */}
+      <View style={styles.headingCard}>
+        <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
+        <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>
+          Balance
+        </Text>
+      </View>
+
+      {/* Cards List */}
+      <FlatList
+        data={filteredData}
+        keyExtractor={(item, index) => item.id || index.toString()}
+        renderItem={renderCard}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  title: { fontSize: 20, fontWeight: "bold", textAlign: "center", marginBottom: 10 },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
+    color: "#ff6600",
+  },
+  summaryCard: {
+    backgroundColor: "#fffaf5",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  summaryItem: { alignItems: "center", flex: 1 },
+  summaryLabel: { fontSize: 14, fontWeight: "600", color: "#6b7280" },
+  summaryValue: { fontSize: 18, fontWeight: "bold", color: "#ff6600" },
   searchBox: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -164,35 +189,34 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
   },
-  headerRow: {
+  headingCard: {
     flexDirection: "row",
-    backgroundColor: "#ff6600",
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    backgroundColor: "#ffe6cc",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  headerCell: {
-    fontWeight: "bold",
-    color: "#fff",
-    fontSize: 14,
-    textAlign: "center",
+  headingText: { fontWeight: "bold", fontSize: 15, color: "#ff6600" },
+  card: {
+    backgroundColor: "#fffaf5",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  row: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 14, // more height for multi-line
-    alignItems: "center",
-  },
-  rowEven: { backgroundColor: "#fff" },
-  rowOdd: { backgroundColor: "#f9f9f9" },
-  cell: {
-    fontSize: 14,
-    paddingHorizontal: 6,
-  },
-  multiLineText: {
+  cardRow: { flexDirection: "row", justifyContent: "space-between" },
+  cardValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1e293b",
     flexWrap: "wrap",
   },
+  subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
+  balanceContainer: { justifyContent: "center", alignItems: "flex-end", flex: 1 },
+  balanceText: { fontSize: 18, fontWeight: "bold", color: "#ff6600" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
