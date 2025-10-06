@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/Ionicons"; // 👈 added import
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loginType, setLoginType] = useState("personal");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 added state
 
   const handleLogin = async () => {
     if (!clientId || !username || !password) {
@@ -30,7 +32,6 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // ✅ Call the new API
       const response = await fetch("https://taskprime.app/api/login/", {
         method: "POST",
         headers: {
@@ -57,14 +58,19 @@ export default function LoginScreen() {
       const data = await response.json();
       console.log("✅ API Response:", data);
 
-      // ✅ Expecting JWT token in response
       if (data?.token) {
-        // Save token for later use (Debtors page)
-        await AsyncStorage.setItem("authToken", data.token);
-        console.log("🔑 Token saved:", data.token);
+        const userData = {
+          name: data?.username || username,
+          clientId: data?.client_id || clientId,
+          token: data.token,
+        };
 
-        // Navigate to dashboard after successful login
-        router.replace("/(drawer)/dashboard");
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
+        await AsyncStorage.setItem("authToken", userData.token);
+
+        console.log("✅ User data saved:", userData);
+
+        router.replace("/(drawer)/company-info");
       } else {
         Alert.alert("Login Failed", "No token received from server.");
       }
@@ -81,16 +87,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <View style={styles.logoContainer}>
         <Image
-          source={require("../../assets/images/logo.jpg")}
+          source={require("../../assets/images/logo.png")}
           style={styles.logoImage}
           resizeMode="contain"
         />
       </View>
 
-      {/* Toggle Buttons */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[
@@ -127,7 +131,6 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Input Fields */}
       <TextInput
         style={styles.input}
         placeholder="Enter your Client ID"
@@ -140,15 +143,28 @@ export default function LoginScreen() {
         value={username}
         onChangeText={setUsername}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
 
-      {/* Login Button */}
+      {/* 👇 Password input with eye icon */}
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          placeholder="Password"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={styles.eyeIcon}
+        >
+          <Icon
+            name={showPassword ? "eye-off" : "eye"}
+            size={22}
+            color="#888"
+          />
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={styles.button}
         onPress={handleLogin}
@@ -167,21 +183,9 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 150,
-    height: 100,
-    marginBottom: 30,
-  },
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
+  logoContainer: { alignItems: "center", marginBottom: 20 },
+  logoImage: { width: 150, height: 100, marginBottom: 30 },
   toggleContainer: {
     flexDirection: "row",
     borderWidth: 1,
@@ -190,23 +194,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 30,
   },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  toggleButtonActive: {
-    backgroundColor: "#ff6600",
-  },
-  toggleText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  toggleTextActive: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
+  toggleButton: { flex: 1, paddingVertical: 12, alignItems: "center", backgroundColor: "#fff" },
+  toggleButtonActive: { backgroundColor: "#ff6600" },
+  toggleText: { fontSize: 16, color: "#333" },
+  toggleTextActive: { color: "#fff", fontWeight: "bold" },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -215,6 +206,18 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     fontSize: 16,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 20,
+    paddingRight: 12,
+    marginBottom: 25,
+  },
+  eyeIcon: {
+    paddingHorizontal: 8,
+  },
   button: {
     backgroundColor: "#ff6600",
     padding: 20,
@@ -222,9 +225,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 50,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });

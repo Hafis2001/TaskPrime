@@ -1,4 +1,4 @@
-import React from "react";
+/*import React from "react";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import DashboardScreen from "../screens/DashboardScreen";
 import DebtorsScreen from "../screens/DebtorsScreen";
@@ -12,4 +12,4 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="Debtors" component={DebtorsScreen} />
     </Drawer.Navigator>
   );
-}
+}*/

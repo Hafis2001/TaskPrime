@@ -1,4 +1,4 @@
-import React from "react";
+/*import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/LoginScreen";
 import DrawerNavigator from "./DrawerNavigator";
@@ -12,4 +12,4 @@ export default function AppNavigator() {
       <Stack.Screen name="Main" component={DrawerNavigator} />
     </Stack.Navigator>
   );
-}
+}*/

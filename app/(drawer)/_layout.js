@@ -12,15 +12,6 @@ export default function DrawerLayout() {
       }}
     >
       <Drawer.Screen
-        name="dashboard"
-        options={{
-          title: "Dashboard",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
         name="item-details"
         options={{
           title: "Item Details",
@@ -53,15 +44,6 @@ export default function DrawerLayout() {
           title: "Company Info",
           drawerIcon: ({ color, size }) => (
             <Ionicons name="building-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="punch-in"
-        options={{
-          title: "Punch In",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="finger-print-outline" size={size} color={color} />
           ),
         }}
       />
