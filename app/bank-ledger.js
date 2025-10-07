@@ -12,7 +12,7 @@ import {
   Alert,
 } from "react-native";
 
-const LEDGER_API = "https://taskprime.app/api/get-cash-ledger-details/?account_code=";
+const LEDGER_API = "https://taskprime.app/api/get-bank-ledger-details/?account_code=";
 
 export default function BankLedgerScreen() {
   const router = useRouter();
@@ -128,7 +128,7 @@ export default function BankLedgerScreen() {
           />
 
           {/* Totals */}
-          <View style={styles.totalRow}>
+          {/* <View style={styles.totalRow}>
             <Text style={[styles.headerCell, { flex: 3, textAlign: "right" }]}>Total:</Text>
             <Text style={[styles.headerCell, { flex: 1, textAlign: "right" }]}>
               ₹{totals.debit.toLocaleString("en-IN")}
@@ -136,7 +136,7 @@ export default function BankLedgerScreen() {
             <Text style={[styles.headerCell, { flex: 1, textAlign: "right" }]}>
               ₹{totals.credit.toLocaleString("en-IN")}
             </Text>
-          </View>
+          </View> */}
         </>
       )}
     </View>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   rowAlt: { backgroundColor: "#fff8f2" },
-  cell: { fontSize: 13, color: "#1e293b" },
+  cell: { fontSize: 13, color: "#1e293b",margin:15 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { color: "#666" },
   totalRow: {
