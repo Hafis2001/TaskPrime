@@ -72,6 +72,7 @@ export default function CashBookScreen() {
           return {
             id: it.id ?? String(i),
             name: it.name ?? it.account_name ?? it.bank_name ?? "-",
+            code: it.account_code ?? it.code ?? it.id ?? String(i),
             balance,
           };
         })
@@ -113,12 +114,19 @@ export default function CashBookScreen() {
   const renderRow = ({ item, index }) => {
     const alt = index % 2 === 1;
     return (
-      <View style={[styles.row, alt && styles.rowAlt]}>
-        <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.balance)}</Text>
-      </View>
+      <TouchableOpacity
+        onPress={() => router.push({
+          pathname: "cash-ledger",
+          params: { account_code: item.code, account_name: item.name }
+        })}
+      >
+        <View style={[styles.row, alt && styles.rowAlt]}>
+          <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.balance)}</Text>
+        </View>
+      </TouchableOpacity>
     );
   };
 
