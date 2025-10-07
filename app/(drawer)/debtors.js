@@ -8,81 +8,56 @@ import {
   Text,
   TextInput,
   View,
-  TouchableOpacity,
+  ScrollView,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker"; // 👈 dropdown
 
 export default function DebtorsScreen() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [pagination, setPagination] = useState(null);
+  const [rawJson, setRawJson] = useState(null);
 
-  // 🔥 Fetch Debtors Data
-  const fetchDebtors = async (pageNum = 1, size = pageSize) => {
+  const fetchDebtors = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
       console.log("🔑 Retrieved token:", token);
 
-      if (!token) {
-        Alert.alert("Session Expired", "Please login again.");
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        `https://taskprime.app/api/get-debtors-data/?page=${pageNum}&page_size=${size}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // ✅ FIXED
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch("https://taskprime.app/api/debtors/get-debtors/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
 
       console.log("📡 API Status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log("❌ API Error:", errorText);
-        Alert.alert("Error", "Failed to fetch debtors. Please try again.");
-        setLoading(false);
-        return;
-      }
-
       const result = await response.json();
       console.log("✅ API Response:", result);
+      setRawJson(result); // 👈 show raw response on screen
 
-      let normalizedData = [];
-      if (result.data && Array.isArray(result.data)) {
-        normalizedData = result.data;
-      } else if (Array.isArray(result)) {
-        normalizedData = result;
+      // Try to detect structure automatically
+      let arrayData = [];
+      if (Array.isArray(result)) {
+        arrayData = result;
+      } else if (Array.isArray(result.data)) {
+        arrayData = result.data;
+      } else if (Array.isArray(result.results)) {
+        arrayData = result.results;
       }
 
-      const formattedData = normalizedData
-        .map((item) => {
-          const debit = Number(item.master_debit ?? 0);
-          const credit = Number(item.master_credit ?? 0);
-          const balance = debit - credit;
+      const formatted = arrayData
+        .map((item) => ({
+          id: item.code || item.id || Math.random().toString(),
+          name: item.name ?? "-",
+          place: item.place ?? "-",
+          phone: item.phone ?? "-",
+          balance: Number(item.balance ?? 0),
+        }))
+        .filter((i) => i.balance > 0);
 
-          return {
-            id: item.code,
-            name: item.name ?? "-",
-            place: item.place ?? "-",
-            phone: item.phone2 ?? "-",
-            balance: isNaN(balance) ? 0 : balance,
-          };
-        })
-        .filter((item) => item.balance > 0);
-
-      setData(formattedData);
-      setPagination(result.pagination || null);
-      setPage(pageNum);
+      console.log("📊 Parsed Data:", formatted);
+      setData(formatted);
     } catch (error) {
       console.error("🔥 Error fetching debtors:", error);
       Alert.alert("Network Error", "Could not connect to server.");
@@ -91,19 +66,9 @@ export default function DebtorsScreen() {
     }
   };
 
-  // Load first page when screen opens or when page size changes
   useEffect(() => {
-    fetchDebtors(1, pageSize);
-  }, [pageSize]);
-
-  const filteredData = data.filter(
-    (item) =>
-      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.place?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.phone?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalBalance = filteredData.reduce((sum, d) => sum + (d.balance ?? 0), 0);
+    fetchDebtors();
+  }, []);
 
   if (loading) {
     return (
@@ -113,19 +78,39 @@ export default function DebtorsScreen() {
     );
   }
 
+  // 🧠 Show raw JSON if parsing failed
+  if (data.length === 0) {
+    return (
+      <ScrollView style={{ padding: 20 }}>
+        <Text style={{ fontWeight: "bold", color: "red" }}>
+          ⚠️ No data displayed. API Raw Output:
+        </Text>
+        <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
+          {JSON.stringify(rawJson, null, 2)}
+        </Text>
+      </ScrollView>
+    );
+  }
+
+  const filtered = data.filter(
+    (i) =>
+      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      i.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      i.phone.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalBalance = filtered.reduce((a, b) => a + (b.balance || 0), 0);
+
   const renderCard = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardRow}>
         <View style={{ flex: 3 }}>
-          <Text style={styles.cardValue} numberOfLines={2} ellipsizeMode="tail">
-            {item.name}
-          </Text>
+          <Text style={styles.cardValue}>{item.name}</Text>
           <Text style={styles.subText}>{item.phone}</Text>
           <Text style={styles.subText}>{item.place}</Text>
         </View>
-
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceText}>₹{Math.round(item.balance)}</Text>
+          <Text style={styles.balanceText}>₹{item.balance.toFixed(2)}</Text>
         </View>
       </View>
     </View>
@@ -135,26 +120,10 @@ export default function DebtorsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Debtors Statement</Text>
 
-      {/* 🔥 Dropdown for Page Size */}
-      <View style={styles.dropdownContainer}>
-        <Text style={styles.summaryLabel}>Page Size: </Text>
-        <Picker
-          selectedValue={pageSize}
-          style={{ flex: 1 }}
-          onValueChange={(val) => setPageSize(val)}
-        >
-          <Picker.Item label="10" value={10} />
-          <Picker.Item label="20" value={20} />
-          <Picker.Item label="50" value={50} />
-          <Picker.Item label="100" value={100} />
-        </Picker>
-      </View>
-
-      {/* 🔥 Top Summary Card */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Stores</Text>
-          <Text style={styles.summaryValue}>{filteredData.length}</Text>
+          <Text style={styles.summaryValue}>{filtered.length}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Balance</Text>
@@ -162,7 +131,6 @@ export default function DebtorsScreen() {
         </View>
       </View>
 
-      {/* Search Bar */}
       <TextInput
         style={styles.searchBox}
         placeholder="Search by Name, Place or Phone"
@@ -170,7 +138,6 @@ export default function DebtorsScreen() {
         onChangeText={setSearchQuery}
       />
 
-      {/* Table Heading Card */}
       <View style={styles.headingCard}>
         <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
         <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>
@@ -178,33 +145,11 @@ export default function DebtorsScreen() {
         </Text>
       </View>
 
-      {/* Cards List */}
       <FlatList
-        data={filteredData}
-        keyExtractor={(item, index) => item.id || index.toString()}
+        data={filtered}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderCard}
-        showsVerticalScrollIndicator={false}
       />
-
-      {/* 🔥 Pagination Controls */}
-      <View style={styles.paginationContainer}>
-        {pagination?.has_previous && (
-          <TouchableOpacity
-            style={[styles.pageButton, { backgroundColor: "#6b7280" }]}
-            onPress={() => fetchDebtors(page - 1, pageSize)}
-          >
-            <Text style={styles.pageButtonText}> Previous</Text>
-          </TouchableOpacity>
-        )}
-        {pagination?.has_next && (
-          <TouchableOpacity
-            style={styles.pageButton}
-            onPress={() => fetchDebtors(page + 1, pageSize)}
-          >
-            <Text style={styles.pageButtonText}>Next </Text>
-          </TouchableOpacity>
-        )}
-      </View>
     </View>
   );
 }
@@ -217,15 +162,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
     color: "#ff6600",
-  },
-  dropdownContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 8,
   },
   summaryCard: {
     backgroundColor: "#fffaf5",
@@ -270,30 +206,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardRow: { flexDirection: "row", justifyContent: "space-between" },
-  cardValue: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1e293b",
-    flexWrap: "wrap",
-  },
+  cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
   subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
   balanceContainer: { justifyContent: "center", alignItems: "flex-end", flex: 1 },
   balanceText: { fontSize: 18, fontWeight: "bold", color: "#ff6600" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  paginationContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  pageButton: {
-    backgroundColor: "#ff6600",
-    padding: 12,
-    borderRadius: 10,
-    flex: 1,
-    alignItems: "center",
-    marginHorizontal: 5,
-    marginBottom:30,
-    
-  },
-  pageButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16, },
 });

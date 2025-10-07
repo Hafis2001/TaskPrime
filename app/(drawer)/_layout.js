@@ -11,15 +11,7 @@ export default function DrawerLayout() {
         drawerLabelStyle: { fontSize: 16 },
       }}
     >
-      <Drawer.Screen
-        name="item-details"
-        options={{
-          title: "Item Details",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      
       <Drawer.Screen
         name="bank-cash"
         options={{

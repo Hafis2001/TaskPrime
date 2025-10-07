@@ -5,11 +5,9 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,7 +17,7 @@ import {
 
 const API_URL = "https://taskprime.app/api/get-cash-book-data/";
 
-/* Helpers */
+/* Helper function */
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   if (isNaN(n)) return "₹0";
@@ -29,22 +27,13 @@ function formatCurrency(v) {
     return "₹" + Math.round(n);
   }
 }
-function formatDate(v) {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
-}
 
-/* Main component */
 export default function CashBookScreen() {
   const router = useRouter();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
-  const { width } = Dimensions.get("window");
-  const minTableWidth = Math.max(720, width - 32);
 
   const fetchCashBook = useCallback(async () => {
     setLoading(true);
@@ -54,13 +43,6 @@ export default function CashBookScreen() {
       if (token) headers.Authorization = `Bearer ${token}`;
 
       const res = await fetch(API_URL, { headers });
-
-      if (res.status === 401) {
-        // handle auth failure gracefully (you might redirect to login)
-        setData([]);
-        setLoading(false);
-        return;
-      }
       if (!res.ok) {
         console.error("CashBook fetch failed:", res.status);
         setData([]);
@@ -73,27 +55,28 @@ export default function CashBookScreen() {
       if (Array.isArray(json)) list = json;
       else if (json && Array.isArray(json.data)) list = json.data;
       else if (json && typeof json === "object") {
-        // attempt to find array prop
         const maybeProps = ["items", "cash_book", "cashbook", "results"];
-        let found = false;
         for (const p of maybeProps) {
           if (Array.isArray(json[p])) {
             list = json[p];
-            found = true;
             break;
           }
         }
-        if (!found) list = [json];
       }
 
-      const mapped = list.map((it, i) => ({
-        id: it.code ?? it.id ?? String(i),
-        name: it.name ?? it.account_name ?? it.bank_name ?? "-",
-        opening_balance: it.opening_balance ?? it.openingbal ?? it.opening_balance_amount ?? "0",
-        opening_date: it.opening_date ?? it.opening_dt ?? it.date ?? it.created_at ?? "-",
-        debit: it.debit ?? it.total_debit ?? it.master_debit ?? "0",
-        credit: it.credit ?? it.total_credit ?? it.master_credit ?? "0",
-      }));
+      const mapped = list
+        .map((it, i) => {
+          const debit = Number(it.debit ?? it.total_debit ?? 0);
+          const credit = Number(it.credit ?? it.total_credit ?? 0);
+          const balance = debit - credit;
+          return {
+            id: it.id ?? String(i),
+            name: it.name ?? it.account_name ?? it.bank_name ?? "-",
+            balance,
+          };
+        })
+        .filter((item) => item.balance > 0); // ✅ only balances > 0
+
       setData(mapped);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -116,12 +99,7 @@ export default function CashBookScreen() {
   const filtered = useMemo(() => {
     if (!query) return data;
     const q = query.trim().toLowerCase();
-    return data.filter((r) =>
-      [r.name, r.opening_balance, r.opening_date, r.debit, r.credit]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
+    return data.filter((r) => r.name.toLowerCase().includes(q));
   }, [data, query]);
 
   if (loading) {
@@ -139,10 +117,7 @@ export default function CashBookScreen() {
         <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.opening_balance)}</Text>
-        <Text style={[styles.cell, styles.numCell]}>{formatDate(item.opening_date)}</Text>
-        <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.debit)}</Text>
-        <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.credit)}</Text>
+        <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.balance)}</Text>
       </View>
     );
   };
@@ -156,7 +131,6 @@ export default function CashBookScreen() {
         </TouchableOpacity>
         <View style={styles.titleWrap}>
           <Text style={styles.title}>Cash Book</Text>
-          
         </View>
       </View>
 
@@ -164,7 +138,7 @@ export default function CashBookScreen() {
       <View style={styles.searchBox}>
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
-          placeholder="Search name, date or amount"
+          placeholder="Search by name"
           placeholderTextColor="#9ca3af"
           value={query}
           onChangeText={setQuery}
@@ -178,32 +152,26 @@ export default function CashBookScreen() {
         )}
       </View>
 
-      {/* Table: header + rows (horizontal scroll if needed) */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-        <View style={[styles.tableWrapper, { minWidth: minTableWidth }]}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerCell, styles.nameCell]}>Name</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Opening Balance</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Opening Date</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Debit</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Credit</Text>
-          </View>
-
-          <FlatList
-            data={filtered}
-            keyExtractor={(it) => String(it.id)}
-            renderItem={renderRow}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            showsVerticalScrollIndicator={false}
-            style={{ maxHeight: "82%" }}
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>No records found.</Text>
-              </View>
-            }
-          />
+      {/* Table */}
+      <View style={styles.tableWrapper}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerCell, styles.nameCell]}>Name</Text>
+          <Text style={[styles.headerCell, styles.numCell]}>Balance</Text>
         </View>
-      </ScrollView>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(it) => String(it.id)}
+          renderItem={renderRow}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No records found.</Text>
+            </View>
+          }
+        />
+      </View>
     </View>
   );
 }
@@ -222,11 +190,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 10,
     backgroundColor: "#fff",
-    ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 0 } }),
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 0 },
+    }),
   },
   titleWrap: { flex: 1 },
   title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
-  subtitle: { fontSize: 12, color: "#6b7280", marginTop: 2 },
 
   searchBox: {
     flexDirection: "row",
@@ -265,8 +235,8 @@ const styles = StyleSheet.create({
   rowAlt: { backgroundColor: "#fff8f2" },
 
   cell: { fontSize: 14, color: "#1e293b", marginRight: 18 },
-  nameCell: { flex: 2, minWidth: 240 },
-  numCell: { flex: 1, minWidth: 140, textAlign: "right" },
+  nameCell: { flex: 2 },
+  numCell: { flex: 1, textAlign: "right" },
 
   empty: { padding: 24, alignItems: "center" },
   emptyText: { color: "#666" },

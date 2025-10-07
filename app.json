@@ -4,12 +4,12 @@
     "slug": "TaskPrime",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png", 
+    "icon": "./assets/images/taskprime.png", 
     "scheme": "taskprime",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/logo.png",
+      "image": "./assets/images/taskprime.png",
       "resizeMode": "contain",
       "backgroundColor": "#ff6600"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png", 
+        "foregroundImage": "./assets/images/taskprime.png", 
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -27,14 +27,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo.png"
+      "favicon": "./assets/images/taskprime.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.png",
+          "image": "./assets/images/taskprime.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ff6600",
