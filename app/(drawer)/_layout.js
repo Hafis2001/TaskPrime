@@ -11,7 +11,6 @@ export default function DrawerLayout() {
         drawerLabelStyle: { fontSize: 16 },
       }}
     >
-      
       <Drawer.Screen
         name="bank-cash"
         options={{
@@ -21,15 +20,28 @@ export default function DrawerLayout() {
           ),
         }}
       />
+
       <Drawer.Screen
-        name="debtors"
+        name="customers"
         options={{
-          title: "Debtors",
+          title: "Customers",
           drawerIcon: ({ color, size }) => (
             <Ionicons name="cash-outline" size={size} color={color} />
           ),
         }}
       />
+
+      {/* 👇 NEW SUPPLIERS PAGE */}
+      <Drawer.Screen
+        name="suppliers"
+        options={{
+          title: "Suppliers",
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
       <Drawer.Screen
         name="company-info"
         options={{
@@ -39,6 +51,7 @@ export default function DrawerLayout() {
           ),
         }}
       />
+
       <Drawer.Screen
         name="settings"
         options={{

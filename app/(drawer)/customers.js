@@ -34,17 +34,12 @@ export default function DebtorsScreen() {
       console.log("📡 API Status:", response.status);
       const result = await response.json();
       console.log("✅ API Response:", result);
-      setRawJson(result); // 👈 show raw response on screen
+      setRawJson(result);
 
-      // Try to detect structure automatically
       let arrayData = [];
-      if (Array.isArray(result)) {
-        arrayData = result;
-      } else if (Array.isArray(result.data)) {
-        arrayData = result.data;
-      } else if (Array.isArray(result.results)) {
-        arrayData = result.results;
-      }
+      if (Array.isArray(result)) arrayData = result;
+      else if (Array.isArray(result.data)) arrayData = result.data;
+      else if (Array.isArray(result.results)) arrayData = result.results;
 
       const formatted = arrayData
         .map((item) => ({
@@ -52,7 +47,7 @@ export default function DebtorsScreen() {
           name: item.name ?? "-",
           place: item.place ?? "-",
           phone: item.phone ?? "-",
-          balance: Number(item.balance ?? 0),
+          balance: Math.round(Number(item.balance ?? 0)), // 👈 remove decimals
         }))
         .filter((i) => i.balance > 0);
 
@@ -78,7 +73,6 @@ export default function DebtorsScreen() {
     );
   }
 
-  // 🧠 Show raw JSON if parsing failed
   if (data.length === 0) {
     return (
       <ScrollView style={{ padding: 20 }}>
@@ -110,7 +104,8 @@ export default function DebtorsScreen() {
           <Text style={styles.subText}>{item.place}</Text>
         </View>
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceText}>₹{item.balance.toFixed(2)}</Text>
+          {/* 👇 No decimals here */}
+          <Text style={styles.balanceText}>₹{item.balance}</Text>
         </View>
       </View>
     </View>
@@ -127,6 +122,7 @@ export default function DebtorsScreen() {
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Balance</Text>
+          {/* 👇 Rounded total balance */}
           <Text style={styles.summaryValue}>₹{Math.round(totalBalance)}</Text>
         </View>
       </View>

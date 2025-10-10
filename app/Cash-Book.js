@@ -22,9 +22,10 @@ function formatCurrency(v) {
   const n = Number(v ?? 0);
   if (isNaN(n)) return "₹0";
   try {
-    return "₹" + n.toLocaleString();
+    // ✅ Remove decimals and show without .00
+    return "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN");
   } catch {
-    return "₹" + Math.round(n);
+    return "₹" + Math.round(Math.abs(n));
   }
 }
 
@@ -64,19 +65,18 @@ export default function CashBookScreen() {
         }
       }
 
-      const mapped = list
-        .map((it, i) => {
-          const debit = Number(it.debit ?? it.total_debit ?? 0);
-          const credit = Number(it.credit ?? it.total_credit ?? 0);
-          const balance = debit - credit;
-          return {
-            id: it.id ?? String(i),
-            name: it.name ?? it.account_name ?? it.bank_name ?? "-",
-            code: it.account_code ?? it.code ?? it.id ?? String(i),
-            balance,
-          };
-        })
-        .filter((item) => item.balance > 0); // ✅ only balances > 0
+      // ✅ Correct balance: credit - debit
+      const mapped = list.map((it, i) => {
+        const debit = Number(it.debit ?? it.total_debit ?? 0);
+        const credit = Number(it.credit ?? it.total_credit ?? 0);
+        const balance = credit - debit;
+        return {
+          id: it.id ?? String(i),
+          name: it.name ?? it.account_name ?? it.bank_name ?? "-",
+          code: it.account_code ?? it.code ?? it.id ?? String(i),
+          balance,
+        };
+      });
 
       setData(mapped);
     } catch (err) {
@@ -113,18 +113,30 @@ export default function CashBookScreen() {
 
   const renderRow = ({ item, index }) => {
     const alt = index % 2 === 1;
+    const isPositive = item.balance >= 0;
+
     return (
       <TouchableOpacity
-        onPress={() => router.push({
-          pathname: "cash-ledger",
-          params: { account_code: item.code, account_name: item.name }
-        })}
+        onPress={() =>
+          router.push({
+            pathname: "cash-ledger",
+            params: { account_code: item.code, account_name: item.name },
+          })
+        }
       >
         <View style={[styles.row, alt && styles.rowAlt]}>
           <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
             {item.name}
           </Text>
-          <Text style={[styles.cell, styles.numCell]}>{formatCurrency(item.balance)}</Text>
+          <Text
+            style={[
+              styles.cell,
+              styles.numCell,
+              { color: isPositive ? "#16a34a" : "#dc2626", fontWeight: "600" },
+            ]}
+          >
+            {formatCurrency(item.balance)}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -134,7 +146,10 @@ export default function CashBookScreen() {
     <View style={styles.container}>
       {/* Top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.push("bank-cash")} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.push("bank-cash")}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
         </TouchableOpacity>
         <View style={styles.titleWrap}>
@@ -171,7 +186,9 @@ export default function CashBookScreen() {
           data={filtered}
           keyExtractor={(it) => String(it.id)}
           renderItem={renderRow}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -199,7 +216,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#fff",
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.03,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+      },
       android: { elevation: 0 },
     }),
   },

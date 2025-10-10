@@ -15,13 +15,14 @@ import {
 
 const API_URL = "https://taskprime.app/api/get-bank-book-data/";
 
+/* ✅ Updated: Removed decimals and made value absolute */
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   if (isNaN(n)) return "₹0";
   try {
-    return "₹" + n.toLocaleString();
+    return "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN"); // <-- no decimals
   } catch {
-    return "₹" + Math.round(n);
+    return "₹" + Math.round(Math.abs(n));
   }
 }
 
@@ -50,22 +51,19 @@ export default function BankBookScreen() {
       }
 
       const json = await res.json();
-
-      // Use the correct field name from API
       const list = Array.isArray(json) ? json : json.data ?? [];
 
-      const mapped = list
-        .map((it, i) => {
-          const debit = Number(it.debit ?? it.total_debit ?? 0);
-          const credit = Number(it.credit ?? it.total_credit ?? 0);
-          const balance = debit - credit;
-          return {
-            id: it.code ?? it.account_code ?? String(i), // crucial for ledger
-            name: it.name ?? it.account_name ?? "-",
-            balance,
-          };
-        })
-        .filter((item) => item.balance > 0);
+      // ✅ Calculate balance as credit - debit
+      const mapped = list.map((it, i) => {
+        const debit = Number(it.debit ?? it.total_debit ?? 0);
+        const credit = Number(it.credit ?? it.total_credit ?? 0);
+        const balance = credit - debit;
+        return {
+          id: it.code ?? it.account_code ?? String(i),
+          name: it.name ?? it.account_name ?? "-",
+          balance,
+        };
+      });
 
       setData(mapped);
     } catch (err) {
@@ -92,26 +90,34 @@ export default function BankBookScreen() {
     return data.filter((r) => r.name.toLowerCase().includes(q));
   }, [data, query]);
 
-  const renderRow = ({ item, index }) => (
-    <TouchableOpacity
-      onPress={() =>{
-        router.push({
-          pathname: "bank-ledger",
-          params: { account_code: item.id, account_name: item.name },
-        })
-        console.log("item",item)}
-      }
-    >
-      <View style={[styles.row, index % 2 === 1 && styles.rowAlt]}>
-        <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={[styles.cell, styles.numCell]}>
-          {formatCurrency(item.balance)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderRow = ({ item, index }) => {
+    const isPositive = item.balance >= 0;
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          router.push({
+            pathname: "bank-ledger",
+            params: { account_code: item.id, account_name: item.name },
+          });
+        }}
+      >
+        <View style={[styles.row, index % 2 === 1 && styles.rowAlt]}>
+          <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text
+            style={[
+              styles.cell,
+              styles.numCell,
+              { color: isPositive ? "#16a34a" : "#dc2626" },
+            ]}
+          >
+            {formatCurrency(item.balance)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -123,12 +129,15 @@ export default function BankBookScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top bar */}
+      {/* ✅ Top bar with Back Button */}
       <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={20} color="#0f1724" />
+        </TouchableOpacity>
         <Text style={styles.title}>Bank Book</Text>
       </View>
 
-      {/* Search */}
+      {/* ✅ Search box */}
       <View style={styles.searchBox}>
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
@@ -146,7 +155,7 @@ export default function BankBookScreen() {
         )}
       </View>
 
-      {/* Table */}
+      {/* ✅ Table */}
       <View style={styles.tableWrapper}>
         <View style={styles.headerRow}>
           <Text style={[styles.headerCell, styles.nameCell]}>Name</Text>
@@ -163,7 +172,7 @@ export default function BankBookScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>No positive balances found.</Text>
+              <Text style={styles.emptyText}>No records found.</Text>
             </View>
           }
         />
@@ -175,8 +184,21 @@ export default function BankBookScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 14 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  // ✅ Top Bar
   topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fffaf5",
+    marginRight: 10,
+  },
   title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
+
+  // ✅ Search
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -188,6 +210,8 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: "#0f1724" },
   clearBtn: { marginLeft: 8 },
+
+  // ✅ Table
   tableWrapper: { flex: 1, width: "100%" },
   headerRow: {
     flexDirection: "row",
@@ -212,6 +236,6 @@ const styles = StyleSheet.create({
   rowAlt: { backgroundColor: "#fff8f2" },
   cell: { fontSize: 14, color: "#1e293b" },
   nameCell: { flex: 2 },
-  numCell: { flex: 1, textAlign: "right" },
-  emptyText: { color: "#666" },
+  numCell: { flex: 1, textAlign: "right", fontWeight: "600" },
+  emptyText: { color: "#666", marginTop: 20 },
 });
