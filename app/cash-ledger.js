@@ -15,6 +15,17 @@ import {
 const LEDGER_API =
   "https://taskprime.app/api/get-cash-ledger-details/?account_code=";
 
+// ✅ Format date to dd-mm-yyyy
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 export default function CashLedgerScreen() {
   const router = useRouter();
   const { account_code, account_name } = useLocalSearchParams();
@@ -57,18 +68,38 @@ export default function CashLedgerScreen() {
 
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
-        // ✅ Calculate balance (absolute, no negative)
-        const processed = json.data.map((item) => {
-          const debit = Number(item.debit ?? 0);
-          const credit = Number(item.credit ?? 0);
-          const balance = Math.abs(debit - credit);
-          return { ...item, balance };
-        });
-        setData(processed);
+        // ✅ Process data and calculate balance (credit - debit)
+        const processed = json.data
+  .map((item) => {
+    const debit = Number(item.debit ?? 0);
+    const credit = Number(item.credit ?? 0);
+    const balance = credit - debit;
+
+    // Format date to dd-mm-yyyy
+    const dateObj = item.entry_date ? new Date(item.entry_date) : null;
+    const formattedDate = dateObj
+      ? `${String(dateObj.getDate()).padStart(2, "0")}-${String(
+          dateObj.getMonth() + 1
+        ).padStart(2, "0")}-${dateObj.getFullYear()}`
+      : "-";
+
+    return {
+      date: formattedDate,
+      rawDate: dateObj ? dateObj.getTime() : 0, // for sorting
+      particulars: item.particulars ?? item.account_name ?? "-",
+      narration: item.narration ?? "-",
+      balance,
+    };
+  })
+  .sort((a, b) => b.rawDate - a.rawDate); // ✅ Sort newest to oldest
+
+setData(processed);
+
       } else {
         setData([]);
       }
     } catch (err) {
+      console.error("🔥 Cash ledger fetch error:", err);
       Alert.alert("Network Error", "Could not fetch ledger.");
       setData([]);
     } finally {
@@ -76,14 +107,28 @@ export default function CashLedgerScreen() {
     }
   };
 
-  const renderItem = ({ item, index }) => (
-    <View style={[styles.row, index % 2 === 1 && styles.rowAlt]}>
-      <Text style={[styles.cell, { flex: 1 }]}>{item.entry_date || "-"}</Text>
-      <Text style={[styles.cell, { flex: 1, textAlign: "right" }]}>
-        ₹{item.balance.toLocaleString("en-IN")}
-      </Text>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    const isNegative = item.balance < 0;
+    const color = isNegative ? "#d32f2f" : "#2e7d32"; // red / green
+    const sign = isNegative ? "−" : "+";
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.dateText}>{item.date}</Text>
+          <Text style={[styles.balanceText, { color }]}>
+            {sign}₹{Math.abs(item.balance).toLocaleString("en-IN")}
+          </Text>
+        </View>
+
+        <Text style={styles.particularsText}>{item.particulars}</Text>
+
+        {item.narration ? (
+          <Text style={styles.narrationText}>{item.narration}</Text>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -104,19 +149,12 @@ export default function CashLedgerScreen() {
           data={data}
           keyExtractor={(_, i) => String(i)}
           renderItem={renderItem}
-          ListHeaderComponent={
-            <View style={styles.headerRow}>
-              <Text style={[styles.headerCell, { flex: 1 }]}>Date</Text>
-              <Text style={[styles.headerCell, { flex: 1, textAlign: "right" }]}>
-                Balance
-              </Text>
-            </View>
-          }
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={styles.emptyText}>No ledger entries found.</Text>
             </View>
           }
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -136,26 +174,32 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
-  headerRow: {
-    flexDirection: "row",
-    backgroundColor: "#fff6f1",
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  headerCell: { fontSize: 13, fontWeight: "700", color: "#ff6600" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fffaf5",
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderBottomColor: "#f1e9e0",
-    borderBottomWidth: 1,
-  },
-  rowAlt: { backgroundColor: "#fff8f2" },
-  cell: { fontSize: 13, color: "#1e293b" },
+
+  // Center / Empty state
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { color: "#666" },
+  emptyText: { color: "#666", fontSize: 14 },
+
+  // Card styles
+  card: {
+    backgroundColor: "#fffaf5",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#f1e9e0",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  dateText: { fontSize: 13, color: "#6b7280", fontWeight: "500" },
+  balanceText: { fontSize: 14, fontWeight: "700" },
+  particularsText: { fontSize: 15, color: "#111827", fontWeight: "600" },
+  narrationText: { fontSize: 13, color: "#6b7280", marginTop: 4 },
 });

@@ -17,16 +17,14 @@ import {
 
 const API_URL = "https://taskprime.app/api/get-cash-book-data/";
 
-/* Helper function */
+/* ✅ Format currency with optional "-" sign */
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   if (isNaN(n)) return "₹0";
-  try {
-    // ✅ Remove decimals and show without .00
-    return "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN");
-  } catch {
-    return "₹" + Math.round(Math.abs(n));
-  }
+  const isNegative = n < 0;
+  const absValue = Math.abs(Math.round(n));
+  const formatted = "₹" + absValue.toLocaleString("en-IN");
+  return isNegative ? `-${formatted}` : formatted;
 }
 
 export default function CashBookScreen() {
@@ -65,18 +63,32 @@ export default function CashBookScreen() {
         }
       }
 
-      // ✅ Correct balance: credit - debit
-      const mapped = list.map((it, i) => {
-        const debit = Number(it.debit ?? it.total_debit ?? 0);
-        const credit = Number(it.credit ?? it.total_credit ?? 0);
-        const balance = credit - debit;
-        return {
-          id: it.id ?? String(i),
-          name: it.name ?? it.account_name ?? it.bank_name ?? "-",
-          code: it.account_code ?? it.code ?? it.id ?? String(i),
-          balance,
-        };
-      });
+      // threshold for treating very small floats as zero (paise level)
+      const ZERO_EPS = 0.01;
+
+      const mapped = list
+        .map((it, i) => {
+          // Prefer explicit balance if API supplies it
+          const rawBalance =
+            it.balance !== undefined && it.balance !== null
+              ? Number(it.balance)
+              : Number(it.credit ?? it.total_credit ?? 0) - Number(it.debit ?? it.total_debit ?? 0);
+
+          const balance = Number.isFinite(rawBalance) ? rawBalance : 0;
+
+          return {
+            id: it.id ?? String(i),
+            name: it.name ?? it.account_name ?? it.bank_name ?? "-",
+            code: it.account_code ?? it.code ?? it.id ?? String(i),
+            balance,
+          };
+        })
+        // keep items whose absolute balance is >= ZERO_EPS (exclude zeros)
+        .filter((item) => Math.abs(Number(item.balance)) >= ZERO_EPS);
+
+      console.log(
+        `CashBook: fetched ${list.length} raw items → ${mapped.length} non-zero items (zero eps=${ZERO_EPS})`
+      );
 
       setData(mapped);
     } catch (err) {
@@ -100,7 +112,7 @@ export default function CashBookScreen() {
   const filtered = useMemo(() => {
     if (!query) return data;
     const q = query.trim().toLowerCase();
-    return data.filter((r) => r.name.toLowerCase().includes(q));
+    return data.filter((r) => (r.name ?? "").toLowerCase().includes(q));
   }, [data, query]);
 
   if (loading) {
@@ -146,10 +158,7 @@ export default function CashBookScreen() {
     <View style={styles.container}>
       {/* Top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => router.push("bank-cash")}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.push("bank-cash")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
         </TouchableOpacity>
         <View style={styles.titleWrap}>
@@ -186,9 +195,7 @@ export default function CashBookScreen() {
           data={filtered}
           keyExtractor={(it) => String(it.id)}
           renderItem={renderRow}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.empty}>

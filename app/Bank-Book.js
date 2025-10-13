@@ -15,15 +15,13 @@ import {
 
 const API_URL = "https://taskprime.app/api/get-bank-book-data/";
 
-/* ✅ Updated: Removed decimals and made value absolute */
+// ✅ Format currency with optional "-" sign
 function formatCurrency(v) {
   const n = Number(v ?? 0);
-  if (isNaN(n)) return "₹0";
-  try {
-    return "₹" + Math.abs(Math.round(n)).toLocaleString("en-IN"); // <-- no decimals
-  } catch {
-    return "₹" + Math.round(Math.abs(n));
-  }
+  const isNegative = n < 0;
+  const absValue = Math.abs(Math.round(n));
+  const formatted = "₹" + absValue.toLocaleString("en-IN");
+  return isNegative ? `-${formatted}` : formatted;
 }
 
 export default function BankBookScreen() {
@@ -54,18 +52,20 @@ export default function BankBookScreen() {
       const list = Array.isArray(json) ? json : json.data ?? [];
 
       // ✅ Calculate balance as credit - debit
-      const mapped = list.map((it, i) => {
-        const debit = Number(it.debit ?? it.total_debit ?? 0);
-        const credit = Number(it.credit ?? it.total_credit ?? 0);
-        const balance = credit - debit;
-        return {
-          id: it.code ?? it.account_code ?? String(i),
-          name: it.name ?? it.account_name ?? "-",
-          balance,
-        };
-      });
+      const mapped = list
+  .map((it, i) => {
+    const debit = Number(it.debit ?? it.total_debit ?? 0);
+    const credit = Number(it.credit ?? it.total_credit ?? 0);
+    const balance = credit - debit;
+    return {
+      id: it.code ?? it.account_code ?? String(i),
+      name: it.name ?? it.account_name ?? "-",
+      balance,
+    };
+  })
+  .filter((item) => item.balance !== 0); // ✅ remove only zero balances
 
-      setData(mapped);
+setData(mapped);
     } catch (err) {
       console.error("Fetch error:", err);
       setData([]);

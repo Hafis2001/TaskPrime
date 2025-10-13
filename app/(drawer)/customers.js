@@ -11,19 +11,29 @@ import {
   ScrollView,
 } from "react-native";
 
+const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
+
 export default function DebtorsScreen() {
   const [data, setData] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [totalStores, setTotalStores] = useState(0);
+  const [totalBalance, setTotalBalance] = useState(0);
   const [rawJson, setRawJson] = useState(null);
 
   const fetchDebtors = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
-      console.log("🔑 Retrieved token:", token);
 
-      const response = await fetch("https://taskprime.app/api/debtors/get-debtors/", {
+      if (!token) {
+        Alert.alert("Session Expired", "Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -31,9 +41,19 @@ export default function DebtorsScreen() {
         },
       });
 
-      console.log("📡 API Status:", response.status);
-      const result = await response.json();
-      console.log("✅ API Response:", result);
+      const text = await response.text(); // 👈 Read as text first
+      let result;
+
+      // ✅ Safely parse JSON
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error("Invalid JSON (Server might return HTML):", text.slice(0, 200));
+        Alert.alert("Server Error", "Received invalid response from the server.");
+        setLoading(false);
+        return;
+      }
+
       setRawJson(result);
 
       let arrayData = [];
@@ -42,19 +62,30 @@ export default function DebtorsScreen() {
       else if (Array.isArray(result.results)) arrayData = result.results;
 
       const formatted = arrayData
-        .map((item) => ({
-          id: item.code || item.id || Math.random().toString(),
-          name: item.name ?? "-",
-          place: item.place ?? "-",
-          phone: item.phone ?? "-",
-          balance: Math.round(Number(item.balance ?? 0)), // 👈 remove decimals
-        }))
-        .filter((i) => i.balance > 0);
+        .map((item) => {
+          let name = item.name ?? "-";
+          // 🧹 Clean up "(SP)" or similar
+          name = name.replace(/^\(.*?\)\s*/g, "").trim();
+          // 🧠 Capitalize properly
+          name = name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+          const balance = Math.round(Number(item.balance ?? 0));
+          return {
+            id: item.code || item.id || Math.random().toString(),
+            name,
+            place: item.place ?? "-",
+            phone: item.phone ?? "-",
+            balance,
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name)); // 👈 Sort alphabetically
 
-      console.log("📊 Parsed Data:", formatted);
       setData(formatted);
+      setFiltered(formatted);
+      setTotalStores(formatted.length);
+      const totalBal = formatted.reduce((sum, c) => sum + c.balance, 0);
+      setTotalBalance(totalBal);
     } catch (error) {
-      console.error("🔥 Error fetching debtors:", error);
+      console.error("🔥 Error fetching customers:", error);
       Alert.alert("Network Error", "Could not connect to server.");
     } finally {
       setLoading(false);
@@ -65,6 +96,16 @@ export default function DebtorsScreen() {
     fetchDebtors();
   }, []);
 
+  useEffect(() => {
+    const filteredData = data.filter(
+      (i) =>
+        i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.phone.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFiltered(filteredData);
+  }, [searchQuery, data]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -73,7 +114,7 @@ export default function DebtorsScreen() {
     );
   }
 
-  if (data.length === 0) {
+  if (filtered.length === 0) {
     return (
       <ScrollView style={{ padding: 20 }}>
         <Text style={{ fontWeight: "bold", color: "red" }}>
@@ -86,15 +127,6 @@ export default function DebtorsScreen() {
     );
   }
 
-  const filtered = data.filter(
-    (i) =>
-      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.place.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.phone.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalBalance = filtered.reduce((a, b) => a + (b.balance || 0), 0);
-
   const renderCard = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardRow}>
@@ -104,8 +136,14 @@ export default function DebtorsScreen() {
           <Text style={styles.subText}>{item.place}</Text>
         </View>
         <View style={styles.balanceContainer}>
-          {/* 👇 No decimals here */}
-          <Text style={styles.balanceText}>₹{item.balance}</Text>
+          <Text
+            style={[
+              styles.balanceText,
+              { color: item.balance < 0 ? "red" : "#ff6600" },
+            ]}
+          >
+            ₹{item.balance.toLocaleString("en-IN")}
+          </Text>
         </View>
       </View>
     </View>
@@ -113,16 +151,15 @@ export default function DebtorsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Debtors Statement</Text>
+      <Text style={styles.title}>Customers Statement</Text>
 
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Stores</Text>
-          <Text style={styles.summaryValue}>{filtered.length}</Text>
+          <Text style={styles.summaryValue}>{totalStores}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Balance</Text>
-          {/* 👇 Rounded total balance */}
           <Text style={styles.summaryValue}>₹{Math.round(totalBalance)}</Text>
         </View>
       </View>
@@ -205,6 +242,6 @@ const styles = StyleSheet.create({
   cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
   subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
   balanceContainer: { justifyContent: "center", alignItems: "flex-end", flex: 1 },
-  balanceText: { fontSize: 18, fontWeight: "bold", color: "#ff6600" },
+  balanceText: { fontSize: 18, fontWeight: "bold" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
