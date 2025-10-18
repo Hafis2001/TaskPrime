@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback ,useLayoutEffect} from "react";
 import {
   View,
   Text,
@@ -7,19 +7,60 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  BackHandler,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 
 const API_URL = "https://taskprime.app/api/get-misel-data/";
 
 export default function CompanyInfoScreen() {
+
+
+const navigation = useNavigation();
+
+  // ✅ set the header title & style dynamically
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Company Info", // you can even make this dynamic later
+      headerTitleStyle: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 20,
+        marginBottom:25,
+      },
+      headerStyle: {
+        backgroundColor: "#ff6600",
+      },
+      headerTitleAlign: "center",
+    });
+  }, [navigation]);
+
+
+
+
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [companyData, setCompanyData] = useState(null);
   const [user, setUser] = useState({ name: "", clientId: "", token: "" });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // ✅ Fixed BackHandler for new RN/Expo versions
+  useFocusEffect(
+    useCallback(() => {
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          setShowLogoutModal(true);
+          return true; // Prevent default behavior
+        }
+      );
+
+      return () => backHandler.remove(); // ✅ Proper cleanup
+    }, [])
+  );
 
   useEffect(() => {
     const loadUserAndCompany = async () => {
@@ -38,20 +79,15 @@ export default function CompanyInfoScreen() {
       });
 
       try {
-        const response = await fetch(
-          `${API_URL}?client_id=${parsedUser.clientId}`,
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${parsedUser.token}`,
-            },
-          }
-        );
+        const response = await fetch(`${API_URL}?client_id=${parsedUser.clientId}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${parsedUser.token}`,
+          },
+        });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
         const json = await response.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
@@ -181,13 +217,15 @@ export default function CompanyInfoScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF", padding: 16 },
+  container: { flex: 1, backgroundColor: "#FFF", padding:16 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+
+
   },
   headerTitle: {
     fontSize: 24,
@@ -241,8 +279,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 15,
   },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

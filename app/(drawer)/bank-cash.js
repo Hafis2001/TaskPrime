@@ -1,5 +1,4 @@
-// app/bank-cash.js
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -7,19 +6,36 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  BackHandler,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = Math.min(360, width - 48);
 
 export default function BankCashScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const backAction = () => {
+      router.replace("/company-info");
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, []);
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingBottom: insets.bottom + 20 }]}>
       <Text style={styles.heading}>Accounts</Text>
       <Text style={styles.subheading}>
         Quick access to your bank & cash books
@@ -43,11 +59,17 @@ export default function BankCashScreen() {
 
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Bank Book</Text>
-              <Text style={styles.cardSubtitle}>View bank details & ledgers</Text>
+              <Text style={styles.cardSubtitle}>
+                View bank details & ledgers
+              </Text>
             </View>
 
             <View style={styles.chevWrap}>
-              <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.9)" />
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color="rgba(255,255,255,0.9)"
+              />
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -69,11 +91,17 @@ export default function BankCashScreen() {
 
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Cash Book</Text>
-              <Text style={styles.cardSubtitle}>Cash summary & transactions</Text>
+              <Text style={styles.cardSubtitle}>
+                Cash summary & transactions
+              </Text>
             </View>
 
             <View style={styles.chevWrap}>
-              <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.95)" />
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color="rgba(255,255,255,0.95)"
+              />
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -109,7 +137,6 @@ const styles = StyleSheet.create({
     padding: 18,
     flexDirection: "row",
     alignItems: "center",
-    // cross-platform shadow
     ...Platform.select({
       ios: {
         shadowColor: "#0b1220",
@@ -120,7 +147,6 @@ const styles = StyleSheet.create({
       android: {
         elevation: 6,
       },
-      default: {},
     }),
     marginBottom: 8,
   },
@@ -153,12 +179,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: 8,
   },
-
-  /* variants (if you want to tweak further) */
-  cardBank: {
-    // additional styling if needed
-  },
-  cardCash: {
-    // additional styling if needed
-  },
+  cardBank: {},
+  cardCash: {},
 });

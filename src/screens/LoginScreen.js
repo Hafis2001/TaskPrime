@@ -132,17 +132,18 @@ export default function LoginScreen() {
       </View>
 
       <TextInput
-        style={styles.input}
-        placeholder="Enter your Client ID"
-        value={clientId}
-        onChangeText={setClientId}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-      />
+  style={styles.input}
+  placeholder="Enter your Client ID"
+  value={clientId}
+  onChangeText={(text) => setClientId(text.toUpperCase())} // convert to uppercase
+/>
+
+<TextInput
+  style={styles.input}
+  placeholder="Username"
+  value={username}
+  onChangeText={(text) => setUsername(text.toUpperCase())} // convert to uppercase
+/>
 
       {/* 👇 Password input with eye icon */}
       <View style={styles.passwordContainer}>

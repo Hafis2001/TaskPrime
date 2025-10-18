@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
 
 const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
 
@@ -22,6 +24,24 @@ export default function DebtorsScreen() {
   const [totalBalance, setTotalBalance] = useState(0);
   const [rawJson, setRawJson] = useState(null);
 
+  const router = useRouter();
+
+  // ✅ Handle hardware back button (Android)
+  useEffect(() => {
+    const backAction = () => {
+      router.replace("/company-info"); // navigate to company-info page
+      return true; // prevent exiting app
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove(); // cleanup listener on unmount
+  }, []);
+
+  // ✅ Fetch data
   const fetchDebtors = async () => {
     try {
       setLoading(true);
@@ -41,14 +61,13 @@ export default function DebtorsScreen() {
         },
       });
 
-      const text = await response.text(); // 👈 Read as text first
+      const text = await response.text();
       let result;
 
-      // ✅ Safely parse JSON
       try {
         result = JSON.parse(text);
       } catch (e) {
-        console.error("Invalid JSON (Server might return HTML):", text.slice(0, 200));
+        console.error("Invalid JSON:", text.slice(0, 200));
         Alert.alert("Server Error", "Received invalid response from the server.");
         setLoading(false);
         return;
@@ -64,9 +83,7 @@ export default function DebtorsScreen() {
       const formatted = arrayData
         .map((item) => {
           let name = item.name ?? "-";
-          // 🧹 Clean up "(SP)" or similar
           name = name.replace(/^\(.*?\)\s*/g, "").trim();
-          // 🧠 Capitalize properly
           name = name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
           const balance = Math.round(Number(item.balance ?? 0));
           return {
@@ -77,7 +94,7 @@ export default function DebtorsScreen() {
             balance,
           };
         })
-        .sort((a, b) => a.name.localeCompare(b.name)); // 👈 Sort alphabetically
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       setData(formatted);
       setFiltered(formatted);

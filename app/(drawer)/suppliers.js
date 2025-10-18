@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,11 +9,14 @@ import {
   TextInput,
   View,
   ScrollView,
+  BackHandler,
 } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 
 const API_URL = "https://taskprime.app/api/suppiers_api/suppliers/";
 
 export default function SuppliersScreen() {
+  const router = useRouter();
   const [data, setData] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +83,6 @@ export default function SuppliersScreen() {
             balance,
           };
         })
-        // ✅ Remove suppliers with balance = 0
         .filter((item) => item.balance !== 0)
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -112,6 +114,20 @@ export default function SuppliersScreen() {
     setFiltered(filteredData);
   }, [searchQuery, data]);
 
+  // ✅ Handle Android Back Button
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        router.push("/(drawer)/company-info"); // 👈 Navigate to company-info
+        return true; // prevent default back behavior
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      return () => subscription.remove();
+    }, [router])
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -123,12 +139,7 @@ export default function SuppliersScreen() {
   if (filtered.length === 0) {
     return (
       <ScrollView style={{ padding: 20 }}>
-        <Text style={{ fontWeight: "bold", color: "red" }}>
-          ⚠️ No data displayed. API Raw Output:
-        </Text>
-        <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
-          {JSON.stringify(rawJson, null, 2)}
-        </Text>
+        <Text style={{ fontWeight: "bold", color: "red" }}>⚠️ No data found :</Text>
       </ScrollView>
     );
   }
@@ -136,9 +147,7 @@ export default function SuppliersScreen() {
   const renderCard = ({ item }) => {
     const isNegative = item.balance < 0;
     const formattedBalance = Math.abs(item.balance).toLocaleString("en-IN");
-    const displayText = isNegative
-      ? `-₹${formattedBalance}`
-      : `₹${formattedBalance}`;
+    const displayText = isNegative ? `-₹${formattedBalance}` : `₹${formattedBalance}`;
 
     return (
       <View style={styles.card}>
@@ -149,12 +158,7 @@ export default function SuppliersScreen() {
             <Text style={styles.subText}>{item.place}</Text>
           </View>
           <View style={styles.balanceContainer}>
-            <Text
-              style={[
-                styles.balanceText,
-                { color: isNegative ? "red" : "green" },
-              ]}
-            >
+            <Text style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}>
               {displayText}
             </Text>
           </View>
@@ -207,11 +211,7 @@ export default function SuppliersScreen() {
         </Text>
       </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderCard}
-      />
+      <FlatList data={filtered} keyExtractor={(item) => item.id.toString()} renderItem={renderCard} />
     </View>
   );
 }

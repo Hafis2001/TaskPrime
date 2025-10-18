@@ -14,16 +14,24 @@
       "backgroundColor": "#ff6600"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      },
+      "backgroundColor": "#ffffff"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/taskprime.png", 
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.hafis2001.TaskPrime"
+      "package": "com.hafis2001.TaskPrime",
+      "androidStatusBar": {
+        "barStyle": "light-content",
+        "backgroundColor": "#ff6600",
+        "translucent": false
+      }
     },
     "web": {
       "output": "static",
