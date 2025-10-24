@@ -23,22 +23,19 @@ export default function DebtorsScreen() {
   const [totalStores, setTotalStores] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
   const [rawJson, setRawJson] = useState(null);
-
   const router = useRouter();
 
-  // ✅ Handle hardware back button (Android)
+  // ✅ Handle Android back button
   useEffect(() => {
     const backAction = () => {
-      router.replace("/company-info"); // navigate to company-info page
-      return true; // prevent exiting app
+      router.replace("/company-info");
+      return true;
     };
-
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
-
-    return () => backHandler.remove(); // cleanup listener on unmount
+    return () => backHandler.remove();
   }, []);
 
   // ✅ Fetch data
@@ -46,7 +43,6 @@ export default function DebtorsScreen() {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
-
       if (!token) {
         Alert.alert("Session Expired", "Please login again.");
         setLoading(false);
@@ -63,7 +59,6 @@ export default function DebtorsScreen() {
 
       const text = await response.text();
       let result;
-
       try {
         result = JSON.parse(text);
       } catch (e) {
@@ -74,7 +69,6 @@ export default function DebtorsScreen() {
       }
 
       setRawJson(result);
-
       let arrayData = [];
       if (Array.isArray(result)) arrayData = result;
       else if (Array.isArray(result.data)) arrayData = result.data;
@@ -144,11 +138,14 @@ export default function DebtorsScreen() {
     );
   }
 
+  // ✅ Card UI
   const renderCard = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardRow}>
-        <View style={{ flex: 3 }}>
-          <Text style={styles.cardValue}>{item.name}</Text>
+        <View style={{ flex: 3, paddingRight: 8 }}>
+          <Text style={styles.cardValue} numberOfLines={1} ellipsizeMode="tail">
+            {item.name}
+          </Text>
           <Text style={styles.subText}>{item.phone}</Text>
           <Text style={styles.subText}>{item.place}</Text>
         </View>
@@ -158,6 +155,9 @@ export default function DebtorsScreen() {
               styles.balanceText,
               { color: item.balance < 0 ? "red" : "#ff6600" },
             ]}
+            numberOfLines={1}
+            ellipsizeMode="clip"
+            adjustsFontSizeToFit={true}
           >
             ₹{item.balance.toLocaleString("en-IN")}
           </Text>
@@ -190,7 +190,10 @@ export default function DebtorsScreen() {
 
       <View style={styles.headingCard}>
         <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
-        <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>
+        <Text
+          style={[styles.headingText, { flex: 1, textAlign: "right" }]}
+          numberOfLines={1}
+        >
           Balance
         </Text>
       </View>
@@ -199,6 +202,8 @@ export default function DebtorsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderCard}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -255,10 +260,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardRow: { flexDirection: "row", justifyContent: "space-between" },
+  cardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
   subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
-  balanceContainer: { justifyContent: "center", alignItems: "flex-end", flex: 1 },
-  balanceText: { fontSize: 18, fontWeight: "bold" },
+  balanceContainer: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    flexShrink: 1,
+    flexBasis: 100,
+  },
+  balanceText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "right",
+    includeFontPadding: false,
+  },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

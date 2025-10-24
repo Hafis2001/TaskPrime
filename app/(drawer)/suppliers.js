@@ -23,7 +23,6 @@ export default function SuppliersScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [totalSuppliers, setTotalSuppliers] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
-  const [rawJson, setRawJson] = useState(null);
 
   const fetchSuppliers = async () => {
     try {
@@ -46,17 +45,14 @@ export default function SuppliersScreen() {
 
       const text = await response.text();
       let result;
-
       try {
         result = JSON.parse(text);
       } catch (e) {
-        console.error("Invalid JSON (Server might return HTML):", text.slice(0, 200));
+        console.error("Invalid JSON:", text.slice(0, 200));
         Alert.alert("Server Error", "Received invalid response from the server.");
         setLoading(false);
         return;
       }
-
-      setRawJson(result);
 
       let arrayData = [];
       if (Array.isArray(result)) arrayData = result;
@@ -114,16 +110,14 @@ export default function SuppliersScreen() {
     setFiltered(filteredData);
   }, [searchQuery, data]);
 
-  // ✅ Handle Android Back Button
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        router.push("/(drawer)/company-info"); // 👈 Navigate to company-info
-        return true; // prevent default back behavior
+        router.push("/(drawer)/company-info");
+        return true;
       };
 
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
-
       return () => subscription.remove();
     }, [router])
   );
@@ -158,7 +152,11 @@ export default function SuppliersScreen() {
             <Text style={styles.subText}>{item.place}</Text>
           </View>
           <View style={styles.balanceContainer}>
-            <Text style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}>
+            <Text
+              style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}
+              numberOfLines={1}
+              ellipsizeMode="clip"
+            >
               {displayText}
             </Text>
           </View>
@@ -206,9 +204,7 @@ export default function SuppliersScreen() {
 
       <View style={styles.headingCard}>
         <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
-        <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>
-          Balance
-        </Text>
+        <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>Balance</Text>
       </View>
 
       <FlatList data={filtered} keyExtractor={(item) => item.id.toString()} renderItem={renderCard} />
@@ -235,7 +231,6 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   summaryItem: { alignItems: "center", flex: 1 },
@@ -261,10 +256,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   cardRow: { flexDirection: "row", justifyContent: "space-between" },
@@ -275,7 +266,19 @@ const styles = StyleSheet.create({
   },
   cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
   subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
-  balanceContainer: { justifyContent: "center", alignItems: "flex-end", flex: 1 },
-  balanceText: { fontSize: 18, fontWeight: "bold" },
+  balanceContainer: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    flexShrink: 1,
+    flexGrow: 0,
+    minWidth: 120,
+    paddingLeft: 10,
+  },
+  balanceText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "right",
+    flexWrap: "nowrap",
+  },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
