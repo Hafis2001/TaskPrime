@@ -25,14 +25,19 @@ const navigation = useNavigation();
   useLayoutEffect(() => {
     navigation.setOptions({
       title: "Company Info", // you can even make this dynamic later
+      
       headerTitleStyle: {
+        
         color: "#fff",
-        fontWeight: "bold",
+        // fontWeight: "bold",
         fontSize: 20,
-        marginBottom:25,
+       marginright:90,
+       marginTop:50,
+       
       },
       headerStyle: {
-        backgroundColor: "#ff6600",
+        backgroundColor: "#ff6905ff",
+        height:50,
       },
       headerTitleAlign: "center",
     });

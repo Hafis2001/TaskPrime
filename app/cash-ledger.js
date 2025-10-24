@@ -1,15 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 
 const LEDGER_API =
@@ -18,6 +18,7 @@ const LEDGER_API =
 // ✅ Format date to dd-mm-yyyy
 function formatDate(dateStr) {
   if (!dateStr) return "-";
+  
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
   const day = String(d.getDate()).padStart(2, "0");

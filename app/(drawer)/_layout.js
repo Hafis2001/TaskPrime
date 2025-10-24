@@ -22,15 +22,11 @@ export default function DrawerLayout() {
           headerStyle: { 
             backgroundColor: "#ff6600",
             height: 76,
-            
           },
           headerTintColor: "#fff",
           drawerActiveTintColor: "#ff6600",
           drawerLabelStyle: { fontSize: 16 },
-          sceneContainerStyle: { 
-            backgroundColor: "#fff",
-           
-          },
+          sceneContainerStyle: { backgroundColor: "#fff" },
         }}
       >
         <Drawer.Screen
@@ -65,10 +61,22 @@ export default function DrawerLayout() {
           options={{
             title: "Company Info",
             drawerIcon: ({ color, size }) => (
-              <Ionicons name="building-outline" size={size} color={color} />
+              <Ionicons name="business-outline" size={size} color={color} />
             ),
           }}
         />
+
+        {/* 🆕 Added Sales Report screen */}
+        <Drawer.Screen
+          name="sales-report"
+          options={{
+            title: "Sales Report",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="stats-chart-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
         <Drawer.Screen
           name="settings"
           options={{

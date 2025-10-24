@@ -131,19 +131,29 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      <TextInput
+     <TextInput
   style={styles.input}
   placeholder="Enter your Client ID"
   value={clientId}
-  onChangeText={(text) => setClientId(text.toUpperCase())} // convert to uppercase
+  autoCapitalize="none" // disable system-level capitalization
+  onChangeText={(text) => {
+    const upper = text.toUpperCase();
+    if (upper !== clientId) setClientId(upper);
+  }}
 />
 
 <TextInput
   style={styles.input}
   placeholder="Username"
   value={username}
-  onChangeText={(text) => setUsername(text.toUpperCase())} // convert to uppercase
+  autoCapitalize="none"
+  onChangeText={(text) => {
+    const upper = text.toUpperCase();
+    if (upper !== username) setUsername(upper);
+  }}
 />
+
+
 
       {/* 👇 Password input with eye icon */}
       <View style={styles.passwordContainer}>
