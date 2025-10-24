@@ -160,8 +160,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fffaf5",
     marginRight: 10,
+      marginTop:50
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
+  title: { fontSize: 18, fontWeight: "700", color: "#0f1724",marginTop:50 },
 
   // Card
   card: {

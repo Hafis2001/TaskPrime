@@ -22,26 +22,38 @@ export default function CompanyInfoScreen() {
 const navigation = useNavigation();
 
   // ✅ set the header title & style dynamically
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: "Company Info", // you can even make this dynamic later
-      
-      headerTitleStyle: {
-        
-        color: "#fff",
-        // fontWeight: "bold",
-        fontSize: 20,
-       marginright:90,
-       marginTop:50,
-       
-      },
-      headerStyle: {
-        backgroundColor: "#ff6905ff",
-        height:50,
-      },
-      headerTitleAlign: "center",
-    });
-  }, [navigation]);
+    useLayoutEffect(() => {
+      navigation.setOptions({
+        header: () => (
+          <View>
+            {/* 🟧 Thin orange strip */}
+            <View style={{ height: 24, backgroundColor: "#ff6600" }} />
+
+            {/* 🤍 White header bar with orange icon & title */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#fff",
+                height: 56,
+                paddingHorizontal: 16,
+                borderBottomWidth: 0.3,
+                borderBottomColor: "#ddd",
+              }}
+            >
+              {/* Drawer icon */}
+              <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
+                <Icon name="menu-outline" size={26} color="#ff6600" />
+              </TouchableOpacity>
+
+              
+            </View>
+          </View>
+        ),
+      });
+    }, [navigation]);
+
+
 
 
 

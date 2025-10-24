@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   FlatList,
+  TouchableOpacity,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const API_URLS = {
   today: "https://taskprime.app/api/salestoday/",
@@ -23,6 +26,56 @@ export default function SalesReportScreen() {
   const [salesData, setSalesData] = useState([]);
   const [user, setUser] = useState(null);
   const router = useRouter();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
+  // 🟧 Custom Header with Orange strip + White bar + Drawer icon
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      header: () => (
+        <View>
+          {/* Thin orange strip (respects dynamic island) */}
+          <View
+            style={{
+              height:   20,
+              backgroundColor: "#ff6600",
+            }}
+          />
+
+          {/* White header with orange icon */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#fff",
+              height: 56,
+              paddingHorizontal: 16,
+              borderBottomWidth: Platform.OS === "ios" ? 0.3 : 0,
+              borderBottomColor: "#ddd",
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 3,
+            }}
+          >
+            <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
+              <Ionicons name="menu-outline" size={26} color="#ff6600" />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "600",
+                color: "#000",
+                marginLeft: 16,
+              }}
+            >
+              Sales Report
+            </Text>
+          </View>
+        </View>
+      ),
+    });
+  }, [navigation, insets]);
 
   useEffect(() => {
     const init = async () => {
@@ -92,12 +145,6 @@ export default function SalesReportScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Today's Sales</Text>
-        <Ionicons name="filter-outline" size={22} color="#333" />
-      </View>
-
       {/* Dropdown */}
       <View style={styles.pickerWrapper}>
         <Picker
@@ -106,7 +153,7 @@ export default function SalesReportScreen() {
           style={styles.picker}
         >
           <Picker.Item label="Today Summary" value="today" />
-          <Picker.Item label="purchase Summary" value="month" />
+          <Picker.Item label="Purchase Summary" value="month" />
           <Picker.Item label="Item Summary" value="item" />
         </Picker>
       </View>
@@ -124,10 +171,9 @@ export default function SalesReportScreen() {
         <>
           {/* Top Summary Card */}
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Sales Today</Text>
+            <Text style={styles.summaryTitle}>Total Sales</Text>
             <View style={styles.totalRow}>
               <Text style={styles.totalValue}>₹{totalSales.toFixed(2)}</Text>
-              {/* <Text style={styles.growthText}>↑ 12%</Text> */}
             </View>
           </View>
 
@@ -149,17 +195,6 @@ export default function SalesReportScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#000",
-  },
   pickerWrapper: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -173,17 +208,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     alignItems: "center",
-    
   },
   summaryTitle: {
     fontSize: 14,
     color: "#555",
     fontWeight: "500",
-   
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "flex-end",
     marginTop: 6,
   },
@@ -191,11 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#000",
-  },
-  growthText: {
-    color: "green",
-    fontWeight: "600",
-    fontSize: 14,
   },
   sectionTitle: {
     fontSize: 16,
@@ -226,10 +254,6 @@ const styles = StyleSheet.create({
   },
   name: { fontWeight: "600", color: "#000", fontSize: 15 },
   time: { color: "#777", fontSize: 12 },
-  amount: {
-    color: "#FF914D",
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  amount: { color: "#FF914D", fontWeight: "700", fontSize: 15 },
   centered: { alignItems: "center", marginTop: 50 },
 });

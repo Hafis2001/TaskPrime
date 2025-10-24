@@ -1,4 +1,3 @@
-// app/(drawer)/_layout.js
 import { Drawer } from "expo-router/drawer";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
@@ -9,24 +8,30 @@ export default function DrawerLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Orange fill for status bar area */}
+      {/* 🟧 Small orange strip for status bar area */}
       <View
         style={{
-          height: insets.top,
+          height: insets.top + 20, // smaller orange area
           backgroundColor: "#ff6600",
         }}
       />
-      
+
       <Drawer
         screenOptions={{
-          headerStyle: { 
-            backgroundColor: "#ff6600",
-            height: 76,
+          headerStyle: {
+            backgroundColor: "#fff", // white header background
+            height: 65, // slightly smaller height
+            borderBottomWidth: 0, // no border line
+            shadowColor: "transparent", // remove shadow
           },
-          headerTintColor: "#fff",
+          headerTintColor: "#ff6600", // make icons orange
+          headerTitleStyle: { color: "#000" }, // black title text
           drawerActiveTintColor: "#ff6600",
           drawerLabelStyle: { fontSize: 16 },
           sceneContainerStyle: { backgroundColor: "#fff" },
+            headerLeftContainerStyle: {
+                        marginTop: -92, // adjust this for exact position
+                      },
         }}
       >
         <Drawer.Screen
@@ -65,8 +70,6 @@ export default function DrawerLayout() {
             ),
           }}
         />
-
-        {/* 🆕 Added Sales Report screen */}
         <Drawer.Screen
           name="sales-report"
           options={{
@@ -76,7 +79,6 @@ export default function DrawerLayout() {
             ),
           }}
         />
-
         <Drawer.Screen
           name="settings"
           options={{

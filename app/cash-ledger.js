@@ -173,8 +173,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fffaf5",
     marginRight: 10,
+      marginTop:45,
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
+  title: { fontSize: 18, fontWeight: "700", color: "#0f1724" ,marginTop:45},
 
   // Center / Empty state
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

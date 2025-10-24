@@ -113,7 +113,7 @@ export default function BankCashScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f5f7fb",
+    backgroundColor: "#fff",
     paddingHorizontal: 24,
     paddingTop: 40,
   },

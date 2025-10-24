@@ -210,8 +210,8 @@ export default function CashBookScreen() {
 
 /* Styles */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 14 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1, backgroundColor: "#fff", padding: 14, },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", },
 
   topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   backButton: {
@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 10,
     backgroundColor: "#fff",
+    
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -231,9 +232,10 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 0 },
     }),
+      marginTop:45,
   },
   titleWrap: { flex: 1 },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724" },
+  title: { fontSize: 18, fontWeight: "700", color: "#0f1724", marginTop:45},
 
   searchBox: {
     flexDirection: "row",
