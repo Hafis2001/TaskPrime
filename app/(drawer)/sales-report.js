@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
+import RNPickerSelect from "react-native-picker-select";
 import { useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -29,54 +29,24 @@ export default function SalesReportScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // 🟧 Custom Header with Orange strip + White bar + Drawer icon
+  // Custom Header
   useLayoutEffect(() => {
     navigation.setOptions({
       header: () => (
         <View>
-          {/* Thin orange strip (respects dynamic island) */}
-          <View
-            style={{
-              height:   20,
-              backgroundColor: "#ff6600",
-            }}
-          />
-
-          {/* White header with orange icon */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#fff",
-              height: 56,
-              paddingHorizontal: 16,
-              borderBottomWidth: Platform.OS === "ios" ? 0.3 : 0,
-              borderBottomColor: "#ddd",
-              shadowColor: "#000",
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-              elevation: 3,
-            }}
-          >
+          <View style={{ height: 20, backgroundColor: "#ff6600" }} />
+          <View style={styles.headerBar}>
             <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
               <Ionicons name="menu-outline" size={26} color="#ff6600" />
             </TouchableOpacity>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "600",
-                color: "#000",
-                marginLeft: 16,
-              }}
-            >
-              Sales Report
-            </Text>
+            <Text style={styles.headerTitle}>Sales Report</Text>
           </View>
         </View>
       ),
     });
   }, [navigation, insets]);
 
+  // Fetch data
   useEffect(() => {
     const init = async () => {
       const storedUser = await AsyncStorage.getItem("user");
@@ -126,6 +96,7 @@ export default function SalesReportScreen() {
     0
   );
 
+  // Render item
   const renderItem = ({ item }) => (
     <View style={styles.transactionCard}>
       <View style={styles.row}>
@@ -145,17 +116,25 @@ export default function SalesReportScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Dropdown */}
+      {/* Dropdown - identical look for iOS & Android */}
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={selectedSummary}
-          onValueChange={setSelectedSummary}
-          style={styles.picker}
-        >
-          <Picker.Item label="Today Summary" value="today" />
-          <Picker.Item label="Purchase Summary" value="month" />
-          <Picker.Item label="Item Summary" value="item" />
-        </Picker>
+        <RNPickerSelect
+          onValueChange={(value) => setSelectedSummary(value)}
+          value={selectedSummary}
+          placeholder={{}}
+          items={[
+            { label: "Today Summary", value: "today" },
+            { label: "Purchase Summary", value: "month" },
+            { label: "Item Summary", value: "item" },
+          ]}
+          style={{
+            inputIOS: styles.inputIOS,
+            inputAndroid: styles.inputAndroid,
+            iconContainer: { top: 18, right: 15 },
+          }}
+          useNativeAndroidPickerStyle={false}
+          Icon={() => <Ionicons name="chevron-down" size={20} color="#666" />}
+        />
       </View>
 
       {/* Loading / Data */}
@@ -171,15 +150,12 @@ export default function SalesReportScreen() {
         <>
           {/* Top Summary Card */}
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Sales</Text>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalValue}>₹{totalSales.toFixed(2)}</Text>
-            </View>
+            <Text style={styles.summaryTitle}>Total Sales Today</Text>
+            <Text style={styles.totalValue}>₹{totalSales.toFixed(2)}</Text>
           </View>
 
           {/* All Transactions */}
           <Text style={styles.sectionTitle}>All Transactions</Text>
-
           <FlatList
             data={salesData}
             keyExtractor={(item, index) => index.toString()}
@@ -195,15 +171,54 @@ export default function SalesReportScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    height: 56,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+    marginLeft: 16,
+  },
+
   pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ddd",
+    backgroundColor: "#FFF8F3",
     borderRadius: 12,
     marginBottom: 15,
   },
-  picker: { color: "#333" },
+
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    color: "#333",
+    backgroundColor: "#FFF8F3",
+    fontWeight: "500",
+    paddingRight: 30,
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    color: "#333",
+    backgroundColor: "#FFF8F3",
+    fontWeight: "500",
+    paddingRight: 30,
+  },
+
   summaryCard: {
-    backgroundColor: "#fee9daff",
+    backgroundColor: "#FEEBDD",
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -214,16 +229,11 @@ const styles = StyleSheet.create({
     color: "#555",
     fontWeight: "500",
   },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    marginTop: 6,
-  },
   totalValue: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#000",
+    marginTop: 5,
   },
   sectionTitle: {
     fontSize: 16,

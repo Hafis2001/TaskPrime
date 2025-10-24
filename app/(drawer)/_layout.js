@@ -25,12 +25,12 @@ export default function DrawerLayout() {
             shadowColor: "transparent", // remove shadow
           },
           headerTintColor: "#ff6600", // make icons orange
-          headerTitleStyle: { color: "#000" }, // black title text
+          headerTitleStyle: { color: "#fff" }, // black title text
           drawerActiveTintColor: "#ff6600",
           drawerLabelStyle: { fontSize: 16 },
           sceneContainerStyle: { backgroundColor: "#fff" },
             headerLeftContainerStyle: {
-                        marginTop: -92, // adjust this for exact position
+                        marginTop: -65, // adjust this for exact position
                       },
         }}
       >
