@@ -89,7 +89,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image
-          source={require("../../assets/images/taskprime.png")}
+          source={require("../../assets/images/taskprime1.png")}
           style={styles.logoImage}
           resizeMode="contain"
         />
