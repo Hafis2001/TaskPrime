@@ -1,4 +1,3 @@
-// screens/CashBookScreen.js
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -17,7 +16,6 @@ import {
 
 const API_URL = "https://taskprime.app/api/get-cash-book-data/";
 
-/* ✅ Format currency with optional "-" sign */
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   if (isNaN(n)) return "₹0";
@@ -63,19 +61,15 @@ export default function CashBookScreen() {
         }
       }
 
-      // threshold for treating very small floats as zero (paise level)
       const ZERO_EPS = 0.01;
 
       const mapped = list
         .map((it, i) => {
-          // Prefer explicit balance if API supplies it
           const rawBalance =
             it.balance !== undefined && it.balance !== null
               ? Number(it.balance)
-              : Number(it.credit ?? it.total_credit ?? 0) - Number(it.debit ?? it.total_debit ?? 0);
-
+              : Number(it.debit ?? it.total_debit ?? 0) - Number(it.credit ?? it.total_credit ?? 0);
           const balance = Number.isFinite(rawBalance) ? rawBalance : 0;
-
           return {
             id: it.id ?? String(i),
             name: it.name ?? it.account_name ?? it.bank_name ?? "-",
@@ -83,12 +77,7 @@ export default function CashBookScreen() {
             balance,
           };
         })
-        // keep items whose absolute balance is >= ZERO_EPS (exclude zeros)
         .filter((item) => Math.abs(Number(item.balance)) >= ZERO_EPS);
-
-      console.log(
-        `CashBook: fetched ${list.length} raw items → ${mapped.length} non-zero items (zero eps=${ZERO_EPS})`
-      );
 
       setData(mapped);
     } catch (err) {
@@ -129,12 +118,22 @@ export default function CashBookScreen() {
 
     return (
       <TouchableOpacity
-        onPress={() =>
-          router.push({
-            pathname: "cash-ledger",
-            params: { account_code: item.code, account_name: item.name },
-          })
-        }
+        onPress={async () => {
+          try {
+            // ✅ Save balance to AsyncStorage
+            await AsyncStorage.setItem("previousClosingBalance", String(item.balance));
+
+            router.push({
+              pathname: "cash-ledger",
+              params: {
+                account_code: item.code,
+                account_name: item.name,
+              },
+            });
+          } catch (e) {
+            console.error("Failed to save balance", e);
+          }
+        }}
       >
         <View style={[styles.row, alt && styles.rowAlt]}>
           <Text style={[styles.cell, styles.nameCell]} numberOfLines={2}>
@@ -156,7 +155,6 @@ export default function CashBookScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.push("bank-cash")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
@@ -166,7 +164,6 @@ export default function CashBookScreen() {
         </View>
       </View>
 
-      {/* Search */}
       <View style={styles.searchBox}>
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
@@ -184,7 +181,6 @@ export default function CashBookScreen() {
         )}
       </View>
 
-      {/* Table */}
       <View style={styles.tableWrapper}>
         <View style={styles.headerRow}>
           <Text style={[styles.headerCell, styles.nameCell]}>Name</Text>
@@ -197,22 +193,15 @@ export default function CashBookScreen() {
           renderItem={renderRow}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>No records found.</Text>
-            </View>
-          }
         />
       </View>
     </View>
   );
 }
 
-/* Styles */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 14, },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", },
-
+  container: { flex: 1, backgroundColor: "#fff", padding: 14 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   backButton: {
     width: 40,
@@ -222,7 +211,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 10,
     backgroundColor: "#fff",
-    
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -232,11 +220,10 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 0 },
     }),
-      marginTop:45,
+    marginTop: 45,
   },
   titleWrap: { flex: 1 },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724", marginTop:45},
-
+  title: { fontSize: 18, fontWeight: "700", color: "#0f1724", marginTop: 45 },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -248,9 +235,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: "#0f1724" },
   clearBtn: { marginLeft: 8 },
-
   tableWrapper: { flex: 1 },
-
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -261,7 +246,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
   },
   headerCell: { fontSize: 13, fontWeight: "700", color: "#ff6600", marginRight: 18 },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -272,11 +256,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   rowAlt: { backgroundColor: "#fff8f2" },
-
   cell: { fontSize: 14, color: "#1e293b", marginRight: 18 },
   nameCell: { flex: 2 },
   numCell: { flex: 1, textAlign: "right" },
-
-  empty: { padding: 24, alignItems: "center" },
-  emptyText: { color: "#666" },
 });

@@ -8,7 +8,6 @@ import {
   Text,
   TextInput,
   View,
-  ScrollView,
   BackHandler,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -85,7 +84,6 @@ export default function SuppliersScreen() {
       setData(formatted);
       setFiltered(formatted);
       setTotalSuppliers(formatted.length);
-
       const totalBal = formatted.reduce((sum, c) => sum + c.balance, 0);
       setTotalBalance(Math.round(totalBal));
     } catch (error) {
@@ -116,28 +114,12 @@ export default function SuppliersScreen() {
         router.push("/(drawer)/company-info");
         return true;
       };
-
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => subscription.remove();
     }, [router])
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6600" />
-      </View>
-    );
-  }
-
-  if (filtered.length === 0) {
-    return (
-      <ScrollView style={{ padding: 20 }}>
-        <Text style={{ fontWeight: "bold", color: "red" }}>⚠️ No data found :</Text>
-      </ScrollView>
-    );
-  }
-
+  // ✅ Move renderCard before return
   const renderCard = ({ item }) => {
     const isNegative = item.balance < 0;
     const formattedBalance = Math.abs(item.balance).toLocaleString("en-IN");
@@ -152,11 +134,7 @@ export default function SuppliersScreen() {
             <Text style={styles.subText}>{item.place}</Text>
           </View>
           <View style={styles.balanceContainer}>
-            <Text
-              style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}
-              numberOfLines={1}
-              ellipsizeMode="clip"
-            >
+            <Text style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}>
               {displayText}
             </Text>
           </View>
@@ -172,6 +150,15 @@ export default function SuppliersScreen() {
       </View>
     );
   };
+
+  // ✅ Only one return
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff6600" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -207,20 +194,26 @@ export default function SuppliersScreen() {
         <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>Balance</Text>
       </View>
 
-      <FlatList data={filtered} keyExtractor={(item) => item.id.toString()} renderItem={renderCard} />
+      {filtered.length === 0 ? (
+        <View style={{ padding: 20 }}>
+          <Text style={{ fontWeight: "bold", color: "red", textAlign: "center" }}>
+            ⚠️ No data found
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderCard}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#ff6600",
-  },
+  title: { fontSize: 20, fontWeight: "bold", textAlign: "center", marginBottom: 10, color: "#ff6600" },
   summaryCard: {
     backgroundColor: "#fffaf5",
     borderRadius: 10,
@@ -259,11 +252,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardRow: { flexDirection: "row", justifyContent: "space-between" },
-  creditDebitRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 5,
-  },
+  creditDebitRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
   cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
   subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
   balanceContainer: {
@@ -274,11 +263,6 @@ const styles = StyleSheet.create({
     minWidth: 120,
     paddingLeft: 10,
   },
-  balanceText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "right",
-    flexWrap: "nowrap",
-  },
+  balanceText: { fontSize: 18, fontWeight: "bold", textAlign: "right", flexWrap: "nowrap" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

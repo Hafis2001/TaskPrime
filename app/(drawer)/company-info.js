@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback ,useLayoutEffect} from "react";
+import React, { useEffect, useState, useCallback, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -8,55 +8,47 @@ import {
   ActivityIndicator,
   Modal,
   BackHandler,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useNavigation } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context"; // ✅ added
 
 const API_URL = "https://taskprime.app/api/get-misel-data/";
 
 export default function CompanyInfoScreen() {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets(); // ✅ for safe padding bottom
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      header: () => (
+        <View>
+          {/* 🟧 Thin orange strip */}
+          <View style={{ height: 24, backgroundColor: "#ff6600" }} />
 
-const navigation = useNavigation();
-
-  // ✅ set the header title & style dynamically
-    useLayoutEffect(() => {
-      navigation.setOptions({
-        header: () => (
-          <View>
-            {/* 🟧 Thin orange strip */}
-            <View style={{ height: 24, backgroundColor: "#ff6600" }} />
-
-            {/* 🤍 White header bar with orange icon & title */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#fff",
-                height: 56,
-                paddingHorizontal: 16,
-                borderBottomWidth: 0.3,
-                borderBottomColor: "#ddd",
-              }}
-            >
-              {/* Drawer icon */}
-              <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
-                <Icon name="menu-outline" size={26} color="#ff6600" />
-              </TouchableOpacity>
-
-              
-            </View>
+          {/* 🤍 White header bar */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#fff",
+              height: 56,
+              paddingHorizontal: 16,
+              borderBottomWidth: 0.3,
+              borderBottomColor: "#ddd",
+            }}
+          >
+            <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
+              <Icon name="menu-outline" size={26} color="#ff6600" />
+            </TouchableOpacity>
           </View>
-        ),
-      });
-    }, [navigation]);
-
-
-
-
-
+        </View>
+      ),
+    });
+  }, [navigation]);
 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -64,18 +56,16 @@ const navigation = useNavigation();
   const [user, setUser] = useState({ name: "", clientId: "", token: "" });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // ✅ Fixed BackHandler for new RN/Expo versions
   useFocusEffect(
     useCallback(() => {
       const backHandler = BackHandler.addEventListener(
         "hardwareBackPress",
         () => {
           setShowLogoutModal(true);
-          return true; // Prevent default behavior
+          return true;
         }
       );
-
-      return () => backHandler.remove(); // ✅ Proper cleanup
+      return () => backHandler.remove();
     }, [])
   );
 
@@ -83,7 +73,6 @@ const navigation = useNavigation();
     const loadUserAndCompany = async () => {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
-        console.log("⚠️ No user found, redirecting to login...");
         router.replace("/LoginScreen");
         return;
       }
@@ -104,12 +93,10 @@ const navigation = useNavigation();
           },
         });
 
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
         const json = await response.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           const c = json.data[0];
-          const company = {
+          setCompanyData({
             firm_name: c.firm_name,
             address: c.address,
             address1: c.address1,
@@ -119,10 +106,7 @@ const navigation = useNavigation();
             mobile: c.mobile,
             pagers: c.pagers,
             tinno: c.tinno,
-          };
-          setCompanyData(company);
-        } else {
-          setCompanyData(null);
+          });
         }
       } catch (error) {
         console.error("❌ Error fetching company data:", error);
@@ -130,7 +114,6 @@ const navigation = useNavigation();
         setLoading(false);
       }
     };
-
     loadUserAndCompany();
   }, []);
 
@@ -149,7 +132,14 @@ const navigation = useNavigation();
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{
+        paddingBottom: insets.bottom + 30, // ✅ ensures bottom padding
+        flexGrow: 1,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Company Info</Text>
@@ -167,40 +157,21 @@ const navigation = useNavigation();
       {/* Company Details */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Company Details</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Firm Name</Text>
-          <Text style={styles.value}>{companyData?.firm_name || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Address</Text>
-          <Text style={styles.value}>{companyData?.address || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Address Line 1</Text>
-          <Text style={styles.value}>{companyData?.address1 || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Address Line 2</Text>
-          <Text style={styles.value}>{companyData?.address2 || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Address Line 3</Text>
-          <Text style={styles.value}>{companyData?.address3 || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Phone Number</Text>
-          <Text style={styles.value}>
-            {companyData?.phones || companyData?.mobile || "Not Available"}
-          </Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>GST Number</Text>
-          <Text style={styles.value}>{companyData?.tinno || "Not Available"}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{companyData?.pagers || "Not Available"}</Text>
-        </View>
+        {[
+          ["Firm Name", companyData?.firm_name],
+          ["Address", companyData?.address],
+          ["Address Line 1", companyData?.address1],
+          ["Address Line 2", companyData?.address2],
+          ["Address Line 3", companyData?.address3],
+          ["Phone Number", companyData?.phones || companyData?.mobile],
+          ["GST Number", companyData?.tinno],
+          ["Email", companyData?.pagers],
+        ].map(([label, value], index) => (
+          <View key={index} style={styles.row}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value || "Not Available"}</Text>
+          </View>
+        ))}
       </View>
 
       {/* Logout Modal */}
@@ -234,15 +205,13 @@ const navigation = useNavigation();
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF", padding:16 },
+  container: { flex: 1, backgroundColor: "#FFF", padding: 16 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-
-
   },
   headerTitle: {
     fontSize: 24,

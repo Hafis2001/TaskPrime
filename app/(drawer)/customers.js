@@ -125,19 +125,6 @@ export default function DebtorsScreen() {
     );
   }
 
-  if (filtered.length === 0) {
-    return (
-      <ScrollView style={{ padding: 20 }}>
-        <Text style={{ fontWeight: "bold", color: "red" }}>
-          ⚠️ No data displayed. API Raw Output:
-        </Text>
-        <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
-          {JSON.stringify(rawJson, null, 2)}
-        </Text>
-      </ScrollView>
-    );
-  }
-
   // ✅ Card UI
   const renderCard = ({ item }) => (
     <View style={styles.card}>
@@ -202,8 +189,28 @@ export default function DebtorsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderCard}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{
+          paddingBottom: 100,
+          flexGrow: 1,
+          justifyContent: filtered.length === 0 ? "center" : "flex-start",
+        }}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          searchQuery.trim() !== "" ? (
+            <Text style={{ textAlign: "center", color: "#666", fontSize: 16 }}>
+              No results found for “{searchQuery}”.
+            </Text>
+          ) : (
+            <ScrollView style={{ padding: 20 }}>
+              <Text style={{ fontWeight: "bold", color: "red" }}>
+                ⚠️ No data displayed. API Raw Output:
+              </Text>
+              <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
+                {JSON.stringify(rawJson, null, 2)}
+              </Text>
+            </ScrollView>
+          )
+        }
       />
     </View>
   );

@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
-  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,15 +14,15 @@ import { useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const API_URLS = {
-  today: "https://taskprime.app/api/salestoday/",
-  month: "https://taskprime.app/api/purchasetoday/",
-  item: "https://taskprime.app/api/get-item-report/",
+  today: "https://taskprime.app/api/purchasetoday/",
+  month: "https://taskprime.app/api/purchasemonth/",
+  overall: "https://taskprime.app/api/purchaseoverall/",
 };
 
-export default function SalesReportScreen() {
+export default function PurchaseReportScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSummary, setSelectedSummary] = useState("today");
-  const [salesData, setSalesData] = useState([]);
+  const [purchaseData, setPurchaseData] = useState([]);
   const [user, setUser] = useState(null);
   const router = useRouter();
   const navigation = useNavigation();
@@ -39,7 +38,7 @@ export default function SalesReportScreen() {
             <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
               <Ionicons name="menu-outline" size={26} color="#ff6600" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Sales Report</Text>
+            <Text style={styles.headerTitle}>Purchase Report</Text>
           </View>
         </View>
       ),
@@ -76,22 +75,22 @@ export default function SalesReportScreen() {
       const json = await response.json();
 
       if (json.success && Array.isArray(json.data)) {
-        setSalesData(json.data);
+        setPurchaseData(json.data);
       } else if (json.data) {
-        setSalesData([json.data]);
+        setPurchaseData([json.data]);
       } else {
-        setSalesData([]);
+        setPurchaseData([]);
       }
     } catch (error) {
       console.error("❌ Fetch error:", error);
-      setSalesData([]);
+      setPurchaseData([]);
     } finally {
       setLoading(false);
     }
   };
 
   // Calculate total
-  const totalSales = salesData.reduce(
+  const totalPurchase = purchaseData.reduce(
     (sum, item) => sum + parseFloat(item.nettotal || 0),
     0
   );
@@ -102,10 +101,10 @@ export default function SalesReportScreen() {
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="receipt-outline" size={20} color="#FF914D" />
+            <Ionicons name="cart-outline" size={20} color="#FF914D" />
           </View>
           <View>
-            <Text style={styles.name}>{item.customername}</Text>
+            <Text style={styles.name}>{item.suppliername}</Text>
             <Text style={styles.time}>Bill No: {item.billno}</Text>
           </View>
         </View>
@@ -123,9 +122,9 @@ export default function SalesReportScreen() {
           value={selectedSummary}
           placeholder={{}}
           items={[
-            { label: "Today Sales", value: "today" },
-            { label: "monthly Sales", value: "month" },
-            { label: "over-all report ", value: "item" },
+            { label: "Today's Purchase", value: "today" },
+            { label: "Monthly Purchase", value: "month" },
+            { label: "Overall Summary", value: "overall" },
           ]}
           style={{
             inputIOS: styles.inputIOS,
@@ -142,22 +141,22 @@ export default function SalesReportScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF914D" />
         </View>
-      ) : salesData.length === 0 ? (
+      ) : purchaseData.length === 0 ? (
         <View style={styles.centered}>
-          <Text>No sales data available.</Text>
+          <Text>No purchase data available.</Text>
         </View>
       ) : (
         <>
           {/* Top Summary Card */}
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Sales Today</Text>
-            <Text style={styles.totalValue}>₹{totalSales.toFixed(2)}</Text>
+            <Text style={styles.summaryTitle}>Total Purchase</Text>
+            <Text style={styles.totalValue}>₹{totalPurchase.toFixed(2)}</Text>
           </View>
 
           {/* All Transactions */}
-          <Text style={styles.sectionTitle}>All Transactions</Text>
+          <Text style={styles.sectionTitle}>All Purchases</Text>
           <FlatList
-            data={salesData}
+            data={purchaseData}
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}

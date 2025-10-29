@@ -51,21 +51,21 @@ export default function BankBookScreen() {
       const json = await res.json();
       const list = Array.isArray(json) ? json : json.data ?? [];
 
-      // ✅ Calculate balance as credit - debit
+      // ✅ Calculate balance as debit - credit
       const mapped = list
-  .map((it, i) => {
-    const debit = Number(it.debit ?? it.total_debit ?? 0);
-    const credit = Number(it.credit ?? it.total_credit ?? 0);
-    const balance = credit - debit;
-    return {
-      id: it.code ?? it.account_code ?? String(i),
-      name: it.name ?? it.account_name ?? "-",
-      balance,
-    };
-  })
-  .filter((item) => item.balance !== 0); // ✅ remove only zero balances
+        .map((it, i) => {
+          const debit = Number(it.debit ?? it.total_debit ?? 0);
+          const credit = Number(it.credit ?? it.total_credit ?? 0);
+          const balance = debit - credit;
+          return {
+            id: it.code ?? it.account_code ?? String(i),
+            name: it.name ?? it.account_name ?? "-",
+            balance,
+          };
+        })
+        .filter((item) => item.balance !== 0); // ✅ remove only zero balances
 
-setData(mapped);
+      setData(mapped);
     } catch (err) {
       console.error("Fetch error:", err);
       setData([]);
@@ -97,7 +97,11 @@ setData(mapped);
         onPress={() => {
           router.push({
             pathname: "bank-ledger",
-            params: { account_code: item.id, account_name: item.name },
+            params: {
+              account_code: item.id,
+              account_name: item.name,
+              previous_balance: item.balance, // ✅ sending balance
+            },
           });
         }}
       >
@@ -129,7 +133,7 @@ setData(mapped);
 
   return (
     <View style={styles.container}>
-      {/* ✅ Top bar with Back Button */}
+      {/* ✅ Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
@@ -195,9 +199,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fffaf5",
     marginRight: 10,
-      marginTop:40,
+    marginTop: 40,
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724",marginTop:40 },
+  title: { fontSize: 18, fontWeight: "700", color: "#0f1724", marginTop: 40 },
 
   // ✅ Search
   searchBox: {
