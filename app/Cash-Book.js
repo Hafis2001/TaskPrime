@@ -118,21 +118,15 @@ export default function CashBookScreen() {
 
     return (
       <TouchableOpacity
-        onPress={async () => {
-          try {
-            // ✅ Save balance to AsyncStorage
-            await AsyncStorage.setItem("previousClosingBalance", String(item.balance));
-
-            router.push({
-              pathname: "cash-ledger",
-              params: {
-                account_code: item.code,
-                account_name: item.name,
-              },
-            });
-          } catch (e) {
-            console.error("Failed to save balance", e);
-          }
+        onPress={() => {
+          router.push({
+            pathname: "cash-ledger",
+            params: {
+              account_code: item.code,
+              account_name: item.name,
+              previous_balance: item.balance, // ✅ Pass previous balance directly
+            },
+          });
         }}
       >
         <View style={[styles.row, alt && styles.rowAlt]}>
@@ -155,6 +149,7 @@ export default function CashBookScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ---------- Header ---------- */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.push("bank-cash")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
@@ -164,6 +159,7 @@ export default function CashBookScreen() {
         </View>
       </View>
 
+      {/* ---------- Search ---------- */}
       <View style={styles.searchBox}>
         <Ionicons name="search" size={16} color="#9ca3af" />
         <TextInput
@@ -181,6 +177,7 @@ export default function CashBookScreen() {
         )}
       </View>
 
+      {/* ---------- Table ---------- */}
       <View style={styles.tableWrapper}>
         <View style={styles.headerRow}>
           <Text style={[styles.headerCell, styles.nameCell]}>Name</Text>

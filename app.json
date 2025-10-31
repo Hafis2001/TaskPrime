@@ -45,7 +45,7 @@
           "image": "./assets/images/taskprime1.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ff6600",
+          "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"
           }

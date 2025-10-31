@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
   Alert,
-  Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -19,8 +18,7 @@ const LEDGER_API =
 
 export default function BankLedgerScreen() {
   const router = useRouter();
-  const { account_code, account_name, previous_balance } =
-    useLocalSearchParams();
+  const { account_code, account_name, previous_balance } = useLocalSearchParams();
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -33,6 +31,8 @@ export default function BankLedgerScreen() {
   const [closingBalance, setClosingBalance] = useState(
     parseFloat(previous_balance) || 0
   );
+  const [filterType, setFilterType] = useState("all");
+  const [dailyBalances, setDailyBalances] = useState({});
 
   useEffect(() => {
     if (!account_code) {
@@ -41,7 +41,6 @@ export default function BankLedgerScreen() {
       return;
     }
     fetchLedger(account_code);
-    console.log(account_code);
   }, [account_code]);
 
   const fetchLedger = async (code) => {
@@ -72,22 +71,16 @@ export default function BankLedgerScreen() {
 
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
-        let runningBalance = parseFloat(previous_balance) || 0;
-        let totalCredit = 0;
-        let totalDebit = 0;
-
-        // ✅ Sort ascending for correct balance calculation
         const processedAsc = json.data
           .map((item) => {
             const debit = Number(item.debit ?? 0);
             const credit = Number(item.credit ?? 0);
 
-            // Standardize entry_date format for Android/iOS
             let dateObj = null;
             if (item.entry_date) {
               const safeDate = item.entry_date.includes("T")
                 ? item.entry_date
-                : `${item.entry_date}T00:00:00`;
+                : `${item.entry_date}T00:00:00Z`;
               dateObj = new Date(safeDate);
             }
 
@@ -100,9 +93,7 @@ export default function BankLedgerScreen() {
             return {
               date: formattedDate,
               rawDate: dateObj ? dateObj.getTime() : 0,
-              dateOnly: dateObj
-                ? dateObj.toISOString().split("T")[0]
-                : null,
+              dateOnly: dateObj ? dateObj.toISOString().split("T")[0] : null,
               particulars: item.particulars ?? item.account_name ?? "-",
               narration: item.narration ?? "-",
               debit,
@@ -111,31 +102,45 @@ export default function BankLedgerScreen() {
           })
           .sort((a, b) => a.rawDate - b.rawDate);
 
-        // ✅ Calculate running balances in ascending order
-        console.log("Calculating running balances... ,");
-        const withBalances = processedAsc.map((item) => {
-          runningBalance = runningBalance - item.credit + item.debit;
-          totalCredit += item.credit;
-          totalDebit += item.debit;
-          return { ...item, runningBalance };
+        // 🔁 Build daily totals
+        const dailyMap = {};
+        processedAsc.forEach((item) => {
+          if (!item.dateOnly) return;
+          if (!dailyMap[item.dateOnly]) {
+            dailyMap[item.dateOnly] = { debit: 0, credit: 0, entries: [] };
+          }
+          dailyMap[item.dateOnly].debit += item.debit;
+          dailyMap[item.dateOnly].credit += item.credit;
+          dailyMap[item.dateOnly].entries.push(item);
         });
 
-        // ✅ Reverse for newest-first display
-        const finalData = [...withBalances].reverse();
+        // 🧮 Reverse-balance calculation
+        const dates = Object.keys(dailyMap).sort();
+        let runningClosing = parseFloat(previous_balance) || 0;
+        const balances = {};
 
-        setData(finalData);
+        for (let i = dates.length - 1; i >= 0; i--) {
+          const d = dates[i];
+          const { debit, credit } = dailyMap[d];
+          const open = runningClosing + debit - credit;
+          balances[d] = { opening: open, closing: runningClosing };
+          runningClosing = open;
+        }
+
+        setData(processedAsc);
+        setDailyBalances(balances);
 
         const today = new Date().toISOString().split("T")[0];
-        const todaysEntries = finalData.filter(
-          (item) => item.dateOnly === today
-        );
+        const todaysEntries = dailyMap[today]?.entries || [];
         setFilteredData(todaysEntries);
         setSelectedDate(today);
 
-        const openBal = runningBalance - totalCredit + totalDebit;
-        console.log("Opening Balance:", openBal, "Closing Balance:", runningBalance, totalCredit , totalDebit);
-        setOpeningBalance(openBal);
-        setClosingBalance(runningBalance);
+        if (balances[today]) {
+          setOpeningBalance(balances[today].opening);
+          setClosingBalance(balances[today].closing);
+        } else {
+          setOpeningBalance(parseFloat(previous_balance) || 0);
+        }
       } else {
         setData([]);
         setFilteredData([]);
@@ -151,22 +156,79 @@ export default function BankLedgerScreen() {
   };
 
   const onDateChange = (event, selected) => {
-    setShowDatePicker(Platform.OS === "ios");
+    setShowDatePicker(false);
     if (selected) {
-      const chosen = selected.toISOString().split("T")[0];
+      const chosen = new Date(
+        selected.getTime() - selected.getTimezoneOffset() * 60000
+      )
+        .toISOString()
+        .split("T")[0];
       setSelectedDate(chosen);
-      const filtered = data.filter((item) => item.dateOnly === chosen);
-      setFilteredData(filtered);
+      calculateOpeningForDate(chosen);
     }
-    console.log(selected )
+  };
+
+  const calculateOpeningForDate = (date) => {
+    if (!data.length) return;
+
+    const sorted = [...data].sort((a, b) => a.rawDate - b.rawDate);
+    const dailyMap = {};
+    sorted.forEach((item) => {
+      if (!item.dateOnly) return;
+      if (!dailyMap[item.dateOnly]) {
+        dailyMap[item.dateOnly] = { debit: 0, credit: 0, entries: [] };
+      }
+      dailyMap[item.dateOnly].debit += item.debit;
+      dailyMap[item.dateOnly].credit += item.credit;
+      dailyMap[item.dateOnly].entries.push(item);
+    });
+
+    const dates = Object.keys(dailyMap).sort();
+    let runningClosing = parseFloat(previous_balance) || 0;
+    const balances = {};
+
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const d = dates[i];
+      const { debit, credit } = dailyMap[d];
+      const open = runningClosing + debit - credit;
+      balances[d] = { opening: open, closing: runningClosing };
+      runningClosing = open;
+    }
+
+    setDailyBalances(balances);
+    const entries = dailyMap[date]?.entries || [];
+    setFilteredData(entries);
+
+    if (balances[date]) {
+      setOpeningBalance(balances[date].opening);
+      setClosingBalance(balances[date].closing);
+    }
   };
 
   const clearDateFilter = () => {
     const today = new Date().toISOString().split("T")[0];
     setSelectedDate(today);
-    const filtered = data.filter((item) => item.dateOnly === today);
-    setFilteredData(filtered);
+    calculateOpeningForDate(today);
   };
+
+  // 👇 filter logic
+  const getFilteredList = () => {
+    if (filterType === "debit") return filteredData.filter((i) => i.debit > 0);
+    if (filterType === "credit") return filteredData.filter((i) => i.credit > 0);
+    return filteredData;
+  };
+
+  // 👇 total debit & credit for current filtered list
+  const totals = useMemo(() => {
+    const list = getFilteredList();
+    let debit = 0,
+      credit = 0;
+    list.forEach((i) => {
+      debit += i.debit;
+      credit += i.credit;
+    });
+    return { debit, credit };
+  }, [filteredData, filterType]);
 
   const renderItem = ({ item }) => {
     const color = item.debit > 0 ? "#2e7d32" : "#d32f2f";
@@ -182,9 +244,7 @@ export default function BankLedgerScreen() {
           <Text style={[styles.balanceText, { color }]}>{amount}</Text>
         </View>
         <Text style={styles.particulars}>{item.particulars}</Text>
-        {item.narration && (
-          <Text style={styles.narration}>{item.narration}</Text>
-        )}
+        {item.narration && <Text style={styles.narration}>{item.narration}</Text>}
       </View>
     );
   };
@@ -193,10 +253,7 @@ export default function BankLedgerScreen() {
     <View style={styles.container}>
       {/* ---------- Header ---------- */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color="#0f1724" />
         </TouchableOpacity>
         <Text style={styles.title}>{account_name || "Bank Ledger"}</Text>
@@ -215,16 +272,58 @@ export default function BankLedgerScreen() {
         )}
       </View>
 
+      {/* 👇 Filter buttons */}
+      <View style={styles.filterRow}>
+        {["all", "debit", "credit"].map((type) => (
+          <TouchableOpacity
+            key={type}
+            onPress={() => setFilterType(type)}
+            style={[
+              styles.filterButton,
+              filterType === type && styles.filterActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                filterType === type && styles.filterTextActive,
+              ]}
+            >
+              {type === "all"
+                ? "All"
+                : type === "debit"
+                ? "Debit Only"
+                : "Credit Only"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {showDatePicker && (
         <DateTimePicker
-          value={selectedDate ? new Date(selectedDate) : new Date()}
+          value={new Date(selectedDate)}
           mode="date"
           display="default"
           onChange={onDateChange}
         />
       )}
 
-      {/* ---------- Opening Balance ---------- */}
+      {/* ---------- Balances ---------- */}
+<View style={styles.balanceView}>
+      <View style={styles.previousBox}>
+            <Text style={styles.label}>current Closing Balance</Text>
+            <Text
+              style={[
+                styles.balanceValue,
+                {
+                  color:
+                    parseFloat(previous_balance) >= 0 ? "#16a34a" : "#dc2626",
+                },
+              ]}
+            >
+              ₹{Math.abs(previous_balance).toLocaleString("en-IN")}
+            </Text>
+          </View>
       <View style={styles.balanceBox}>
         <Text style={styles.label}>Opening Balance</Text>
         <Text
@@ -236,6 +335,23 @@ export default function BankLedgerScreen() {
           ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
         </Text>
       </View>
+      </View>
+
+      {/* 💰 New: Total Credit/Debit Card */}
+      <View style={styles.summaryBox}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.label}>Total Debit</Text>
+          <Text style={[styles.balanceValue, { color: "#d32f2f" }]}>
+            ₹{totals.debit.toLocaleString("en-IN")}
+          </Text>
+        </View>
+        <View style={styles.rowBetween}>
+          <Text style={styles.label}>Total Credit</Text>
+          <Text style={[styles.balanceValue, { color: "#2e7d32" }]}>
+            ₹{totals.credit.toLocaleString("en-IN")}
+          </Text>
+        </View>
+      </View>
 
       {/* ---------- Ledger Entries ---------- */}
       {loading ? (
@@ -243,40 +359,47 @@ export default function BankLedgerScreen() {
           <ActivityIndicator size="large" color="#ff6600" />
         </View>
       ) : (
-        <FlatList
-          data={filteredData}
-          keyExtractor={(_, i) => String(i)}
-          renderItem={renderItem}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>
-                {selectedDate
-                  ? `No entries found for ${selectedDate}`
-                  : "No ledger entries found."}
+        <>
+          <FlatList
+            data={getFilteredList()}
+            keyExtractor={(_, i) => String(i)}
+            renderItem={renderItem}
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <Text style={styles.emptyText}>
+                  {selectedDate
+                    ? `No entries found for ${selectedDate}`
+                    : "No ledger entries found."}
+                </Text>
+              </View>
+            }
+          />
+
+          {/* 👇 Show closing for that date */}
+          {dailyBalances[selectedDate] && (
+            <View style={styles.previousBoxClose}>
+              <Text style={styles.label}>Closing Balance ({selectedDate})</Text>
+              <Text
+                style={[
+                  styles.balanceValue,
+                  {
+                    color:
+                      dailyBalances[selectedDate].closing >= 0
+                        ? "#16a34a"
+                        : "#dc2626",
+                  },
+                ]}
+              >
+                ₹{Math.abs(
+                  dailyBalances[selectedDate].closing
+                ).toLocaleString("en-IN")}
               </Text>
             </View>
-          }
-        />
-      )}
+          )}
 
-      {/* ---------- Previous Balance ---------- */}
-      {previous_balance && (
-        <View style={styles.previousBox}>
-          <Text style={styles.label}>Previous Closing Balance</Text>
-          <Text
-            style={[
-              styles.balanceValue,
-              {
-                color:
-                  parseFloat(previous_balance) >= 0
-                    ? "#16a34a"
-                    : "#dc2626",
-              },
-            ]}
-          >
-            ₹{Math.abs(previous_balance).toLocaleString("en-IN")}
-          </Text>
-        </View>
+          {/* 👇 Show previous balance */}
+          
+        </>
       )}
     </View>
   );
@@ -284,11 +407,7 @@ export default function BankLedgerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 14 },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
+  topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   backButton: {
     width: 40,
     height: 40,
@@ -308,8 +427,37 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   clearButton: { marginLeft: 6, marginTop: 50 },
+  filterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 15,
+    alignItems: "center",
+  },
+  filterActive: {
+    backgroundColor: "#ff6600",
+    borderColor: "#ff6600",
+  },
+  filterText: { color: "#555", fontWeight: "600" },
+  filterTextActive: { color: "#fff" },
   balanceBox: {
     backgroundColor: "#fffaf5",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 15,
+    width:180,
+    marginLeft:10,
+  },
+  summaryBox: {
+    backgroundColor: "#fff4e6ff",
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
@@ -318,8 +466,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff6f1",
     padding: 12,
     borderRadius: 10,
-    marginTop: 10,
+    
     marginBottom: 15,
+    width:180,
   },
   label: { fontSize: 13, color: "#666" },
   balanceValue: { fontSize: 18, fontWeight: "700" },
@@ -347,4 +496,18 @@ const styles = StyleSheet.create({
   narration: { fontSize: 13, color: "#666", marginTop: 3 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { color: "#666" },
+
+   balanceView: {
+    flexDirection: "row",
+    
+  },
+  previousBoxClose: {
+    backgroundColor: "#fbe0d2ff",
+    padding: 12,
+    borderRadius: 10,
+    
+    marginBottom: 15,
+    width:180,
+    marginLeft:200,
+  },
 });
