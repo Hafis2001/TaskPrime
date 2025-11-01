@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -126,32 +127,33 @@ export default function DebtorsScreen() {
   }
 
   // ✅ Card UI
-  const renderCard = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardRow}>
-        <View style={{ flex: 3, paddingRight: 8 }}>
-          <Text style={styles.cardValue} numberOfLines={1} ellipsizeMode="tail">
-            {item.name}
-          </Text>
-          <Text style={styles.subText}>{item.phone}</Text>
-          <Text style={styles.subText}>{item.place}</Text>
-        </View>
-        <View style={styles.balanceContainer}>
-          <Text
-            style={[
-              styles.balanceText,
-              { color: item.balance < 0 ? "red" : "#ff6600" },
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="clip"
-            adjustsFontSizeToFit={true}
-          >
-            ₹{item.balance.toLocaleString("en-IN")}
-          </Text>
-        </View>
+const renderCard = ({ item }) => (
+  <TouchableOpacity
+    style={styles.card}
+    onPress={() => router.push(`/customer-ledger?code=${item.id}&name=${encodeURIComponent(item.name)}`)}
+  >
+    <View style={styles.cardRow}>
+      <View style={{ flex: 3, paddingRight: 8 }}>
+        <Text style={styles.cardValue} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.subText}>{item.phone}</Text>
+        <Text style={styles.subText}>{item.place}</Text>
+      </View>
+      <View style={styles.balanceContainer}>
+        <Text
+          style={[
+            styles.balanceText,
+            { color: item.balance < 0 ? "red" : "#ff6600" },
+          ]}
+        >
+          ₹{item.balance.toLocaleString("en-IN")}
+        </Text>
       </View>
     </View>
-  );
+  </TouchableOpacity>
+);
+
 
   return (
     <View style={styles.container}>

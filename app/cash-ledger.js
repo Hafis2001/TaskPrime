@@ -190,7 +190,7 @@ export default function CashLedgerScreen() {
     for (let i = dates.length - 1; i >= 0; i--) {
       const d = dates[i];
       const { debit, credit } = dailyMap[d];
-      const open = runningClosing + debit - credit;
+      const open = runningClosing - debit + credit;
       balances[d] = { opening: open, closing: runningClosing };
       runningClosing = open;
     }
