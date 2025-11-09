@@ -6,7 +6,9 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
+  LayoutAnimation,
   Platform,
+  UIManager,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,27 +16,35 @@ import RNPickerSelect from "react-native-picker-select";
 import { useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const API_URLS = {
   today: "https://taskprime.app/api/salestoday/",
-  month: "https://taskprime.app/api/purchasetoday/",
-  item: "https://taskprime.app/api/get-item-report/",
+  DayWise: "https://taskprime.app/api/salesdaywise/",
+  item: "https://taskprime.app/api/salesmonthwise/",
 };
 
 export default function SalesReportScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSummary, setSelectedSummary] = useState("today");
   const [salesData, setSalesData] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
   const [user, setUser] = useState(null);
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // Custom Header
+  // ✅ Custom Header
   useLayoutEffect(() => {
     navigation.setOptions({
       header: () => (
         <View>
-          <View style={{ height: 20, backgroundColor: "#ff6600" }} />
+          <View style={{ height: insets.top, backgroundColor: "#ff6600" }} />
           <View style={styles.headerBar}>
             <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
               <Ionicons name="menu-outline" size={26} color="#ff6600" />
@@ -46,7 +56,7 @@ export default function SalesReportScreen() {
     });
   }, [navigation, insets]);
 
-  // Fetch data
+  // ✅ Fetch Data
   useEffect(() => {
     const init = async () => {
       const storedUser = await AsyncStorage.getItem("user");
@@ -73,8 +83,16 @@ export default function SalesReportScreen() {
           },
         }
       );
-      const json = await response.json();
 
+      // ✅ Check if response is JSON
+      const text = await response.text();
+      if (!text.startsWith("{") && !text.startsWith("[")) {
+        console.log("❌ Server did not return JSON:", text);
+        setSalesData([]);
+        return;
+      }
+
+      const json = JSON.parse(text);
       if (json.success && Array.isArray(json.data)) {
         setSalesData(json.data);
       } else if (json.data) {
@@ -90,13 +108,13 @@ export default function SalesReportScreen() {
     }
   };
 
-  // Calculate total
+  // ✅ Total for Today
   const totalSales = salesData.reduce(
     (sum, item) => sum + parseFloat(item.nettotal || 0),
     0
   );
 
-  // Render item
+  // ✅ Render for Today
   const renderItem = ({ item }) => (
     <View style={styles.transactionCard}>
       <View style={styles.row}>
@@ -109,14 +127,76 @@ export default function SalesReportScreen() {
             <Text style={styles.time}>Bill No: {item.billno}</Text>
           </View>
         </View>
-        <Text style={styles.amount}>₹{item.nettotal}</Text>
+        <Text style={styles.amount}>{item.nettotal}</Text>
       </View>
     </View>
   );
 
+  // ✅ Render for Day Wise
+  const renderDayWise = ({ item }) => (
+    <View style={styles.dayCard}>
+      <View style={styles.dayRow}>
+        <View>
+          <Text style={styles.dayDate}>
+            {new Date(item.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </Text>
+          <Text style={styles.dayBills}>{item.total_bills} Bills</Text>
+        </View>
+        <Text style={styles.dayAmount}>
+          {parseFloat(item.total_amount).toFixed(2)}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // ✅ Render for Month Wise
+  const toggleExpand = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const renderMonthWise = ({ item }) => {
+    const isExpanded = expandedId === item.id;
+    return (
+      <View style={styles.monthCard}>
+        <TouchableOpacity onPress={() => toggleExpand(item.id)}>
+          <View style={styles.monthHeader}>
+            <Text style={styles.monthTitle}>{item.month_name}</Text>
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#333"
+            />
+          </View>
+          <Text style={styles.monthSubtitle}>Tap to see details</Text>
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.expandedContainer}>
+            <View style={styles.expandedBox}>
+              <Text style={styles.expandedLabel}>Total Bills</Text>
+              <Text style={styles.expandedValue}>{item.total_bills}</Text>
+            </View>
+            <View style={styles.expandedBox}>
+              <Text style={styles.expandedLabel}>Total Amount</Text>
+              <Text style={styles.expandedValue}>
+                {parseFloat(item.total_amount).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // ✅ Main Render
   return (
     <View style={styles.container}>
-      {/* Dropdown - identical look for iOS & Android */}
+      {/* Dropdown */}
       <View style={styles.pickerWrapper}>
         <RNPickerSelect
           onValueChange={(value) => setSelectedSummary(value)}
@@ -124,8 +204,8 @@ export default function SalesReportScreen() {
           placeholder={{}}
           items={[
             { label: "Today Sales", value: "today" },
-            { label: "monthly Sales", value: "month" },
-            { label: "over-all report ", value: "item" },
+            { label: "Day Wise Sales", value: "DayWise" },
+            { label: "Month Wise Sales", value: "item" },
           ]}
           style={{
             inputIOS: styles.inputIOS,
@@ -137,7 +217,6 @@ export default function SalesReportScreen() {
         />
       </View>
 
-      {/* Loading / Data */}
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#FF914D" />
@@ -146,22 +225,56 @@ export default function SalesReportScreen() {
         <View style={styles.centered}>
           <Text>No sales data available.</Text>
         </View>
-      ) : (
+      ) : selectedSummary === "DayWise" ? (
         <>
-          {/* Top Summary Card */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Sales Today</Text>
-            <Text style={styles.totalValue}>₹{totalSales.toFixed(2)}</Text>
+          {/* Day Wise Summary */}
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>Total Bills</Text>
+              <Text style={styles.summaryNumber}>
+                {salesData.reduce((sum, i) => sum + (i.total_bills || 0), 0)}
+              </Text>
+            </View>
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryLabel}>Total Amount</Text>
+              <Text style={styles.summaryNumber}>
+                {salesData
+                  .reduce(
+                    (sum, i) => sum + parseFloat(i.total_amount || 0),
+                    0
+                  )
+                  .toFixed(2)}
+              </Text>
+            </View>
           </View>
 
-          {/* All Transactions */}
+          <FlatList
+            data={salesData}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderDayWise}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
+      ) : selectedSummary === "item" ? (
+        <FlatList
+          data={salesData}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMonthWise}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Total Sales Today</Text>
+            <Text style={styles.totalValue}>{totalSales.toFixed(2)}</Text>
+          </View>
+
           <Text style={styles.sectionTitle}>All Transactions</Text>
           <FlatList
             data={salesData}
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 50 }}
           />
         </>
       )}
@@ -169,9 +282,9 @@ export default function SalesReportScreen() {
   );
 }
 
+// ✅ Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
-
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -183,19 +296,12 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-    marginLeft: 16,
-  },
-
+  headerTitle: { fontSize: 18, fontWeight: "600", color: "#000", marginLeft: 16 },
   pickerWrapper: {
     backgroundColor: "#FFF8F3",
     borderRadius: 12,
     marginBottom: 15,
   },
-
   inputIOS: {
     fontSize: 16,
     paddingVertical: 14,
@@ -216,7 +322,77 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     paddingRight: 30,
   },
-
+  centered: { alignItems: "center", marginTop: 50 },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  summaryBox: {
+    flex: 1,
+    backgroundColor: "#FFF8F3",
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 5,
+    alignItems: "center",
+  },
+  summaryLabel: { fontSize: 14, color: "#777", fontWeight: "500" },
+  summaryNumber: { fontSize: 22, fontWeight: "700", color: "#000", marginTop: 4 },
+  dayCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#f1f1f1",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dayRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dayDate: { fontSize: 15, fontWeight: "700", color: "#000" },
+  dayBills: { fontSize: 13, color: "#777", marginTop: 2 },
+  dayAmount: { fontSize: 16, fontWeight: "700", color: "#FF914D" },
+  monthCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#f1f1f1",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  monthHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  monthTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+  monthSubtitle: { fontSize: 13, color: "#777", marginTop: 2 },
+  expandedContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+  },
+  expandedBox: {
+    flex: 1,
+    backgroundColor: "#FF914D",
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+  expandedLabel: { color: "#fff", fontSize: 13, fontWeight: "500" },
+  expandedValue: { color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 4 },
   summaryCard: {
     backgroundColor: "#FEEBDD",
     borderRadius: 16,
@@ -224,23 +400,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: "center",
   },
-  summaryTitle: {
-    fontSize: 14,
-    color: "#555",
-    fontWeight: "500",
-  },
-  totalValue: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#000",
-    marginTop: 5,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 10,
-    color: "#000",
-  },
+  summaryTitle: { fontSize: 14, color: "#555", fontWeight: "500" },
+  totalValue: { fontSize: 28, fontWeight: "bold", color: "#000", marginTop: 5 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10, color: "#000" },
   transactionCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -265,5 +427,4 @@ const styles = StyleSheet.create({
   name: { fontWeight: "600", color: "#000", fontSize: 15 },
   time: { color: "#777", fontSize: 12 },
   amount: { color: "#FF914D", fontWeight: "700", fontSize: 15 },
-  centered: { alignItems: "center", marginTop: 50 },
 });

@@ -17,14 +17,14 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 const API_URL = "https://taskprime.app/api/get-ledger-details?account_code=";
 
 export default function CustomerLedgerScreen() {
-  const { code, name, closing_balance } = useLocalSearchParams();
+  const { code, name, current_balance } = useLocalSearchParams();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [ledger, setLedger] = useState([]);
   const [filteredLedger, setFilteredLedger] = useState([]);
   const [openingBalance, setOpeningBalance] = useState(0);
-  const [closingBalance, setClosingBalance] = useState(Number(closing_balance) || 0);
+  const [closingBalance, setClosingBalance] = useState(Number(current_balance) || 0);
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -64,12 +64,21 @@ export default function CustomerLedgerScreen() {
       }
 
       let entries = Array.isArray(result) ? result : result.data || [];
-      // Sort by voucher number ascending
-      entries.sort((a, b) => (a.voucher_no || 0) - (b.voucher_no || 0));
+
+      // Sort latest first
+      entries.sort((a, b) => {
+        const dateA = new Date(a.entry_date);
+        const dateB = new Date(b.entry_date);
+        if (dateA.getTime() === dateB.getTime()) {
+          return (a.voucher_no || 0) - (b.voucher_no || 0);
+        }
+        return dateB - dateA;
+      });
 
       setLedger(entries);
       setFilteredLedger(entries);
-      calculateReverseBalances(entries, Number(closing_balance) || 0);
+
+      calculateReverseBalances(entries, Number(current_balance) || 0, false);
     } catch (err) {
       console.error("Ledger Fetch Error:", err);
       Alert.alert("Network Error", "Unable to fetch ledger details.");
@@ -78,10 +87,9 @@ export default function CustomerLedgerScreen() {
     }
   };
 
-  const calculateReverseBalances = (entries, currentClosing) => {
+  const calculateReverseBalances = (entries, currentClosing, isDateFiltered) => {
     if (!entries.length) return;
 
-    // Group transactions by date
     const grouped = {};
     entries.forEach((e) => {
       const d = e.entry_date;
@@ -89,11 +97,12 @@ export default function CustomerLedgerScreen() {
       grouped[d].push(e);
     });
 
-    const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a)); // reverse order
-    let nextClosing = currentClosing;
+    const dates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b));
     let balances = {};
+    let nextOpening = currentClosing;
 
-    for (let date of dates) {
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const date = dates[i];
       const dayEntries = grouped[date];
       let debitTotal = 0;
       let creditTotal = 0;
@@ -103,46 +112,93 @@ export default function CustomerLedgerScreen() {
         creditTotal += Number(e.credit || 0);
       });
 
-      // Reverse logic
-      const opening = nextClosing - debitTotal + creditTotal;
-      const closing = nextClosing;
-
+      const closing = nextOpening;
+      const opening = closing - debitTotal + creditTotal;
       balances[date] = { opening, closing, debitTotal, creditTotal };
-      nextClosing = opening;
+      nextOpening = opening;
     }
 
-    // Get today's (latest) data
-    const latestDate = dates[0];
-    const today = balances[latestDate];
+    // ✅ If all transactions view
+    if (!isDateFiltered) {
+      let totalDebitAll = 0;
+      let totalCreditAll = 0;
+      entries.forEach((e) => {
+        totalDebitAll += Number(e.debit || 0);
+        totalCreditAll += Number(e.credit || 0);
+      });
 
-    setOpeningBalance(Math.abs(today?.opening || 0));
-    setClosingBalance(Math.abs(today?.closing || currentClosing));
-    setTotalDebit(today?.debitTotal || 0);
-    setTotalCredit(today?.creditTotal || 0);
+      const earliestDate = dates[0];
+      const earliest = balances[earliestDate];
+
+      setOpeningBalance(earliest?.opening || 0);
+      setClosingBalance(currentClosing);
+      setTotalDebit(totalDebitAll);
+      setTotalCredit(totalCreditAll);
+    } else {
+      // handled separately in updateSelectedDayBalances
+    }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
     const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
     const yyyy = date.getFullYear();
-    return `${mm}-${dd}-${yyyy}`;
+    return `${dd}-${mm}-${yyyy}`;
   };
 
   const filterByDate = (date) => {
     const formatted = date.toISOString().split("T")[0];
-    const filtered = ledger.filter(
-      (e) => e.entry_date && e.entry_date.startsWith(formatted)
-    );
+    const filtered = ledger.filter((e) => e.entry_date && e.entry_date.startsWith(formatted));
     setFilteredLedger(filtered);
-    calculateReverseBalances(ledger, Number(closing_balance) || 0);
+
+    updateSelectedDayBalances(formatted);
+  };
+
+  const updateSelectedDayBalances = (selectedDateStr) => {
+    const grouped = {};
+    ledger.forEach((e) => {
+      const d = e.entry_date;
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(e);
+    });
+
+    const dates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b));
+    let balances = {};
+    let nextOpening = Number(current_balance) || 0;
+
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const date = dates[i];
+      const dayEntries = grouped[date];
+      let debitTotal = 0;
+      let creditTotal = 0;
+
+      dayEntries.forEach((e) => {
+        debitTotal += Number(e.debit || 0);
+        creditTotal += Number(e.credit || 0);
+      });
+
+      const closing = nextOpening;
+      const opening = closing - debitTotal + creditTotal;
+      balances[date] = { opening, closing, debitTotal, creditTotal };
+      nextOpening = opening;
+    }
+
+    const selected = balances[selectedDateStr];
+    if (selected) {
+      setOpeningBalance(selected.opening || 0);
+      setClosingBalance(selected.closing || 0);
+      setTotalDebit(selected.debitTotal || 0);
+      setTotalCredit(selected.creditTotal || 0);
+    }
   };
 
   const onDateChange = (event, selected) => {
     setShowDatePicker(false);
     if (selected) {
       setSelectedDate(selected);
+      calculateReverseBalances(ledger, Number(current_balance) || 0, true);
       filterByDate(selected);
     }
   };
@@ -150,36 +206,38 @@ export default function CustomerLedgerScreen() {
   const refreshAll = () => {
     setSelectedDate(null);
     setFilteredLedger(ledger);
-    calculateReverseBalances(ledger, Number(closing_balance) || 0);
+    calculateReverseBalances(ledger, Number(current_balance) || 0, false);
   };
 
   const renderItem = ({ item }) => {
     const isCredit = item.credit && item.credit > 0;
     const amount = isCredit ? item.credit : item.debit;
-    const color = isCredit ? "#ff4d4d" : "#00b894"; // Credit red, Debit green
+    const color = isCredit ? "#ff4d4d" : "#00b894";
 
     return (
       <View style={styles.transactionCard}>
         <View style={styles.rowBetween}>
-          <View style={styles.rowCenter}>
+          <View style={[styles.rowCenter, { flex: 1 }]}>
             <View style={[styles.iconCircle, { backgroundColor: color + "20" }]}>
-              <Icon
-                name={isCredit ? "arrow-down" : "arrow-up"}
-                size={18}
-                color={color}
-              />
+              <Icon name={isCredit ? "arrow-down" : "arrow-up"} size={18} color={color} />
             </View>
-            <View>
-              <Text style={styles.particulars}>{item.particulars}</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.particulars} numberOfLines={1} ellipsizeMode="tail">
+                {item.particulars}
+              </Text>
               <Text style={styles.subText}>
                 {formatDate(item.entry_date)} {item.narration ? `• ${item.narration}` : ""}
               </Text>
-              <Text style={styles.voucherText}>Voucher ID: {item.voucher_no || "-"}</Text>
+              <Text style={styles.voucherText}>
+                Voucher ID: {item.voucher_no || "-"}
+              </Text>
             </View>
           </View>
-          <Text style={[styles.amountText, { color }]}>
-            ₹{Math.abs(amount || 0).toLocaleString("en-IN")}
-          </Text>
+          <View style={{ marginLeft: 10, minWidth: 90, alignItems: "flex-end" }}>
+            <Text style={[styles.amountText, { color }]}>
+              {Math.abs(amount || 0).toLocaleString("en-IN")}
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -195,7 +253,6 @@ export default function CustomerLedgerScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <LinearGradient colors={["#fff0e0", "#ffffff"]} style={styles.headerCard}>
         <TouchableOpacity onPress={() => router.back()}>
           <Icon name="arrow-back" size={22} color="#ff6600" />
@@ -204,9 +261,7 @@ export default function CustomerLedgerScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{name || "Customer Ledger"}</Text>
           <Text style={styles.dateText}>
-            {selectedDate
-              ? formatDate(selectedDate)
-              : "All Transactions"}
+            {selectedDate ? formatDate(selectedDate) : "All Transactions"}
           </Text>
         </View>
 
@@ -229,61 +284,58 @@ export default function CustomerLedgerScreen() {
         />
       )}
 
-      {/* Balances */}
       <View style={styles.balanceRow}>
         <View style={styles.balanceBox}>
           <Text style={styles.balanceLabel}>Current Balance</Text>
           <Text style={styles.balanceValue}>
-            ₹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            {closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.balanceBox}>
           <Text style={styles.balanceLabel}>Opening Balance</Text>
           <Text style={styles.balanceValue}>
-            ₹{openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            {openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </Text>
         </View>
       </View>
 
-      {/* Totals */}
       <View style={styles.totalCard}>
         <View style={styles.totalItem}>
           <Text style={styles.totalLabel}>Total Credit</Text>
           <Text style={[styles.totalValue, { color: "#ff4d4d" }]}>
-            ₹{totalCredit.toLocaleString("en-IN")}
+            {totalCredit.toLocaleString("en-IN")}
           </Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.totalItem}>
           <Text style={styles.totalLabel}>Total Debit</Text>
           <Text style={[styles.totalValue, { color: "#00b894" }]}>
-            ₹{totalDebit.toLocaleString("en-IN")}
+            {totalDebit.toLocaleString("en-IN")}
           </Text>
         </View>
       </View>
 
-      {/* Transactions */}
       <Text style={styles.transHeading}>TRANSACTIONS</Text>
       <FlatList
         data={filteredLedger}
         keyExtractor={(_, i) => i.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80 }}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No transactions found.</Text>
-        }
+        ListEmptyComponent={<Text style={styles.emptyText}>No transactions found.</Text>}
       />
 
-      {/* Footer */}
       <View style={styles.footerCard}>
         <Text style={styles.footerLabel}>Closing Balance</Text>
         <Text style={styles.footerValue}>
-          ₹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          {closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
         </Text>
       </View>
     </View>
   );
 }
+
+// (same styles as before)
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 10 },
@@ -344,21 +396,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
-    minHeight: 90,
   },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
+  rowCenter: { flexDirection: "row", alignItems: "center" },
   iconCircle: {
     width: 34,
     height: 34,
     borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 8,
   },
-  particulars: { fontWeight: "600", color: "#1e293b" },
+  particulars: { fontWeight: "600", color: "#1e293b", maxWidth: 180 },
   subText: { color: "#6b7280", fontSize: 12 },
   voucherText: { color: "#9ca3af", fontSize: 12, marginTop: 2 },
-  amountText: { fontSize: 16, fontWeight: "bold" },
+  amountText: { fontSize: 16, fontWeight: "bold", textAlign: "right" },
   footerCard: {
     position: "absolute",
     bottom: 0,

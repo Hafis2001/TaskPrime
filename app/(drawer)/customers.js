@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
 
@@ -108,6 +108,15 @@ export default function DebtorsScreen() {
     fetchDebtors();
   }, []);
 
+  // ✅ When user comes back to this page, clear search
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery("");
+      setFiltered(data);
+    }, [data])
+  );
+
+  // ✅ Filter as you type
   useEffect(() => {
     const filteredData = data.filter(
       (i) =>
@@ -127,33 +136,41 @@ export default function DebtorsScreen() {
   }
 
   // ✅ Card UI
-const renderCard = ({ item }) => (
-  <TouchableOpacity
-    style={styles.card}
-    onPress={() => router.push(`/customer-ledger?code=${item.id}&name=${encodeURIComponent(item.name)}`)}
-  >
-    <View style={styles.cardRow}>
-      <View style={{ flex: 3, paddingRight: 8 }}>
-        <Text style={styles.cardValue} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.subText}>{item.phone}</Text>
-        <Text style={styles.subText}>{item.place}</Text>
+  const renderCard = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        router.push({
+          pathname: "/customer-ledger",
+          params: {
+            code: item.id,
+            name: item.name,
+            current_balance: item.balance.toString(),
+          },
+        })
+      }
+    >
+      <View style={styles.cardRow}>
+        <View style={{ flex: 3, paddingRight: 8 }}>
+          <Text style={styles.cardValue} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.subText}>{item.phone}</Text>
+          <Text style={styles.subText}>{item.place}</Text>
+        </View>
+        <View style={styles.balanceContainer}>
+          <Text
+            style={[
+              styles.balanceText,
+              { color: item.balance < 0 ? "red" : "#ff6600" },
+            ]}
+          >
+            {item.balance.toLocaleString("en-IN")}
+          </Text>
+        </View>
       </View>
-      <View style={styles.balanceContainer}>
-        <Text
-          style={[
-            styles.balanceText,
-            { color: item.balance < 0 ? "red" : "#ff6600" },
-          ]}
-        >
-          ₹{item.balance.toLocaleString("en-IN")}
-        </Text>
-      </View>
-    </View>
-  </TouchableOpacity>
-);
-
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -166,7 +183,7 @@ const renderCard = ({ item }) => (
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Total Balance</Text>
-          <Text style={styles.summaryValue}>₹{Math.round(totalBalance)}</Text>
+          <Text style={styles.summaryValue}>{Math.round(totalBalance)}</Text>
         </View>
       </View>
 

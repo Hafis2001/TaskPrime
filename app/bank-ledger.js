@@ -89,7 +89,7 @@ export default function BankLedgerScreen() {
           })
           .sort((a, b) => a.rawDate - b.rawDate || a.voucher_no - b.voucher_no);
 
-        // Group by date
+        // 🗂️ Group by date
         const grouped = {};
         processed.forEach((item) => {
           if (!grouped[item.dateOnly]) {
@@ -100,12 +100,14 @@ export default function BankLedgerScreen() {
           grouped[item.dateOnly].entries.push(item);
         });
 
-        // 🧮 Reverse-opening logic
-        const dates = Object.keys(grouped).sort(); // ascending (oldest → newest)
-        let runningClosing = parseFloat(previous_balance) || 0;
+        // 🧮 Correct reverse-opening logic
+        const dates = Object.keys(grouped).sort(); // ascending (oldest → latest)
         const balanceMap = {};
 
-        // go from newest to oldest
+        // Start from known current closing balance
+        let runningClosing = parseFloat(previous_balance) || 0;
+
+        // Traverse backward (latest → oldest)
         for (let i = dates.length - 1; i >= 0; i--) {
           const d = dates[i];
           const { debit, credit } = grouped[d];
@@ -117,7 +119,7 @@ export default function BankLedgerScreen() {
         setData(processed);
         setDailyBalances(balanceMap);
 
-        // set today's
+        // Default to today
         const today = new Date().toISOString().split("T")[0];
         const todaysEntries = grouped[today]?.entries || [];
         setFilteredData(todaysEntries);
@@ -127,7 +129,9 @@ export default function BankLedgerScreen() {
           setOpeningBalance(balanceMap[today].opening);
           setClosingBalance(balanceMap[today].closing);
         } else {
-          setOpeningBalance(runningClosing);
+          // If no entry for today, keep last known
+          setOpeningBalance(parseFloat(previous_balance) || 0);
+          setClosingBalance(parseFloat(previous_balance) || 0);
         }
       } else {
         setData([]);
@@ -142,6 +146,20 @@ export default function BankLedgerScreen() {
       setLoading(false);
     }
   };
+
+  // ✅ Update balances when dailyBalances or selectedDate changes
+  useEffect(() => {
+    if (!loading && dailyBalances && Object.keys(dailyBalances).length > 0) {
+      if (dailyBalances[selectedDate]) {
+        setOpeningBalance(dailyBalances[selectedDate].opening);
+        setClosingBalance(dailyBalances[selectedDate].closing);
+      } else {
+        // ✅ Correct fallback: if date has no entries, today's opening = current closing
+        setOpeningBalance(parseFloat(previous_balance) || 0);
+        setClosingBalance(parseFloat(previous_balance) || 0);
+      }
+    }
+  }, [dailyBalances, selectedDate, loading]);
 
   const onDateChange = (event, selected) => {
     setShowDatePicker(false);
@@ -159,10 +177,6 @@ export default function BankLedgerScreen() {
   const updateForDate = (date) => {
     const entries = data.filter((i) => i.dateOnly === date);
     setFilteredData(entries);
-    if (dailyBalances[date]) {
-      setOpeningBalance(dailyBalances[date].opening);
-      setClosingBalance(dailyBalances[date].closing);
-    }
   };
 
   const getFilteredList = () => {
@@ -187,8 +201,8 @@ export default function BankLedgerScreen() {
     const color = isDebit ? "#d32f2f" : "#2e7d32";
     const icon = isDebit ? "arrow-down" : "arrow-up";
     const amount = isDebit
-      ? `-₹${item.debit.toLocaleString("en-IN")}`
-      : `+₹${item.credit.toLocaleString("en-IN")}`;
+      ? `${item.debit.toLocaleString("en-IN")}`
+      : `${item.credit.toLocaleString("en-IN")}`;
 
     return (
       <View style={styles.transactionCard}>
@@ -253,13 +267,13 @@ export default function BankLedgerScreen() {
             <View style={styles.balanceCard}>
               <Text style={styles.balanceLabel}>Closing Balance</Text>
               <Text style={styles.balanceValue}>
-                ₹{Math.abs(closingBalance).toLocaleString("en-IN")}
+                {Math.abs(closingBalance).toLocaleString("en-IN")}
               </Text>
             </View>
             <View style={styles.balanceCard}>
               <Text style={styles.balanceLabel}>Opening Balance</Text>
               <Text style={styles.balanceValue}>
-                ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
+                {Math.abs(openingBalance).toLocaleString("en-IN")}
               </Text>
             </View>
           </View>
@@ -292,13 +306,13 @@ export default function BankLedgerScreen() {
             <View style={styles.rowBetween}>
               <Text style={styles.summaryLabel}>Total Credit</Text>
               <Text style={[styles.summaryValue, { color: "#2e7d32" }]}>
-                +₹{totals.credit.toLocaleString("en-IN")}
+                {totals.credit.toLocaleString("en-IN")}
               </Text>
             </View>
             <View style={styles.rowBetween}>
               <Text style={styles.summaryLabel}>Total Debit</Text>
               <Text style={[styles.summaryValue, { color: "#d32f2f" }]}>
-                -₹{totals.debit.toLocaleString("en-IN")}
+                {totals.debit.toLocaleString("en-IN")}
               </Text>
             </View>
           </View>
@@ -320,9 +334,11 @@ export default function BankLedgerScreen() {
 
           {/* Closing Balance */}
           <View style={styles.closingBox}>
-            <Text style={styles.closingLabel}>Closing Balance ({selectedDate})</Text>
+            <Text style={styles.closingLabel}>
+              Closing Balance ({selectedDate})
+            </Text>
             <Text style={styles.closingValue}>
-              ₹{Math.abs(closingBalance).toLocaleString("en-IN")}
+              {Math.abs(closingBalance).toLocaleString("en-IN")}
             </Text>
           </View>
         </View>
@@ -407,9 +423,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   leftColumn: { flex: 1 },
-  textBlock: { marginLeft: 10, justifyContent: "center" },
+  textBlock: { marginLeft: 5, justifyContent: "center" },
   particulars: { fontSize: 15, fontWeight: "600", color: "#333" },
-  narration: { fontSize: 12, color: "#999", marginTop: 2 },
+  narration: { fontSize: 10, color: "#999", marginTop: 2 },
   iconCircle: {
     width: 36,
     height: 36,
@@ -417,8 +433,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  amountWrap: { marginLeft: 12, justifyContent: "center", alignItems: "flex-end" },
-  amount: { fontSize: 15, fontWeight: "700", textAlign: "right" },
+  amountWrap: { marginLeft: 15, justifyContent: "center", alignItems: "flex-end",marginTop: 6, },
+  amount: { fontSize: 15, fontWeight: "700", textAlign: "right", marginTop: 6, },
   emptyText: {
     color: "#fff",
     textAlign: "center",

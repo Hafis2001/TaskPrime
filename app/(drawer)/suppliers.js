@@ -108,6 +108,15 @@ export default function SuppliersScreen() {
     setFiltered(filteredData);
   }, [searchQuery, data]);
 
+  // ✅ Clear search bar when returning to this page
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery(""); // clear search bar every time page focused
+      return undefined;
+    }, [])
+  );
+
+  // ✅ Handle back button navigation
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -119,11 +128,10 @@ export default function SuppliersScreen() {
     }, [router])
   );
 
-  // ✅ Move renderCard before return
   const renderCard = ({ item }) => {
     const isNegative = item.balance < 0;
     const formattedBalance = Math.abs(item.balance).toLocaleString("en-IN");
-    const displayText = isNegative ? `-₹${formattedBalance}` : `₹${formattedBalance}`;
+    const displayText = isNegative ? `${formattedBalance}` : `${formattedBalance}`;
 
     return (
       <View style={styles.card}>
@@ -141,17 +149,16 @@ export default function SuppliersScreen() {
         </View>
         <View style={styles.creditDebitRow}>
           <Text style={[styles.subText, { color: "green" }]}>
-            Credit: ₹{item.credit.toLocaleString("en-IN")}
+            Credit: {item.credit.toLocaleString("en-IN")}
           </Text>
           <Text style={[styles.subText, { color: "red" }]}>
-            Debit: ₹{item.debit.toLocaleString("en-IN")}
+            Debit: {item.debit.toLocaleString("en-IN")}
           </Text>
         </View>
       </View>
     );
   };
 
-  // ✅ Only one return
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -177,7 +184,7 @@ export default function SuppliersScreen() {
               { color: totalBalance < 0 ? "red" : "green" },
             ]}
           >
-            ₹{totalBalance.toLocaleString("en-IN")}
+            {totalBalance.toLocaleString("en-IN")}
           </Text>
         </View>
       </View>
@@ -213,7 +220,13 @@ export default function SuppliersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  title: { fontSize: 20, fontWeight: "bold", textAlign: "center", marginBottom: 10, color: "#ff6600" },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
+    color: "#ff6600",
+  },
   summaryCard: {
     backgroundColor: "#fffaf5",
     borderRadius: 10,

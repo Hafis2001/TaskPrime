@@ -224,8 +224,8 @@ export default function CashLedgerScreen() {
     const color = item.debit > 0 ? "#2e7d32" : "#d32f2f";
     const amount =
       item.debit > 0
-        ? `+₹${item.debit.toLocaleString("en-IN")}`
-        : `−₹${item.credit.toLocaleString("en-IN")}`;
+        ? `${item.debit.toLocaleString("en-IN")}`
+        : `${item.credit.toLocaleString("en-IN")}`;
     return (
       <View style={styles.card}>
         <View style={styles.rowBetween}>
@@ -302,7 +302,7 @@ export default function CashLedgerScreen() {
       <View style={styles.previousBox}>
         <Text style={styles.label}>current   Amount</Text>
         <Text style={[styles.balanceValue, { color: "#2563eb" }]}>
-          ₹{Math.abs(previous_balance || 0).toLocaleString("en-IN")}
+          {Math.abs(previous_balance || 0).toLocaleString("en-IN")}
         </Text>
       </View>
 
@@ -315,7 +315,7 @@ export default function CashLedgerScreen() {
             { color: openingBalance >= 0 ? "#16a34a" : "#dc2626" },
           ]}
         >
-          ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
+          {Math.abs(openingBalance).toLocaleString("en-IN")}
         </Text>
       </View>
        
@@ -327,13 +327,13 @@ export default function CashLedgerScreen() {
         <View style={styles.totalItem}>
           <Text style={styles.label}>Total Debit</Text>
           <Text style={[styles.balanceValue, { color: "#16a34a" }]}>
-            ₹{totalDebit.toLocaleString("en-IN")}
+            {totalDebit.toLocaleString("en-IN")}
           </Text>
         </View>
         <View style={styles.totalItem}>
           <Text style={styles.label}>Total Credit</Text>
           <Text style={[styles.balanceValue, { color: "#dc2626" }]}>
-            ₹{totalCredit.toLocaleString("en-IN")}
+            {totalCredit.toLocaleString("en-IN")}
           </Text>
         </View>
       </View>

@@ -20,7 +20,7 @@ function formatCurrency(v) {
   const n = Number(v ?? 0);
   const isNegative = n < 0;
   const absValue = Math.abs(Math.round(n));
-  const formatted = "₹" + absValue.toLocaleString("en-IN");
+  const formatted = "" + absValue.toLocaleString("en-IN");
   return isNegative ? `-${formatted}` : formatted;
 }
 
