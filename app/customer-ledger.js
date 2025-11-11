@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,8 +28,12 @@ export default function CustomerLedgerScreen() {
   const [closingBalance, setClosingBalance] = useState(Number(current_balance) || 0);
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(null);
+
+  // 🗓️ New State for Date Range
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState(null); // "from" or "to"
 
   useEffect(() => {
     fetchLedger();
@@ -65,7 +70,6 @@ export default function CustomerLedgerScreen() {
 
       let entries = Array.isArray(result) ? result : result.data || [];
 
-      // Sort latest first
       entries.sort((a, b) => {
         const dateA = new Date(a.entry_date);
         const dateB = new Date(b.entry_date);
@@ -77,7 +81,6 @@ export default function CustomerLedgerScreen() {
 
       setLedger(entries);
       setFilteredLedger(entries);
-
       calculateReverseBalances(entries, Number(current_balance) || 0, false);
     } catch (err) {
       console.error("Ledger Fetch Error:", err);
@@ -118,7 +121,6 @@ export default function CustomerLedgerScreen() {
       nextOpening = opening;
     }
 
-    // ✅ If all transactions view
     if (!isDateFiltered) {
       let totalDebitAll = 0;
       let totalCreditAll = 0;
@@ -134,8 +136,6 @@ export default function CustomerLedgerScreen() {
       setClosingBalance(currentClosing);
       setTotalDebit(totalDebitAll);
       setTotalCredit(totalCreditAll);
-    } else {
-      // handled separately in updateSelectedDayBalances
     }
   };
 
@@ -148,63 +148,47 @@ export default function CustomerLedgerScreen() {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  const filterByDate = (date) => {
-    const formatted = date.toISOString().split("T")[0];
-    const filtered = ledger.filter((e) => e.entry_date && e.entry_date.startsWith(formatted));
-    setFilteredLedger(filtered);
+  // 🗓️ Filter ledger between two dates
+  const filterByDateRange = (startDate, endDate) => {
+    if (!startDate || !endDate) return;
+    const from = new Date(startDate);
+    const to = new Date(endDate);
 
-    updateSelectedDayBalances(formatted);
-  };
-
-  const updateSelectedDayBalances = (selectedDateStr) => {
-    const grouped = {};
-    ledger.forEach((e) => {
-      const d = e.entry_date;
-      if (!grouped[d]) grouped[d] = [];
-      grouped[d].push(e);
+    const filtered = ledger.filter((e) => {
+      const d = new Date(e.entry_date);
+      return d >= from && d <= to;
     });
 
-    const dates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b));
-    let balances = {};
-    let nextOpening = Number(current_balance) || 0;
+    setFilteredLedger(filtered);
+    calculateReverseBalances(filtered, Number(current_balance) || 0, true);
 
-    for (let i = dates.length - 1; i >= 0; i--) {
-      const date = dates[i];
-      const dayEntries = grouped[date];
-      let debitTotal = 0;
-      let creditTotal = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+    filtered.forEach((e) => {
+      totalDebit += Number(e.debit || 0);
+      totalCredit += Number(e.credit || 0);
+    });
 
-      dayEntries.forEach((e) => {
-        debitTotal += Number(e.debit || 0);
-        creditTotal += Number(e.credit || 0);
-      });
-
-      const closing = nextOpening;
-      const opening = closing - debitTotal + creditTotal;
-      balances[date] = { opening, closing, debitTotal, creditTotal };
-      nextOpening = opening;
-    }
-
-    const selected = balances[selectedDateStr];
-    if (selected) {
-      setOpeningBalance(selected.opening || 0);
-      setClosingBalance(selected.closing || 0);
-      setTotalDebit(selected.debitTotal || 0);
-      setTotalCredit(selected.creditTotal || 0);
-    }
+    setTotalDebit(totalDebit);
+    setTotalCredit(totalCredit);
   };
 
-  const onDateChange = (event, selected) => {
-    setShowDatePicker(false);
-    if (selected) {
-      setSelectedDate(selected);
-      calculateReverseBalances(ledger, Number(current_balance) || 0, true);
-      filterByDate(selected);
+  const onDateChange = (event, selectedDate) => {
+    if (Platform.OS !== "ios") setShowDatePicker(false);
+    if (selectedDate) {
+      if (datePickerMode === "from") {
+        setFromDate(selectedDate);
+        if (toDate) filterByDateRange(selectedDate, toDate);
+      } else if (datePickerMode === "to") {
+        setToDate(selectedDate);
+        if (fromDate) filterByDateRange(fromDate, selectedDate);
+      }
     }
   };
 
   const refreshAll = () => {
-    setSelectedDate(null);
+    setFromDate(null);
+    setToDate(null);
     setFilteredLedger(ledger);
     calculateReverseBalances(ledger, Number(current_balance) || 0, false);
   };
@@ -228,9 +212,7 @@ export default function CustomerLedgerScreen() {
               <Text style={styles.subText}>
                 {formatDate(item.entry_date)} {item.narration ? `• ${item.narration}` : ""}
               </Text>
-              <Text style={styles.voucherText}>
-                Voucher ID: {item.voucher_no || "-"}
-              </Text>
+              <Text style={styles.voucherText}>Voucher ID: {item.voucher_no || "-"}</Text>
             </View>
           </View>
           <View style={{ marginLeft: 10, minWidth: 90, alignItems: "flex-end" }}>
@@ -261,13 +243,21 @@ export default function CustomerLedgerScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{name || "Customer Ledger"}</Text>
           <Text style={styles.dateText}>
-            {selectedDate ? formatDate(selectedDate) : "All Transactions"}
+            {fromDate && toDate
+              ? `${formatDate(fromDate)} → ${formatDate(toDate)}`
+              : "All Transactions"}
           </Text>
         </View>
 
         <View style={styles.rowCenter}>
-          <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+          <TouchableOpacity onPress={() => { setDatePickerMode("from"); setShowDatePicker(true); }}>
             <Icon name="calendar-outline" size={22} color="#ff6600" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { setDatePickerMode("to"); setShowDatePicker(true); }}
+            style={{ marginLeft: 10 }}
+          >
+            <Icon name="calendar" size={22} color="#ff6600" />
           </TouchableOpacity>
           <TouchableOpacity onPress={refreshAll} style={{ marginLeft: 10 }}>
             <Icon name="refresh" size={22} color="#ff6600" />
@@ -277,7 +267,7 @@ export default function CustomerLedgerScreen() {
 
       {showDatePicker && (
         <DateTimePicker
-          value={selectedDate || new Date()}
+          value={new Date()}
           mode="date"
           display="calendar"
           onChange={onDateChange}
@@ -334,9 +324,7 @@ export default function CustomerLedgerScreen() {
   );
 }
 
-// (same styles as before)
-
-
+// ----------------- Styles -----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 10 },
   loader: { flex: 1, justifyContent: "center", alignItems: "center" },

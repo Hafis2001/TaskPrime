@@ -58,8 +58,9 @@ export default function SuppliersScreen() {
       else if (Array.isArray(result.data)) arrayData = result.data;
       else if (Array.isArray(result.results)) arrayData = result.results;
 
+      // ✅ Fixed: ensure unique suppliers and unique IDs
       const formatted = arrayData
-        .map((item) => {
+        .map((item, index) => {
           let name = item.name ?? "-";
           name = name.replace(/^\(.*?\)\s*/g, "").trim();
           name = name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -69,7 +70,7 @@ export default function SuppliersScreen() {
           const balance = Math.round(credit - debit);
 
           return {
-            id: item.code || item.id || Math.random().toString(),
+            id: item.code || item.id || `auto-${index}`, // ✅ unique fallback ID
             name,
             place: item.place ?? "-",
             phone: item.phone2 ?? "-",
@@ -78,6 +79,11 @@ export default function SuppliersScreen() {
             balance,
           };
         })
+        // ✅ remove duplicates by ID
+        .filter(
+          (item, index, self) =>
+            index === self.findIndex((t) => t.id === item.id)
+        )
         .filter((item) => item.balance !== 0)
         .sort((a, b) => a.name.localeCompare(b.name));
 

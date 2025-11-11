@@ -445,8 +445,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 14,
-    marginTop: 10,
-    marginBottom: 18,
+    
+    marginBottom: 38,
   },
   closingLabel: { color: "#777", fontSize: 13 },
   closingValue: { fontSize: 20, fontWeight: "700", color: "#ff7b00" },

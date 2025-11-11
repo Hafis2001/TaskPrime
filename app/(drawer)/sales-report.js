@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  TouchableOpacity,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRouter } from "expo-router";
+import { useEffect, useLayoutEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
+} from "react-native";
 import RNPickerSelect from "react-native-picker-select";
-import { useRouter, useNavigation } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 if (
@@ -39,7 +40,6 @@ export default function SalesReportScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // ✅ Custom Header
   useLayoutEffect(() => {
     navigation.setOptions({
       header: () => (
@@ -56,7 +56,6 @@ export default function SalesReportScreen() {
     });
   }, [navigation, insets]);
 
-  // ✅ Fetch Data
   useEffect(() => {
     const init = async () => {
       const storedUser = await AsyncStorage.getItem("user");
@@ -84,7 +83,6 @@ export default function SalesReportScreen() {
         }
       );
 
-      // ✅ Check if response is JSON
       const text = await response.text();
       if (!text.startsWith("{") && !text.startsWith("[")) {
         console.log("❌ Server did not return JSON:", text);
@@ -108,13 +106,11 @@ export default function SalesReportScreen() {
     }
   };
 
-  // ✅ Total for Today
   const totalSales = salesData.reduce(
     (sum, item) => sum + parseFloat(item.nettotal || 0),
     0
   );
 
-  // ✅ Render for Today
   const renderItem = ({ item }) => (
     <View style={styles.transactionCard}>
       <View style={styles.row}>
@@ -127,12 +123,13 @@ export default function SalesReportScreen() {
             <Text style={styles.time}>Bill No: {item.billno}</Text>
           </View>
         </View>
-        <Text style={styles.amount}>{item.nettotal}</Text>
+        <Text style={styles.amount}>
+          Total Amount: {parseFloat(item.nettotal || 0).toFixed(2)}
+        </Text>
       </View>
     </View>
   );
 
-  // ✅ Render for Day Wise
   const renderDayWise = ({ item }) => (
     <View style={styles.dayCard}>
       <View style={styles.dayRow}>
@@ -153,7 +150,6 @@ export default function SalesReportScreen() {
     </View>
   );
 
-  // ✅ Render for Month Wise
   const toggleExpand = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedId(expandedId === id ? null : id);
@@ -193,11 +189,15 @@ export default function SalesReportScreen() {
     );
   };
 
-  // ✅ Main Render
   return (
     <View style={styles.container}>
-      {/* Dropdown */}
-      <View style={styles.pickerWrapper}>
+      {/* ✅ Gradient Dropdown Section */}
+      <LinearGradient
+        colors={["#fb6c13ff", "#fad13eff"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBox}
+      >
         <RNPickerSelect
           onValueChange={(value) => setSelectedSummary(value)}
           value={selectedSummary}
@@ -208,14 +208,14 @@ export default function SalesReportScreen() {
             { label: "Month Wise Sales", value: "item" },
           ]}
           style={{
-            inputIOS: styles.inputIOS,
-            inputAndroid: styles.inputAndroid,
+            inputIOS: styles.inputGradient,
+            inputAndroid: styles.inputGradient,
             iconContainer: { top: 18, right: 15 },
           }}
           useNativeAndroidPickerStyle={false}
-          Icon={() => <Ionicons name="chevron-down" size={20} color="#666" />}
+          Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
         />
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.centered}>
@@ -227,7 +227,6 @@ export default function SalesReportScreen() {
         </View>
       ) : selectedSummary === "DayWise" ? (
         <>
-          {/* Day Wise Summary */}
           <View style={styles.summaryRow}>
             <View style={styles.summaryBox}>
               <Text style={styles.summaryLabel}>Total Bills</Text>
@@ -238,11 +237,9 @@ export default function SalesReportScreen() {
             <View style={styles.summaryBox}>
               <Text style={styles.summaryLabel}>Total Amount</Text>
               <Text style={styles.summaryNumber}>
+                
                 {salesData
-                  .reduce(
-                    (sum, i) => sum + parseFloat(i.total_amount || 0),
-                    0
-                  )
+                  .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)
                   .toFixed(2)}
               </Text>
             </View>
@@ -282,7 +279,6 @@ export default function SalesReportScreen() {
   );
 }
 
-// ✅ Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
   headerBar: {
@@ -296,31 +292,24 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: "#000", marginLeft: 16 },
-  pickerWrapper: {
-    backgroundColor: "#FFF8F3",
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+    marginLeft: 16,
+  },
+  gradientBox: {
     borderRadius: 12,
     marginBottom: 15,
+    paddingHorizontal: 2,
   },
-  inputIOS: {
+  inputGradient: {
     fontSize: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    color: "#333",
-    backgroundColor: "#FFF8F3",
-    fontWeight: "500",
-    paddingRight: 30,
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    color: "#333",
-    backgroundColor: "#FFF8F3",
-    fontWeight: "500",
-    paddingRight: 30,
+    color: "#fff",
+    fontWeight: "600",
+    backgroundColor: "transparent",
   },
   centered: { alignItems: "center", marginTop: 50 },
   summaryRow: {
@@ -404,8 +393,6 @@ const styles = StyleSheet.create({
   totalValue: { fontSize: 28, fontWeight: "bold", color: "#000", marginTop: 5 },
   sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10, color: "#000" },
   transactionCard: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 12,
@@ -417,7 +404,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  row: { flexDirection: "row", justifyContent: "space-between", flex: 1 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   rowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconCircle: {
     backgroundColor: "#FFE6D4",
@@ -426,5 +413,10 @@ const styles = StyleSheet.create({
   },
   name: { fontWeight: "600", color: "#000", fontSize: 15 },
   time: { color: "#777", fontSize: 12 },
-  amount: { color: "#FF914D", fontWeight: "700", fontSize: 15 },
+  amount: {
+    color: "#FF914D",
+    fontWeight: "700",
+    fontSize: 15,
+    textAlign: "right",
+  },
 });

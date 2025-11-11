@@ -157,6 +157,15 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
+          name="sales-return"
+          options={{
+            title: "Sales Return",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="return-down-forward-sharp" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="purchase-report"
           options={{
             title: "Purchase Report",

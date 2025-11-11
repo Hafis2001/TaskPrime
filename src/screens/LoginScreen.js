@@ -10,8 +10,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
-import Icon from "react-native-vector-icons/Ionicons"; // 👈 added import
+import Icon from "react-native-vector-icons/Ionicons";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,9 +20,8 @@ export default function LoginScreen() {
   const [clientId, setClientId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loginType, setLoginType] = useState("personal");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // 👈 added state
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!clientId || !username || !password) {
@@ -39,9 +39,9 @@ export default function LoginScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: username,
+          username: username.trim(),
           password: password,
-          client_id: clientId,
+          client_id: clientId.trim(),
         }),
       });
 
@@ -95,67 +95,38 @@ export default function LoginScreen() {
         />
       </View>
 
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            loginType === "personal" && styles.toggleButtonActive,
-          ]}
-          onPress={() => setLoginType("personal")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              loginType === "personal" && styles.toggleTextActive,
-            ]}
-          >
-            Personal Login
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            loginType === "corporate" && styles.toggleButtonActive,
-          ]}
-          onPress={() => setLoginType("corporate")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              loginType === "corporate" && styles.toggleTextActive,
-            ]}
-          >
-            Corporate Login
-          </Text>
-        </TouchableOpacity>
+      {/* Single login type */}
+      <View style={styles.singleToggleContainer}>
+        <Text style={styles.singleToggleText}>Personal Login</Text>
       </View>
 
-     <TextInput
-  style={styles.input}
-  placeholder="Enter your Client ID"
-  value={clientId}
-  autoCapitalize="none" // disable system-level capitalization
-  onChangeText={(text) => {
-    const upper = text.toUpperCase();
-    if (upper !== clientId) setClientId(upper);
-  }}
-/>
+      {/* Client ID */}
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your Client ID"
+        value={clientId}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        onChangeText={(text) => {
+          const upper = text.toUpperCase().replace(/\s/g, "");
+          if (upper !== clientId) setClientId(upper);
+        }}
+      />
 
-<TextInput
-  style={styles.input}
-  placeholder="Username"
-  value={username}
-  autoCapitalize="none"
-  onChangeText={(text) => {
-    const upper = text.toUpperCase();
-    if (upper !== username) setUsername(upper);
-  }}
-/>
+      {/* Username */}
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        onChangeText={(text) => {
+          const upper = text.toUpperCase().replace(/\s/g, "");
+          if (upper !== username) setUsername(upper);
+        }}
+      />
 
-
-
-      {/* 👇 Password input with eye icon */}
+      {/* Password input with eye icon */}
       <View style={styles.passwordContainer}>
         <TextInput
           style={[styles.input, { flex: 1, marginBottom: 0 }]}
@@ -163,6 +134,7 @@ export default function LoginScreen() {
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
+          autoCapitalize="none"
         />
         <TouchableOpacity
           onPress={() => setShowPassword(!showPassword)}
@@ -184,9 +156,7 @@ export default function LoginScreen() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>
-            {loginType === "personal" ? "Personal Login" : "Corporate Login"}
-          </Text>
+          <Text style={styles.buttonText}>Login</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -197,23 +167,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
   logoContainer: { alignItems: "center", marginBottom: 20 },
   logoImage: { width: 150, height: 100, marginBottom: 30 },
-  toggleContainer: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "#ddd",
+  singleToggleContainer: {
+    alignItems: "center",
+    backgroundColor: "#ff6600",
     borderRadius: 16,
-    overflow: "hidden",
+    paddingVertical: 12,
     marginBottom: 30,
   },
-  toggleButton: { flex: 1, paddingVertical: 12, alignItems: "center", backgroundColor: "#fff" },
-  toggleButtonActive: { backgroundColor: "#ff6600" },
-  toggleText: { fontSize: 16, color: "#333" },
-  toggleTextActive: { color: "#fff", fontWeight: "bold" },
+  singleToggleText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 20,
-    padding: 12,
+    padding: Platform.OS === "ios" ? 14 : 12,
     marginBottom: 25,
     fontSize: 16,
   },
