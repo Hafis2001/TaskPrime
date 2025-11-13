@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fefdfcff",
     
   },
-  headerTitle: { color: "#f9742dff", fontSize: 18, fontWeight: "600", marginLeft: 120 },
+  headerTitle: { color: "#f9742dff", fontSize: 18, fontWeight: "700", marginLeft: 135 },
   summaryContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
