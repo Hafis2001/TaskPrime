@@ -1,33 +1,48 @@
-import { useEffect, useState } from "react";
-import { View, Image, StyleSheet, Animated } from "react-native";
-import * as SplashScreen from "expo-splash-screen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect, useState } from "react";
+import { Animated, Image, StyleSheet } from "react-native";
+import LicenseActivationScreen from "../src/screens/LicenseActivationScreen";
 import LoginScreen from "../src/screens/LoginScreen";
 
 SplashScreen.preventAutoHideAsync(); // Keep splash visible
 
 export default function Index() {
   const [appReady, setAppReady] = useState(false);
+  const [licenseActivated, setLicenseActivated] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0)); // For fade animation
 
   useEffect(() => {
     const prepare = async () => {
-      // Simulate loading tasks (fonts, auth, etc.)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        // Check license status
+        const isActivated = await AsyncStorage.getItem("licenseActivated");
+        setLicenseActivated(isActivated === "true");
 
-      // Animate fade-in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => {
-        SplashScreen.hideAsync();
-        setAppReady(true);
-      });
+        // Simulate loading tasks (fonts, auth, etc.)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Animate fade-in
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }).start(() => {
+          SplashScreen.hideAsync();
+          setAppReady(true);
+        });
+      }
     };
 
     prepare();
   }, []);
+
+  const handleActivationSuccess = () => {
+    setLicenseActivated(true);
+  };
 
   if (!appReady) {
     // Show gradient splash with fade
@@ -47,6 +62,10 @@ export default function Index() {
         </Animated.View>
       </LinearGradient>
     );
+  }
+
+  if (!licenseActivated) {
+    return <LicenseActivationScreen onActivationSuccess={handleActivationSuccess} />;
   }
 
   return <LoginScreen />;

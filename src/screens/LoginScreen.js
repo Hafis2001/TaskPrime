@@ -1,16 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 
@@ -22,34 +22,133 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("clientId");
+        if (stored) {
+          setClientId(stored.trim());
+        }
+      } catch (e) {
+        console.error("Failed to load client ID", e);
+      } finally {
+        setInitializing(false);
+      }
+    };
+    loadConfig();
+  }, []);
+
+  // LICENSE VALIDATION
+  const validateLicense = async () => {
+    try {
+      // Use state clientId which should be loaded by now, or fetch again to be safe
+      const stored = await AsyncStorage.getItem("clientId");
+      const usedClientId = (stored || clientId || "").toString().trim().toUpperCase();
+
+      if (!usedClientId) {
+        return { ok: false, reason: "missing_client" };
+      }
+
+      const url = "https://activate.imcbs.com/mobileapp/api/project/taskprime/";
+      const fetchUrl = `${url}?t=${Date.now()}`;
+
+      let res;
+      try {
+        res = await fetch(fetchUrl, {
+          method: "GET",
+          headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+        });
+      } catch (networkErr) {
+        return { ok: false, reason: "network" };
+      }
+
+      if (!res.ok) return { ok: false, reason: "network" };
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        return { ok: false, reason: "invalid_response" };
+      }
+
+      if (!Array.isArray(data.customers))
+        return { ok: false, reason: "invalid_response" };
+
+      const matched = data.customers.find(
+        (c) => (c?.client_id ?? "").toString().trim().toUpperCase() === usedClientId
+      );
+
+      if (!matched) return { ok: false, reason: "not_found" };
+
+      return { ok: true, customer: matched };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  };
 
   const handleLogin = async () => {
-    if (!clientId || !username || !password) {
+    if (!username || !password) {
       Alert.alert("Missing Details", "Please fill all fields before logging in.");
+      return;
+    }
+
+    if (!clientId) {
+      Alert.alert("Configuration Error", "Client ID is missing. Please reactivate license.");
       return;
     }
 
     setLoading(true);
 
+    // Validate License
+    const licenseResult = await validateLicense();
+
+    if (!licenseResult.ok) {
+      setLoading(false);
+      switch (licenseResult.reason) {
+        case "missing_client":
+          Alert.alert("Configuration Error", "Client ID is missing. Please reactivate.");
+          break;
+        case "network":
+          Alert.alert("Network Error", "Check your internet connection.");
+          break;
+        case "not_found":
+          Alert.alert("Invalid License", "Client ID not registered.");
+          break;
+        default:
+          Alert.alert("License Error", "Unable to validate license.");
+      }
+      return;
+    }
+
     try {
+      // FIX: Replace letter 'O' with number '0' in client_id as a workaround for potential API/Data mismatch
+      // The Licensing API might return 'O' (e.g. KROC...) but Login expects '0' (e.g. KR0C...)
+      const cleanClientId = clientId.trim().replace(/O/g, "0");
+
+      const payload = {
+        username: username.trim(),
+        password: password,
+        client_id: cleanClientId,
+      };
+
+      console.log("🔑 Attempting Login with (Corrected ID):", { ...payload, password: "***" });
+
       const response = await fetch("https://taskprime.app/api/login/", {
         method: "POST",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password,
-          client_id: clientId.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       console.log("🔗 API Status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ API Error Response:", errorText);
+        console.warn("❌ API Error Response:", errorText);
         Alert.alert("Login Failed", "Invalid credentials or server error.");
         setLoading(false);
         return;
@@ -85,6 +184,14 @@ export default function LoginScreen() {
     }
   };
 
+  if (initializing) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#ff6600" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
@@ -100,29 +207,15 @@ export default function LoginScreen() {
         <Text style={styles.singleToggleText}>Personal Login</Text>
       </View>
 
-      {/* Client ID */}
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your Client ID"
-        value={clientId}
-        autoCapitalize="characters"
-        autoCorrect={false}
-        onChangeText={(text) => {
-          const upper = text.toUpperCase().replace(/\s/g, "");
-          if (upper !== clientId) setClientId(upper);
-        }}
-      />
-
       {/* Username */}
       <TextInput
         style={styles.input}
         placeholder="Username"
         value={username}
-        autoCapitalize="characters"
+        autoCapitalize="none"
         autoCorrect={false}
         onChangeText={(text) => {
-          const upper = text.toUpperCase().replace(/\s/g, "");
-          if (upper !== username) setUsername(upper);
+          setUsername(text);
         }}
       />
 

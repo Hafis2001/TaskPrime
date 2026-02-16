@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { Drawer } from "expo-router/drawer";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer"; // ✅ Correct import
+import { useRouter } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  ActivityIndicator,
   Modal,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer"; // ✅ Correct import
 
 export default function DrawerLayout() {
   const insets = useSafeAreaInsets();
@@ -189,6 +189,15 @@ export default function DrawerLayout() {
             title: "Company Info",
             drawerIcon: ({ color, size }) => (
               <Ionicons name="business-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="dashboard"
+          options={{
+            title: "License Info",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="shield-checkmark-outline" size={size} color={color} />
             ),
           }}
         />

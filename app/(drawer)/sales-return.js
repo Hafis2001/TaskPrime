@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  SafeAreaView,
-  Alert,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-const API_URL = "https://taskprime.app/api/sales-return/get-data/?client_id=SYSMAC";
+const BASE_API_URL = "https://taskprime.app/api/sales-return/get-data/";
 
 export default function SalesReturnScreen() {
   const [salesData, setSalesData] = useState([]);
@@ -41,18 +41,30 @@ export default function SalesReturnScreen() {
         return;
       }
 
-      setClientId(storedClientId);
-      fetchSalesReturnData(storedClientId);
+      // Apply the same fix as LoginScreen: O -> 0
+      const cleanClientId = storedClientId.trim().replace(/O/g, "0");
+      const token = parsedUser.token;
+
+      setClientId(cleanClientId);
+      fetchSalesReturnData(cleanClientId, token);
     } catch (error) {
       console.error("Error fetching client ID:", error);
       setLoading(false);
     }
   };
 
-  const fetchSalesReturnData = async (storedClientId) => {
+  const fetchSalesReturnData = async (storedClientId, token) => {
     try {
       setLoading(true);
-      const response = await fetch(API_URL);
+      const url = `${BASE_API_URL}?client_id=${storedClientId}`;
+      console.log("Fetching Sales Return from:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
       const result = await response.json();
 
       if (result && result.success && result.client_id === storedClientId) {
@@ -61,12 +73,12 @@ export default function SalesReturnScreen() {
         const total = data.reduce((sum, item) => sum + (item.net || 0), 0);
         setTotalAmount(total);
       } else {
-        console.error("Client ID mismatch or invalid response:", result);
+        console.warn("Client ID mismatch or invalid response:", result);
         Alert.alert("No Data", "No sales return data found for your account.");
         setSalesData([]);
       }
     } catch (error) {
-      console.error("Error fetching sales return data:", error);
+      console.warn("Error fetching sales return data:", error);
       Alert.alert("Error", "Failed to load sales return data.");
       setSalesData([]);
     } finally {
@@ -145,7 +157,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fefdfcff",
-    
+
   },
   headerTitle: { color: "#f9742dff", fontSize: 18, fontWeight: "700", marginLeft: 135 },
   summaryContainer: {
@@ -192,6 +204,6 @@ const styles = StyleSheet.create({
   textContainer: { flex: 1, marginLeft: 12 },
   customerName: { fontSize: 16, fontWeight: "600", color: "#222" },
   dateText: { fontSize: 13, color: "#777", marginTop: 3 },
-  amountText: { fontSize: 18, fontWeight: "600", color: "#f88126ff",marginTop:9, },
+  amountText: { fontSize: 18, fontWeight: "600", color: "#f88126ff", marginTop: 9, },
   noDataText: { textAlign: "center", color: "#666", marginTop: 40, fontSize: 15 },
 });
