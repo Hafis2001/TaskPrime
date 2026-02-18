@@ -1,17 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../components/ui/ModernCard";
+import ModernHeader from "../components/ui/ModernHeader";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../constants/modernTheme";
 
 const LEDGER_API =
   "https://taskprime.app/api/get-cash-ledger-details/?account_code=";
@@ -19,6 +25,7 @@ const LEDGER_API =
 export default function CashLedgerScreen() {
   const router = useRouter();
   const { account_code, account_name, previous_balance } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -86,8 +93,8 @@ export default function CashLedgerScreen() {
             }
             const formattedDate = dateObj
               ? `${String(dateObj.getDate()).padStart(2, "0")}-${String(
-                  dateObj.getMonth() + 1
-                ).padStart(2, "0")}-${dateObj.getFullYear()}`
+                dateObj.getMonth() + 1
+              ).padStart(2, "0")}-${dateObj.getFullYear()}`
               : "-";
             return {
               date: formattedDate,
@@ -221,135 +228,153 @@ export default function CashLedgerScreen() {
   };
 
   const renderItem = ({ item }) => {
-    const color = item.debit > 0 ? "#2e7d32" : "#d32f2f";
+    const isDebit = item.debit > 0;
+    const color = isDebit ? Colors.success.main : Colors.error.main; // Note: In Cash book, Debit is usually Receipt (Green), Credit is Payment (Red) - wait, standard accounting: Debit is Receipt (Increase Cash), Credit is Payment (Decrease Cash).
+    // Original code: item.debit > 0 ? "#2e7d32" : "#d32f2f" -> Green for Debit, Red for Credit. Correct for Cash Book.
+
+    // Actually in the original code:
+    // const color = item.debit > 0 ? "#2e7d32" : "#d32f2f";
+    // So Debit (Receipt) is Green, Credit (Payment) is Red.
+
     const amount =
       item.debit > 0
         ? `${item.debit.toLocaleString("en-IN")}`
         : `${item.credit.toLocaleString("en-IN")}`;
+
     return (
-      <View style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.dateText}>{item.date}</Text>
-          <Text style={[styles.balanceText, { color }]}>{amount}</Text>
+      <ModernCard style={styles.transactionCard} elevated={false}>
+        <View style={styles.transactionRow}>
+          <View style={styles.leftColumn}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={[
+                  styles.iconCircle,
+                  { backgroundColor: isDebit ? Colors.success.lightest : Colors.error.lightest },
+                ]}
+              >
+                <Ionicons
+                  name={isDebit ? "arrow-down" : "arrow-up"} // Receipt (Debit) -> In (Down), Payment (Credit) -> Out (Up)
+                  size={18}
+                  color={color}
+                />
+              </View>
+              <View style={styles.textBlock}>
+                <Text style={styles.particulars} numberOfLines={1}>
+                  {item.particulars}
+                </Text>
+                <Text style={styles.narration}>{item.date}</Text>
+                {item.narration && item.narration !== "-" && <Text style={styles.subNarration}>{item.narration}</Text>}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.amountWrap}>
+            <Text style={[styles.amount, { color }]} numberOfLines={1}>
+              ₹{amount}
+            </Text>
+            <Text style={[styles.drCrText, { color }]}>
+              {isDebit ? "DR" : "CR"}
+            </Text>
+          </View>
         </View>
-        <Text style={styles.particulars}>{item.particulars}</Text>
-        {item.narration && <Text style={styles.narration}>{item.narration}</Text>}
-      </View>
+      </ModernCard>
     );
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color="#0f1724" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{account_name || "Cash Ledger"}</Text>
+      <ModernHeader
+        title={account_name || "Cash Ledger"}
+        subtitle={selectedDate}
+        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        onLeftPress={() => router.back()}
+        rightIcon={<Ionicons name="calendar-outline" size={22} color={Colors.primary.main} />}
+        onRightPress={() => setShowDatePicker(true)}
+      />
 
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          style={styles.calendarButton}
-        >
-          <Ionicons name="calendar-outline" size={22} color="#ff6600" />
-        </TouchableOpacity>
+      <View style={styles.content}>
 
-        {selectedDate && (
-          <TouchableOpacity onPress={clearDateFilter} style={styles.clearButton}>
-            <Ionicons name="refresh" size={20} color="#888" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Filter buttons */}
-      <View style={styles.filterRow}>
-        {["all", "debit", "credit"].map((type) => (
-          <TouchableOpacity
-            key={type}
-            onPress={() => setFilterType(type)}
-            style={[
-              styles.filterButton,
-              filterType === type && styles.filterActive,
-            ]}
-          >
+        <View style={styles.balanceRow}>
+          {/* Opening Balance */}
+          <ModernCard style={styles.balanceBox} elevated={false}>
+            <Text style={styles.label}>Opening Balance</Text>
             <Text
               style={[
-                styles.filterText,
-                filterType === type && styles.filterTextActive,
+                styles.balanceValue,
+                { color: openingBalance >= 0 ? Colors.success.main : Colors.error.main },
               ]}
             >
-              {type === "all"
-                ? "All"
-                : type === "debit"
-                ? "Debit Only"
-                : "Credit Only"}
+              ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
             </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+          </ModernCard>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={new Date(selectedDate)}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
-      )}
-
-      <View style={styles.balanceview}>
-
-      {/* Previous Balance */}
-      <View style={styles.previousBox}>
-        <Text style={styles.label}>current   Amount</Text>
-        <Text style={[styles.balanceValue, { color: "#2563eb" }]}>
-          {Math.abs(previous_balance || 0).toLocaleString("en-IN")}
-        </Text>
-      </View>
-
-      {/* Opening Balance */}
-      <View style={styles.balanceBox}>
-        <Text style={styles.label}>Opening Balance</Text>
-        <Text
-          style={[
-            styles.balanceValue,
-            { color: openingBalance >= 0 ? "#16a34a" : "#dc2626" },
-          ]}
-        >
-          {Math.abs(openingBalance).toLocaleString("en-IN")}
-        </Text>
-      </View>
-       
-       </View>
-      
-
-      {/* Total Debit & Credit */}
-      <View style={styles.totalsBox}>
-        <View style={styles.totalItem}>
-          <Text style={styles.label}>Total Debit</Text>
-          <Text style={[styles.balanceValue, { color: "#16a34a" }]}>
-            {totalDebit.toLocaleString("en-IN")}
-          </Text>
+          {/* Current/Closing Balance */}
+          <ModernCard style={styles.balanceBox} elevated={false}>
+            <Text style={styles.label}>Closing Balance</Text>
+            <Text style={[styles.balanceValue, { color: Colors.primary.main }]}>
+              ₹{Math.abs(dailyBalances[selectedDate]?.closing || closingBalance).toLocaleString("en-IN")}
+            </Text>
+          </ModernCard>
         </View>
-        <View style={styles.totalItem}>
-          <Text style={styles.label}>Total Credit</Text>
-          <Text style={[styles.balanceValue, { color: "#dc2626" }]}>
-            {totalCredit.toLocaleString("en-IN")}
-          </Text>
-        </View>
-      </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#ff6600" />
+        {/* Filter buttons */}
+        <View style={styles.filterRow}>
+          {["all", "debit", "credit"].map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setFilterType(type)}
+              style={[
+                styles.filterButton,
+                filterType === type && styles.filterActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  filterType === type && styles.filterTextActive,
+                ]}
+              >
+                {type === "all"
+                  ? "All"
+                  : type === "debit"
+                    ? "Debit (Receipt)"
+                    : "Credit (Payment)"}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ) : (
-        <>
+
+        {/* Total Debit & Credit */}
+        <ModernCard style={styles.totalsBox} elevated={false}>
+          <View style={styles.totalItem}>
+            <Text style={styles.label}>Total Debit</Text>
+            <Text style={[styles.balanceValue, { color: Colors.success.main }]}>
+              ₹{totalDebit.toLocaleString("en-IN")}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.totalItem}>
+            <Text style={styles.label}>Total Credit</Text>
+            <Text style={[styles.balanceValue, { color: Colors.error.main }]}>
+              ₹{totalCredit.toLocaleString("en-IN")}
+            </Text>
+          </View>
+        </ModernCard>
+
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
+        ) : (
           <FlatList
             data={getFilteredList()}
             keyExtractor={(_, i) => String(i)}
             renderItem={renderItem}
+            contentContainerStyle={{ paddingBottom: Spacing.xl + insets.bottom }}
+            showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.center}>
+                <Ionicons name="documents-outline" size={48} color={Colors.text.disabled} style={{ marginBottom: Spacing.md }} />
                 <Text style={styles.emptyText}>
                   {selectedDate
                     ? `No entries found for ${selectedDate}`
@@ -358,137 +383,145 @@ export default function CashLedgerScreen() {
               </View>
             }
           />
+        )}
+      </View>
 
-          {dailyBalances[selectedDate] && (
-            <View style={styles.previousBoxClose}>
-              <Text style={styles.label}>Closing Balance ({selectedDate})</Text>
-              <Text
-                style={[
-                  styles.balanceValue,
-                  {
-                    color:
-                      dailyBalances[selectedDate].closing >= 0
-                        ? "#16a34a"
-                        : "#dc2626",
-                  },
-                ]}
-              >
-                ₹{Math.abs(
-                  dailyBalances[selectedDate].closing
-                ).toLocaleString("en-IN")}
-              </Text>
-            </View>
-          )}
-        </>
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date(selectedDate)}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onDateChange}
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 14 },
-  topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fffaf5",
-    marginRight: 10,
-    marginTop: 50,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#0f1724", marginTop: 50 },
-  calendarButton: {
-    marginLeft: "auto",
-    marginTop: 50,
-    backgroundColor: "#fffaf5",
-    padding: 8,
-    borderRadius: 8,
+  content: {
+    flex: 1,
+    padding: Spacing.base,
   },
-  clearButton: { marginLeft: 6, marginTop: 50 },
+  balanceRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  balanceBox: {
+    padding: Spacing.md,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  balanceValue: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: "700",
+  },
   filterRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    marginTop: 10,
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.full,
+    padding: 4,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   filterButton: {
     flex: 1,
     paddingVertical: 8,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 15,
     alignItems: "center",
+    borderRadius: BorderRadius.full,
   },
-  filterActive: { backgroundColor: "#ff6600", borderColor: "#ff6600" },
-  filterText: { color: "#555", fontWeight: "600" },
-  filterTextActive: { color: "#fff" },
-  balanceBox: {
-    backgroundColor: "#fffaf5",
-    padding: 12,
-    borderRadius: 10,
-    marginLeft:10,
-    marginBottom: 10,
-    width:180,
+  filterActive: {
+    backgroundColor: Colors.primary.main,
   },
-  previousBox: {
-    backgroundColor: "#fff6f1",
-    padding: 12,
-    borderRadius: 10,
-    
-    marginBottom: 10,
-     width:180,
-     
+  filterText: {
+    color: Colors.text.secondary,
+    fontWeight: "600",
+    fontSize: Typography.fontSize.sm,
+  },
+  filterTextActive: {
+    color: "#fff",
   },
   totalsBox: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#fff8f3",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
   totalItem: { flex: 1, alignItems: "center" },
-  label: { fontSize: 13, color: "#666" },
-  balanceValue: { fontSize: 18, fontWeight: "700" },
-  card: {
-    backgroundColor: "#fffaf5",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    borderColor: "#ffebdf",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 2,
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: Colors.border.light,
   },
-  rowBetween: {
+  transactionCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  transactionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
+    alignItems: "center",
   },
-  dateText: { fontSize: 13, color: "#555" },
-  balanceText: { fontSize: 14, fontWeight: "700" },
-  particulars: { fontSize: 14, fontWeight: "600", color: "#222" },
-  narration: { fontSize: 13, color: "#666", marginTop: 3 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { color: "#666" },
-
-  balanceview: {
-    flexDirection: "row",
-    
+  leftColumn: { flex: 1 },
+  textBlock: { marginLeft: Spacing.sm, justifyContent: "center", flex: 1 },
+  particulars: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: "600",
+    color: Colors.text.primary,
+    marginBottom: 2,
   },
-  previousBoxClose: {
-    backgroundColor: "#fff6f1",
-    padding: 12,
-    borderRadius: 10,
-    
-    marginBottom: 30,
-     width:180,
-     marginLeft:200,
+  narration: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+  },
+  subNarration: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    marginTop: 1,
+    fontStyle: 'italic',
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  amountWrap: {
+    marginLeft: Spacing.md,
+    justifyContent: "center",
+    alignItems: "flex-end",
+    minWidth: 80,
+  },
+  amount: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  drCrText: {
+    fontSize: 10,
+    marginTop: 2,
+    fontWeight: "700",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: Spacing['3xl'],
+  },
+  emptyText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
   },
 });

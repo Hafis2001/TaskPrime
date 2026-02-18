@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation, useRouter } from "expo-router";
+import { useEffect, useLayoutEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import RNPickerSelect from "react-native-picker-select";
-import { useRouter, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
 
 const API_URLS = {
   today: "https://taskprime.app/api/purchasetoday/",
@@ -28,29 +32,19 @@ export default function PurchaseReportScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // Custom Header
   useLayoutEffect(() => {
     navigation.setOptions({
-      header: () => (
-        <View>
-          <View style={{ height: 20, backgroundColor: "#ff6600" }} />
-          <View style={styles.headerBar}>
-            <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
-              <Ionicons name="menu-outline" size={26} color="#ff6600" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Purchase Report</Text>
-          </View>
-        </View>
-      ),
+      headerShown: false,
     });
-  }, [navigation, insets]);
+  }, [navigation]);
 
-  // Fetch data
   useEffect(() => {
     const init = async () => {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
-        router.replace("/LoginScreen");
+        Alert.alert("Session Expired", "Please login again.");
+        router.replace("/");
+        setLoading(false);
         return;
       }
       const parsedUser = JSON.parse(storedUser);
@@ -89,180 +83,213 @@ export default function PurchaseReportScreen() {
     }
   };
 
-  // Calculate total
   const totalPurchase = purchaseData.reduce(
     (sum, item) => sum + parseFloat(item.nettotal || 0),
     0
   );
 
-  // Render item
   const renderItem = ({ item }) => (
-    <View style={styles.transactionCard}>
+    <ModernCard style={styles.transactionCard} elevated={false}>
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="cart-outline" size={20} color="#FF914D" />
+            <Ionicons name="cart-outline" size={20} color={Colors.primary.main} />
           </View>
-          <View>
-            <Text style={styles.name}>{item.suppliername}</Text>
+          <View style={styles.infoContainer}>
+            <Text style={styles.name} numberOfLines={1}>{item.suppliername}</Text>
             <Text style={styles.time}>Bill No: {item.billno}</Text>
           </View>
         </View>
-        <Text style={styles.amount}>₹{item.nettotal}</Text>
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount} numberOfLines={1}>
+            ₹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </Text>
+        </View>
       </View>
-    </View>
+    </ModernCard>
   );
 
   return (
     <View style={styles.container}>
-      {/* Dropdown - identical look for iOS & Android */}
-      <View style={styles.pickerWrapper}>
-        <RNPickerSelect
-          onValueChange={(value) => setSelectedSummary(value)}
-          value={selectedSummary}
-          placeholder={{}}
-          items={[
-            { label: "Today's Purchase", value: "today" },
-            { label: "Monthly Purchase", value: "month" },
-            { label: "Overall Summary", value: "overall" },
-          ]}
-          style={{
-            inputIOS: styles.inputIOS,
-            inputAndroid: styles.inputAndroid,
-            iconContainer: { top: 18, right: 15 },
-          }}
-          useNativeAndroidPickerStyle={false}
-          Icon={() => <Ionicons name="chevron-down" size={20} color="#666" />}
-        />
-      </View>
+      <ModernHeader
+        title="Purchase Report"
+        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => navigation.toggleDrawer()}
+      />
 
-      {/* Loading / Data */}
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FF914D" />
-        </View>
-      ) : purchaseData.length === 0 ? (
-        <View style={styles.centered}>
-          <Text>No purchase data available.</Text>
-        </View>
-      ) : (
-        <>
-          {/* Top Summary Card */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Purchase</Text>
-            <Text style={styles.totalValue}>₹{totalPurchase.toFixed(2)}</Text>
-          </View>
-
-          {/* All Transactions */}
-          <Text style={styles.sectionTitle}>All Purchases</Text>
-          <FlatList
-            data={purchaseData}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 50 }}
+      <View style={styles.content}>
+        {/* Dropdown */}
+        <LinearGradient
+          colors={[Colors.primary.main, Colors.primary.light]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBox}
+        >
+          <RNPickerSelect
+            onValueChange={(value) => setSelectedSummary(value)}
+            value={selectedSummary}
+            placeholder={{}}
+            items={[
+              { label: "Today's Purchase", value: "today" },
+              { label: "Monthly Purchase", value: "month" },
+              { label: "Overall Summary", value: "overall" },
+            ]}
+            style={{
+              inputIOS: styles.inputGradient,
+              inputAndroid: styles.inputGradient,
+              iconContainer: { top: 18, right: 15 },
+            }}
+            useNativeAndroidPickerStyle={false}
+            Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
           />
-        </>
-      )}
+        </LinearGradient>
+
+        {/* Loading / Data */}
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
+        ) : purchaseData.length === 0 ? (
+          <View style={styles.centered}>
+            <Ionicons name="cart-outline" size={48} color={Colors.text.disabled} style={{ marginBottom: Spacing.md }} />
+            <Text style={styles.emptyText}>No purchase data available.</Text>
+          </View>
+        ) : (
+          <>
+            {/* Top Summary Card */}
+            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+              <Text style={styles.summaryTitle}>Total Purchase</Text>
+              <Text style={styles.totalValue}>₹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+            </ModernCard>
+
+            {/* All Transactions */}
+            <Text style={styles.sectionTitle}>All Purchases</Text>
+            <FlatList
+              data={purchaseData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: Spacing.xl + insets.bottom }}
+            />
+          </>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
-
-  headerBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    height: 56,
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 3,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-    marginLeft: 16,
+  content: {
+    flex: 1,
+    padding: Spacing.base,
   },
-
   pickerWrapper: {
-    backgroundColor: "#FFF8F3",
-    borderRadius: 12,
-    marginBottom: 15,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
   },
-
-  inputIOS: {
-    fontSize: 16,
+  gradientBox: {
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
+  },
+  inputGradient: {
+    fontSize: Typography.fontSize.base,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    color: "#333",
-    backgroundColor: "#FFF8F3",
-    fontWeight: "500",
-    paddingRight: 30,
+    color: "#fff",
+    fontWeight: "600",
+    backgroundColor: "transparent",
   },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    color: "#333",
-    backgroundColor: "#FFF8F3",
-    fontWeight: "500",
-    paddingRight: 30,
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: Spacing['3xl'],
   },
-
   summaryCard: {
-    backgroundColor: "#FEEBDD",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
     alignItems: "center",
   },
   summaryTitle: {
-    fontSize: 14,
-    color: "#555",
-    fontWeight: "500",
+    fontSize: Typography.fontSize.sm,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: "600",
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   totalValue: {
-    fontSize: 28,
+    fontSize: Typography.fontSize['3xl'],
     fontWeight: "bold",
-    color: "#000",
-    marginTop: 5,
+    color: "#fff",
+    marginTop: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 10,
-    color: "#000",
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "800",
+    marginBottom: Spacing.sm,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginLeft: 4,
   },
   transactionCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background.primary,
+    borderColor: Colors.border.light,
+    borderWidth: 1,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  rowLeft: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    flex: 1,
+    gap: Spacing.md,
   },
-  row: { flexDirection: "row", justifyContent: "space-between", flex: 1 },
-  rowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconCircle: {
-    backgroundColor: "#FFE6D4",
-    padding: 10,
-    borderRadius: 50,
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.primary.lightest,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  name: { fontWeight: "600", color: "#000", fontSize: 15 },
-  time: { color: "#777", fontSize: 12 },
-  amount: { color: "#FF914D", fontWeight: "700", fontSize: 15 },
-  centered: { alignItems: "center", marginTop: 50 },
+  infoContainer: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: "700",
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base
+  },
+  time: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    marginTop: 2,
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+    minWidth: 90,
+    marginLeft: Spacing.sm,
+  },
+  amount: {
+    color: Colors.primary.main,
+    fontWeight: "700",
+    fontSize: Typography.fontSize.base,
+    textAlign: "right",
+  },
+  emptyText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
+  },
 });

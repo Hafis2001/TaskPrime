@@ -1,25 +1,30 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
   ActivityIndicator,
-  TouchableOpacity,
   Alert,
+  FlatList,
   Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
-import { LinearGradient } from "expo-linear-gradient";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../components/ui/ModernCard";
+import ModernHeader from "../components/ui/ModernHeader";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/get-ledger-details?account_code=";
 
 export default function CustomerLedgerScreen() {
   const { code, name, current_balance } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [ledger, setLedger] = useState([]);
@@ -196,222 +201,302 @@ export default function CustomerLedgerScreen() {
   const renderItem = ({ item }) => {
     const isCredit = item.credit && item.credit > 0;
     const amount = isCredit ? item.credit : item.debit;
-    const color = isCredit ? "#ff4d4d" : "#00b894";
+    const color = isCredit ? Colors.error.main : Colors.success.main;
 
     return (
-      <View style={styles.transactionCard}>
-        <View style={styles.rowBetween}>
-          <View style={[styles.rowCenter, { flex: 1 }]}>
-            <View style={[styles.iconCircle, { backgroundColor: color + "20" }]}>
-              <Icon name={isCredit ? "arrow-down" : "arrow-up"} size={18} color={color} />
-            </View>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.particulars} numberOfLines={1} ellipsizeMode="tail">
-                {item.particulars}
-              </Text>
-              <Text style={styles.subText}>
-                {formatDate(item.entry_date)} {item.narration ? `• ${item.narration}` : ""}
-              </Text>
-              <Text style={styles.voucherText}>Voucher ID: {item.voucher_no || "-"}</Text>
-            </View>
-          </View>
-          <View style={{ marginLeft: 10, minWidth: 90, alignItems: "flex-end" }}>
-            <Text style={[styles.amountText, { color }]}>
-              {Math.abs(amount || 0).toLocaleString("en-IN")}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <UserTransactionCard
+        item={item}
+        amount={amount}
+        color={color}
+        isCredit={isCredit}
+        formatDate={formatDate}
+      />
     );
   };
+
+  const UserTransactionCard = React.memo(({ item, amount, color, isCredit, formatDate }) => (
+    <ModernCard style={styles.transactionCard} elevated={false}>
+      <View style={styles.rowBetween}>
+        <View style={styles.rowCenter}>
+          <View style={[styles.iconCircle, { backgroundColor: isCredit ? Colors.error.lightest : Colors.success.lightest }]}>
+            <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={18} color={color} />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.particulars} numberOfLines={1}>
+              {item.particulars}
+            </Text>
+            <Text style={styles.subText}>
+              {formatDate(item.entry_date)} {item.narration ? `• ${item.narration}` : ""}
+            </Text>
+            <Text style={styles.voucherText}>Ref: {item.voucher_no || "-"}</Text>
+          </View>
+        </View>
+        <View style={styles.amountContainer}>
+          <Text style={[styles.amountText, { color }]}>
+            ₹{Math.abs(amount || 0).toLocaleString("en-IN")}
+          </Text>
+          {/* <Text style={[styles.drCrText, { color }]}>{isCredit ? "DR" : "CR"}</Text> */}
+        </View>
+      </View>
+    </ModernCard>
+  ));
 
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#ff6600" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={["#fff0e0", "#ffffff"]} style={styles.headerCard}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Icon name="arrow-back" size={22} color="#ff6600" />
+      <ModernHeader
+        title={name || "Customer Ledger"}
+        subtitle={fromDate && toDate ? `${formatDate(fromDate)} → ${formatDate(toDate)}` : "All Transactions"}
+        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        onLeftPress={() => router.back()}
+        rightIcon={<Ionicons name="refresh" size={22} color={Colors.primary.main} />}
+        onRightPress={refreshAll}
+      />
+
+      {/* Date Filter Bar */}
+      <View style={styles.filterBar}>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => { setDatePickerMode("from"); setShowDatePicker(true); }}
+        >
+          <Ionicons name="calendar-outline" size={16} color={Colors.primary.main} style={{ marginRight: 6 }} />
+          <Text style={styles.filterText}>{fromDate ? formatDate(fromDate) : "From Date"}</Text>
         </TouchableOpacity>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{name || "Customer Ledger"}</Text>
-          <Text style={styles.dateText}>
-            {fromDate && toDate
-              ? `${formatDate(fromDate)} → ${formatDate(toDate)}`
-              : "All Transactions"}
-          </Text>
-        </View>
+        <Ionicons name="arrow-forward" size={16} color={Colors.text.tertiary} />
 
-        <View style={styles.rowCenter}>
-          <TouchableOpacity onPress={() => { setDatePickerMode("from"); setShowDatePicker(true); }}>
-            <Icon name="calendar-outline" size={22} color="#ff6600" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => { setDatePickerMode("to"); setShowDatePicker(true); }}
-            style={{ marginLeft: 10 }}
-          >
-            <Icon name="calendar" size={22} color="#ff6600" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={refreshAll} style={{ marginLeft: 10 }}>
-            <Icon name="refresh" size={22} color="#ff6600" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => { setDatePickerMode("to"); setShowDatePicker(true); }}
+        >
+          <Ionicons name="calendar-outline" size={16} color={Colors.primary.main} style={{ marginRight: 6 }} />
+          <Text style={styles.filterText}>{toDate ? formatDate(toDate) : "To Date"}</Text>
+        </TouchableOpacity>
+      </View>
 
       {showDatePicker && (
         <DateTimePicker
           value={new Date()}
           mode="date"
-          display="calendar"
+          display="default"
           onChange={onDateChange}
         />
       )}
 
-      <View style={styles.balanceRow}>
-        <View style={styles.balanceBox}>
-          <Text style={styles.balanceLabel}>Current Balance</Text>
-          <Text style={styles.balanceValue}>
-            {closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </Text>
-        </View>
-        <View style={styles.balanceBox}>
-          <Text style={styles.balanceLabel}>Opening Balance</Text>
-          <Text style={styles.balanceValue}>
-            {openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </Text>
+      {/* Summary Cards */}
+      <View style={styles.summaryContainer}>
+        <ModernCard style={styles.balanceCard} gradient>
+          <View style={styles.balanceRow}>
+            <View>
+              <Text style={styles.balanceLabelLight}>Current Balance</Text>
+              <Text style={styles.balanceValueLight}>
+                ₹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.balanceLabelLight}>Opening</Text>
+              <Text style={styles.balanceValueLightSmall}>
+                ₹{openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          </View>
+        </ModernCard>
+
+        <View style={styles.totalRow}>
+          <ModernCard style={[styles.totalCard, { marginRight: Spacing.sm }]} elevated={false}>
+            <Text style={styles.totalLabel}>Total Credit</Text>
+            <Text style={[styles.totalValue, { color: Colors.error.main }]}>
+              ₹{totalCredit.toLocaleString("en-IN")}
+            </Text>
+          </ModernCard>
+          <ModernCard style={[styles.totalCard, { marginLeft: Spacing.sm }]} elevated={false}>
+            <Text style={styles.totalLabel}>Total Debit</Text>
+            <Text style={[styles.totalValue, { color: Colors.success.main }]}>
+              ₹{totalDebit.toLocaleString("en-IN")}
+            </Text>
+          </ModernCard>
         </View>
       </View>
 
-      <View style={styles.totalCard}>
-        <View style={styles.totalItem}>
-          <Text style={styles.totalLabel}>Total Credit</Text>
-          <Text style={[styles.totalValue, { color: "#ff4d4d" }]}>
-            {totalCredit.toLocaleString("en-IN")}
-          </Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.totalItem}>
-          <Text style={styles.totalLabel}>Total Debit</Text>
-          <Text style={[styles.totalValue, { color: "#00b894" }]}>
-            {totalDebit.toLocaleString("en-IN")}
-          </Text>
-        </View>
-      </View>
+      <Text style={styles.sectionHeader}>Transactions</Text>
 
-      <Text style={styles.transHeading}>TRANSACTIONS</Text>
       <FlatList
         data={filteredLedger}
         keyExtractor={(_, i) => i.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        ListEmptyComponent={<Text style={styles.emptyText}>No transactions found.</Text>}
+        contentContainerStyle={{ paddingBottom: Spacing['3xl'] + insets.bottom, paddingHorizontal: Spacing.md }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="documents-outline" size={48} color={Colors.text.disabled} />
+            <Text style={styles.emptyText}>No transactions found.</Text>
+          </View>
+        }
       />
-
-      <View style={styles.footerCard}>
-        <Text style={styles.footerLabel}>Closing Balance</Text>
-        <Text style={styles.footerValue}>
-          {closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-        </Text>
-      </View>
     </View>
   );
 }
 
-// ----------------- Styles -----------------
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
-  headerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    marginTop: 30,
-  },
-  title: { fontSize: 18, fontWeight: "bold", color: "#ff6600", textAlign: "center" },
-  dateText: { fontSize: 13, color: "#888", textAlign: "center" },
-  balanceRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  balanceBox: {
-    backgroundColor: "#f9f3ed",
+  container: {
     flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 10,
-    padding: 10,
-    alignItems: "center",
+    backgroundColor: Colors.background.secondary
   },
-  balanceLabel: { color: "#6b7280", fontWeight: "600", fontSize: 13 },
-  balanceValue: { fontSize: 17, fontWeight: "bold", color: "#1e293b" },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary.lightest,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  filterText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.main,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  summaryContainer: {
+    padding: Spacing.md,
+  },
+  balanceCard: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  balanceLabelLight: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: Typography.fontSize.xs,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  balanceValueLight: {
+    color: '#fff',
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+  },
+  balanceValueLightSmall: {
+    color: '#fff',
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  totalRow: {
+    flexDirection: 'row',
+  },
   totalCard: {
-    flexDirection: "row",
-    backgroundColor: "#fffaf5",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    elevation: 2,
+    flex: 1,
+    padding: Spacing.md,
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
-  totalItem: { flex: 1, alignItems: "center" },
-  divider: { width: 1, height: 30, backgroundColor: "#ddd" },
-  totalLabel: { color: "#6b7280", fontWeight: "600", fontSize: 14 },
-  totalValue: { fontSize: 16, fontWeight: "bold" },
-  transHeading: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#6b7280",
-    marginBottom: 6,
-    marginLeft: 4,
+  totalLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  totalValue: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  sectionHeader: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.lg,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
   },
   transactionCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: '#fff',
+    ...Shadows.sm,
   },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowCenter: { flexDirection: "row", alignItems: "center" },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  rowCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: Spacing.md,
   },
-  particulars: { fontWeight: "600", color: "#1e293b", maxWidth: 180 },
-  subText: { color: "#6b7280", fontSize: 12 },
-  voucherText: { color: "#9ca3af", fontSize: 12, marginTop: 2 },
-  amountText: { fontSize: 16, fontWeight: "bold", textAlign: "right" },
-  footerCard: {
-    position: "absolute",
-    bottom: 0,
-    left: 15,
-    right: 0,
-    backgroundColor: "#ff6600",
-    padding: 16,
-    alignItems: "center",
-    borderRadius: 20,
-    width: "95%",
-    marginBottom: 45,
+  textContainer: {
+    flex: 1,
+    marginRight: Spacing.sm,
   },
-  footerLabel: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  footerValue: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-  emptyText: { textAlign: "center", color: "#999", marginTop: 20 },
+  particulars: {
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.sm,
+    marginBottom: 2,
+  },
+  subText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+  },
+  voucherText: {
+    color: Colors.text.tertiary,
+    fontSize: 10,
+    marginTop: 2
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+    minWidth: 80,
+  },
+  amountText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  drCrText: {
+    fontSize: 9,
+    fontWeight: Typography.fontWeight.bold,
+    marginTop: 2,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Spacing['3xl'],
+  },
+  emptyText: {
+    marginTop: Spacing.base,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+  },
 });

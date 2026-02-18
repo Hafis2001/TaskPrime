@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Typography } from "../../constants/modernTheme";
 
 export default function DrawerLayout() {
   const insets = useSafeAreaInsets();
@@ -42,28 +43,20 @@ export default function DrawerLayout() {
   const confirmLogout = async () => {
     await AsyncStorage.removeItem("user");
     setShowLogoutModal(false);
-    router.replace("/LoginScreen");
+    router.replace("/");
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* 🟧 Small orange strip for status bar area */}
-      <View style={{ height: insets.top + 20, backgroundColor: "#ff6600" }} />
-
+    <View style={{ flex: 1, backgroundColor: Colors.background.primary }}>
       <Drawer
         screenOptions={{
-          headerStyle: {
-            backgroundColor: "#fff",
-            height: 65,
-            borderBottomWidth: 0,
-            shadowColor: "transparent",
+          headerShown: false,
+          drawerActiveTintColor: Colors.primary.main,
+          drawerLabelStyle: {
+            fontSize: Typography.fontSize.base,
+            fontWeight: Typography.fontWeight.medium,
           },
-          headerTintColor: "#ff6600",
-          headerTitleStyle: { color: "#fff" },
-          drawerActiveTintColor: "#ff6600",
-          drawerLabelStyle: { fontSize: 16 },
-          sceneContainerStyle: { backgroundColor: "#fff" },
-          headerLeftContainerStyle: { marginTop: -65 },
+          sceneContainerStyle: { backgroundColor: Colors.background.primary },
         }}
         drawerContent={(props) => (
           <View style={{ flex: 1 }}>

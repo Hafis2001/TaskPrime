@@ -1,20 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ModernButton from "../../components/ui/ModernButton";
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function DashboardScreen() {
   const [customerName, setCustomerName] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   useEffect(() => {
     loadStoredData();
@@ -100,101 +103,148 @@ export default function DashboardScreen() {
     }
   };
 
+  const InfoRow = ({ label, value, icon }) => (
+    <View style={styles.infoRow}>
+      <View style={styles.labelContainer}>
+        {icon && <Ionicons name={icon} size={16} color={Colors.primary.main} style={styles.rowIcon} />}
+        <Text style={styles.label}>{label}</Text>
+      </View>
+      <Text style={styles.value} numberOfLines={1} ellipsizeMode="middle">{value}</Text>
+    </View>
+  );
+
   return (
-    <LinearGradient
-      colors={["#ffffff", "#f0f0f0"]}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Dashboard</Text>
-            <Text style={styles.subtitle}>License Management</Text>
-          </View>
+    <View style={styles.container}>
+      <ModernHeader
+        title="Dashboard"
+        subtitle="License Management"
+        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => navigation.toggleDrawer()}
+      />
 
-          <View style={styles.card}>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing.xl }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <ModernCard style={styles.mainCard} elevated>
+          <View style={styles.cardContent}>
             <View style={styles.cardHeader}>
-              <Ionicons name="shield-checkmark" size={24} color="#ff6600" />
-              <Text style={styles.cardTitle}>Active License</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Customer:</Text>
-              <Text style={styles.value}>{customerName}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>License Key:</Text>
-              <Text style={styles.value}>{licenseKey}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Device ID:</Text>
-              <Text style={styles.value}>{deviceId}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>App ID:</Text>
-              <Text style={styles.value}>{Application.applicationId}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRemoveLicense}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View style={styles.buttonContent}>
-                <Ionicons name="log-out-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.buttonText}>Remove License</Text>
+              <View style={styles.iconContainer}>
+                <Ionicons name="shield-checkmark" size={28} color={Colors.primary.main} />
               </View>
-            )}
-          </TouchableOpacity>
+              <View>
+                <Text style={styles.cardTitle}>Active License</Text>
+                <Text style={styles.cardSubtitle}>Valid & Active</Text>
+              </View>
+            </View>
 
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+            <View style={styles.divider} />
+
+            <InfoRow label="Customer" value={customerName} icon="business-outline" />
+            <InfoRow label="License Key" value={licenseKey} icon="key-outline" />
+            <InfoRow label="Device ID" value={deviceId} icon="hardware-chip-outline" />
+            <InfoRow label="App ID" value={Application.applicationId || "N/A"} icon="apps-outline" />
+          </View>
+        </ModernCard>
+
+        <View style={styles.actionsContainer}>
+          <ModernButton
+            title="Remove License"
+            onPress={handleRemoveLicense}
+            loading={loading}
+            disabled={loading}
+            variant="danger"
+            icon={<Ionicons name="log-out-outline" size={20} color="#fff" />}
+          />
+          <Text style={styles.warningText}>
+            Removing license will deactivate this device.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  scrollContent: { padding: 20 },
-  header: { marginBottom: 30, marginTop: 20, alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginLeft: 10 },
-  infoRow: { marginBottom: 15 },
-  label: { fontSize: 12, color: '#999', textTransform: 'uppercase', marginBottom: 4, fontWeight: '600' },
-  value: { fontSize: 16, color: '#333', fontWeight: '500' },
-  button: {
-    backgroundColor: '#ff4444',
-    borderRadius: 12,
-    paddingVertical: 16,
+  scrollContent: {
+    padding: Spacing.lg
+  },
+  mainCard: {
+    padding: 0,
+    marginBottom: Spacing.xl,
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  cardContent: {
+    padding: Spacing.xl,
+  },
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#ff4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: Spacing.lg
   },
-  buttonDisabled: { opacity: 0.7 },
-  buttonContent: { flexDirection: 'row', alignItems: 'center' },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  cardTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.dark.main
+  },
+  cardSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.success.main,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginBottom: Spacing.lg,
+  },
+  infoRow: {
+    marginBottom: Spacing.lg
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  rowIcon: {
+    marginRight: Spacing.xs,
+  },
+  label: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    fontWeight: Typography.fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.semibold
+  },
+  actionsContainer: {
+    paddingHorizontal: Spacing.md,
+  },
+  warningText: {
+    textAlign: 'center',
+    color: Colors.text.tertiary,
+    fontSize: Typography.fontSize.xs,
+    marginTop: Spacing.md,
+  },
 });

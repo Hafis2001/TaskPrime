@@ -11,6 +11,7 @@ SplashScreen.preventAutoHideAsync(); // Keep splash visible
 export default function Index() {
   const [appReady, setAppReady] = useState(false);
   const [licenseActivated, setLicenseActivated] = useState(false);
+  const [isAddingLicense, setIsAddingLicense] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0)); // For fade animation
 
   useEffect(() => {
@@ -41,6 +42,17 @@ export default function Index() {
   }, []);
 
   const handleActivationSuccess = () => {
+    setIsAddingLicense(false);
+    setLicenseActivated(true);
+  };
+
+  const handleAddLicense = () => {
+    setIsAddingLicense(true);
+    setLicenseActivated(false);
+  };
+
+  const handleCancelActivation = () => {
+    setIsAddingLicense(false);
     setLicenseActivated(true);
   };
 
@@ -65,10 +77,16 @@ export default function Index() {
   }
 
   if (!licenseActivated) {
-    return <LicenseActivationScreen onActivationSuccess={handleActivationSuccess} />;
+    return (
+      <LicenseActivationScreen
+        onActivationSuccess={handleActivationSuccess}
+        onCancel={handleCancelActivation}
+        isAddingNew={isAddingLicense}
+      />
+    );
   }
 
-  return <LoginScreen />;
+  return <LoginScreen onAddLicense={handleAddLicense} />;
 }
 
 const styles = StyleSheet.create({

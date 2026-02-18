@@ -1,60 +1,40 @@
-import React, { useEffect, useState, useCallback, useLayoutEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Modal,
-  BackHandler,
-  Platform,
-} from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useNavigation } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // ✅ added
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  BackHandler,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernButton from "../../components/ui/ModernButton";
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import { Colors, Spacing, Typography } from "../../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/get-misel-data/";
 
 export default function CompanyInfoScreen() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets(); // ✅ for safe padding bottom
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      header: () => (
-        <View>
-          {/* 🟧 Thin orange strip */}
-          <View style={{ height: 24, backgroundColor: "#ff6600" }} />
-
-          {/* 🤍 White header bar */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#fff",
-              height: 56,
-              paddingHorizontal: 16,
-              borderBottomWidth: 0.3,
-              borderBottomColor: "#ddd",
-            }}
-          >
-            <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
-              <Icon name="menu-outline" size={26} color="#ff6600" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ),
-    });
-  }, [navigation]);
-
+  const insets = useSafeAreaInsets();
   const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [companyData, setCompanyData] = useState(null);
   const [user, setUser] = useState({ name: "", clientId: "", token: "" });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,10 +53,11 @@ export default function CompanyInfoScreen() {
     const loadUserAndCompany = async () => {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
-        router.replace("/LoginScreen");
+        Alert.alert("Session Expired", "Please login again.");
+        router.replace("/");
+        setLoading(false);
         return;
       }
-
       const parsedUser = JSON.parse(storedUser);
       setUser({
         name: parsedUser.name,
@@ -126,53 +107,69 @@ export default function CompanyInfoScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#FF914D" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
       </View>
     );
   }
 
+  const InfoRow = ({ label, value }) => (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value}>{value || "Not Available"}</Text>
+    </View>
+  );
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{
-        paddingBottom: insets.bottom + 30, // ✅ ensures bottom padding
-        flexGrow: 1,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Company Info</Text>
-        <TouchableOpacity onPress={() => setShowLogoutModal(true)}>
-          <Icon name="log-out-outline" size={28} color="#FF914D" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <ModernHeader
+        title="Company Info"
+        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => navigation.toggleDrawer()}
+        rightIcon={<Ionicons name="log-out-outline" size={26} color={Colors.primary.main} />}
+        onRightPress={() => setShowLogoutModal(true)}
+      />
 
-      {/* User Card */}
-      <View style={styles.userCard}>
-        <Text style={styles.welcomeText}>Welcome, {user.name}</Text>
-        <Text style={styles.clientId}>Client ID: {user.clientId}</Text>
-      </View>
-
-      {/* Company Details */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Company Details</Text>
-        {[
-          ["Firm Name", companyData?.firm_name],
-          ["Address", companyData?.address],
-          ["Address Line 1", companyData?.address1],
-          ["Address Line 2", companyData?.address2],
-          ["Address Line 3", companyData?.address3],
-          ["Phone Number", companyData?.phones || companyData?.mobile],
-          ["GST Number", companyData?.tinno],
-          ["Email", companyData?.pagers],
-        ].map(([label, value], index) => (
-          <View key={index} style={styles.row}>
-            <Text style={styles.label}>{label}</Text>
-            <Text style={styles.value}>{value || "Not Available"}</Text>
+      <ScrollView
+        contentContainerStyle={{
+          padding: Spacing.base,
+          paddingBottom: insets.bottom + 30,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* User Card */}
+        <ModernCard style={styles.userCard} elevated gradient>
+          <View style={styles.userCardContent}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.welcomeText}>Welcome, {user.name}</Text>
+              <Text style={styles.clientId}>Client ID: {user.clientId}</Text>
+            </View>
           </View>
-        ))}
-      </View>
+        </ModernCard>
+
+        {/* Company Details */}
+        <ModernCard style={styles.detailsCard} elevated>
+          <View style={styles.cardHeader}>
+            <Ionicons name="business" size={24} color={Colors.primary.main} style={{ marginRight: 8 }} />
+            <Text style={styles.cardTitle}>Company Details</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <InfoRow label="Firm Name" value={companyData?.firm_name} />
+          <InfoRow label="Address" value={companyData?.address} />
+          <InfoRow label="Address Line 1" value={companyData?.address1} />
+          <InfoRow label="Address Line 2" value={companyData?.address2} />
+          <InfoRow label="Address Line 3" value={companyData?.address3} />
+          <InfoRow label="Phone Number" value={companyData?.phones || companyData?.mobile} />
+          <InfoRow label="GST Number" value={companyData?.tinno} />
+          <InfoRow label="Email" value={companyData?.pagers} />
+        </ModernCard>
+      </ScrollView>
 
       {/* Logout Modal */}
       <Modal
@@ -182,126 +179,162 @@ export default function CompanyInfoScreen() {
         onRequestClose={() => setShowLogoutModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalText}>
-              Hey, {user.name} 👋{"\n"}Are you logging out?
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.yesButton} onPress={confirmLogout}>
-                <Text style={styles.buttonText}>Yes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.noButton}
-                onPress={() => setShowLogoutModal(false)}
-              >
-                <Text style={styles.buttonText}>No</Text>
-              </TouchableOpacity>
+          <ModernCard style={styles.modalCard} elevated>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="log-out" size={32} color={Colors.primary.main} />
             </View>
-          </View>
+
+            <Text style={styles.modalTitle}>Logging Out?</Text>
+            <Text style={styles.modalText}>
+              Hey {user.name}, are you sure you want to log out?
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <ModernButton
+                title="Cancel"
+                onPress={() => setShowLogoutModal(false)}
+                variant="outline"
+                style={styles.modalButton}
+                size="small"
+              />
+              <View style={{ width: Spacing.md }} />
+              <ModernButton
+                title="Yes, Logout"
+                onPress={confirmLogout}
+                variant="primary"
+                gradient
+                style={styles.modalButton}
+                size="small"
+              />
+            </View>
+          </ModernCard>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF", padding: 16 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginLeft: 90,
-    color: "#FF914D",
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
   },
   userCard: {
-    backgroundColor: "#f9d5b7ff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
+    marginBottom: Spacing.lg,
+    padding: 0,
   },
-  welcomeText: { fontSize: 18, fontWeight: "bold" },
-  clientId: { fontSize: 14, color: "#777" },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 5,
+  userCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  avatarContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary.light,
+  },
+  avatarText: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.dark,
+  },
+  welcomeText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#FFFFFF',
+  },
+  clientId: {
+    fontSize: Typography.fontSize.sm,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  detailsCard: {
+    padding: Spacing.lg,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.dark.main,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginBottom: Spacing.md,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 0.5,
-    borderColor: "#EEE",
+    borderColor: Colors.border.light,
   },
   label: {
-    fontWeight: "800",
-    color: "#FF914D",
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary.main,
     flex: 1,
-    marginTop: 20,
+    fontSize: Typography.fontSize.sm,
   },
   value: {
     flex: 2,
-    color: "#141313ff",
+    color: Colors.text.primary,
     textAlign: "right",
-    marginTop: 20,
-    fontSize: 15,
+    fontSize: Typography.fontSize.base,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    padding: Spacing.xl,
   },
   modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 24,
-    width: "80%",
+    width: "100%",
     alignItems: "center",
-    elevation: 10,
+    padding: Spacing.xl,
+  },
+  modalIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.dark.main,
+    marginBottom: Spacing.sm,
   },
   modalText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
     textAlign: "center",
-    color: "#333",
+    marginBottom: Spacing.xl,
   },
   modalButtons: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
     width: "100%",
   },
-  yesButton: {
-    backgroundColor: "#FF914D",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  modalButton: {
+    flex: 1,
   },
-  noButton: {
-    backgroundColor: "#aaa",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonText: { color: "#fff", fontWeight: "bold" },
 });

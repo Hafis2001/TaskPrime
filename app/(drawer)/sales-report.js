@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
@@ -14,8 +15,11 @@ import {
   View,
 } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
 
 if (
   Platform.OS === "android" &&
@@ -42,25 +46,17 @@ export default function SalesReportScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      header: () => (
-        <View>
-          <View style={{ height: insets.top, backgroundColor: "#ff6600" }} />
-          <View style={styles.headerBar}>
-            <TouchableOpacity onPress={() => navigation.toggleDrawer()}>
-              <Ionicons name="menu-outline" size={26} color="#ff6600" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Sales Report</Text>
-          </View>
-        </View>
-      ),
+      headerShown: false,
     });
-  }, [navigation, insets]);
+  }, [navigation]);
 
   useEffect(() => {
     const init = async () => {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
-        router.replace("/LoginScreen");
+        Alert.alert("Session Expired", "Please login again.");
+        router.replace("/");
+        setLoading(false);
         return;
       }
       const parsedUser = JSON.parse(storedUser);
@@ -112,28 +108,30 @@ export default function SalesReportScreen() {
   );
 
   const renderItem = ({ item }) => (
-    <View style={styles.transactionCard}>
+    <ModernCard style={styles.transactionCard} elevated={false}>
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="receipt-outline" size={20} color="#FF914D" />
+            <Ionicons name="receipt-outline" size={20} color={Colors.primary.main} />
           </View>
-          <View>
-            <Text style={styles.name}>{item.customername}</Text>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
             <Text style={styles.time}>Bill No: {item.billno}</Text>
           </View>
         </View>
-        <Text style={styles.amount}>
-          Total Amount: {parseFloat(item.nettotal || 0).toFixed(2)}
-        </Text>
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount} numberOfLines={1}>
+            ₹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </Text>
+        </View>
       </View>
-    </View>
+    </ModernCard>
   );
 
   const renderDayWise = ({ item }) => (
-    <View style={styles.dayCard}>
+    <ModernCard style={styles.dayCard} elevated={false}>
       <View style={styles.dayRow}>
-        <View>
+        <View style={styles.dayInfo}>
           <Text style={styles.dayDate}>
             {new Date(item.date).toLocaleDateString("en-US", {
               month: "short",
@@ -143,11 +141,13 @@ export default function SalesReportScreen() {
           </Text>
           <Text style={styles.dayBills}>{item.total_bills} Bills</Text>
         </View>
-        <Text style={styles.dayAmount}>
-          {parseFloat(item.total_amount).toFixed(2)}
-        </Text>
+        <View style={styles.dayAmountContainer}>
+          <Text style={styles.dayAmount} numberOfLines={1}>
+            ₹{parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </Text>
+        </View>
       </View>
-    </View>
+    </ModernCard>
   );
 
   const toggleExpand = (id) => {
@@ -158,129 +158,155 @@ export default function SalesReportScreen() {
   const renderMonthWise = ({ item }) => {
     const isExpanded = expandedId === item.id;
     return (
-      <View style={styles.monthCard}>
-        <TouchableOpacity onPress={() => toggleExpand(item.id)}>
-          <View style={styles.monthHeader}>
-            <Text style={styles.monthTitle}>{item.month_name}</Text>
-            <Ionicons
-              name={isExpanded ? "chevron-up" : "chevron-down"}
-              size={20}
-              color="#333"
-            />
-          </View>
-          <Text style={styles.monthSubtitle}>Tap to see details</Text>
-        </TouchableOpacity>
+      <View style={{ marginBottom: Spacing.md }}>
+        <TouchableOpacity
+          onPress={() => toggleExpand(item.id)}
+          activeOpacity={0.9}
+        >
+          <ModernCard style={[styles.monthCard, isExpanded && styles.monthCardExpanded]} elevated={!isExpanded}>
+            <View style={styles.monthHeader}>
+              <View style={styles.monthTitleRow}>
+                <Ionicons name="calendar-outline" size={20} color={Colors.primary.main} style={{ marginRight: 8 }} />
+                <Text style={styles.monthTitle}>{item.month_name}</Text>
+              </View>
+              <Ionicons
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={Colors.text.secondary}
+              />
+            </View>
+            {!isExpanded && <Text style={styles.monthSubtitle}>Tap to see details</Text>}
 
-        {isExpanded && (
-          <View style={styles.expandedContainer}>
-            <View style={styles.expandedBox}>
-              <Text style={styles.expandedLabel}>Total Bills</Text>
-              <Text style={styles.expandedValue}>{item.total_bills}</Text>
-            </View>
-            <View style={styles.expandedBox}>
-              <Text style={styles.expandedLabel}>Total Amount</Text>
-              <Text style={styles.expandedValue}>
-                {parseFloat(item.total_amount).toFixed(2)}
-              </Text>
-            </View>
-          </View>
-        )}
+            {isExpanded && (
+              <View style={styles.expandedContainer}>
+                <View style={[styles.expandedBox, { backgroundColor: Colors.primary.main }]}>
+                  <Text style={styles.expandedLabel}>Total Bills</Text>
+                  <Text style={styles.expandedValue}>{item.total_bills}</Text>
+                </View>
+                <View style={[styles.expandedBox, { backgroundColor: Colors.success.main }]}>
+                  <Text style={styles.expandedLabel}>Total Amount</Text>
+                  <Text style={styles.expandedValue}>
+                    ₹{parseFloat(item.total_amount).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ModernCard>
+        </TouchableOpacity>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* ✅ Gradient Dropdown Section */}
-      <LinearGradient
-        colors={["#fb6c13ff", "#fad13eff"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBox}
-      >
-        <RNPickerSelect
-          onValueChange={(value) => setSelectedSummary(value)}
-          value={selectedSummary}
-          placeholder={{}}
-          items={[
-            { label: "Today Sales", value: "today" },
-            { label: "Day Wise Sales", value: "DayWise" },
-            { label: "Month Wise Sales", value: "item" },
-          ]}
-          style={{
-            inputIOS: styles.inputGradient,
-            inputAndroid: styles.inputGradient,
-            iconContainer: { top: 18, right: 15 },
-          }}
-          useNativeAndroidPickerStyle={false}
-          Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
-        />
-      </LinearGradient>
+      <ModernHeader
+        title="Sales Report"
+        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => navigation.toggleDrawer()}
+      />
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FF914D" />
-        </View>
-      ) : salesData.length === 0 ? (
-        <View style={styles.centered}>
-          <Text>No sales data available.</Text>
-        </View>
-      ) : selectedSummary === "DayWise" ? (
-        <>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>Total Bills</Text>
-              <Text style={styles.summaryNumber}>
-                {salesData.reduce((sum, i) => sum + (i.total_bills || 0), 0)}
-              </Text>
-            </View>
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>Total Amount</Text>
-              <Text style={styles.summaryNumber}>
-                
-                {salesData
-                  .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)
-                  .toFixed(2)}
-              </Text>
-            </View>
+      <View style={styles.content}>
+        {/* ✅ Gradient Dropdown Section */}
+        <LinearGradient
+          colors={[Colors.primary.main, Colors.primary.light]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBox}
+        >
+          <RNPickerSelect
+            onValueChange={(value) => setSelectedSummary(value)}
+            value={selectedSummary}
+            placeholder={{}}
+            items={[
+              { label: "Today Sales", value: "today" },
+              { label: "Day Wise Sales", value: "DayWise" },
+              { label: "Month Wise Sales", value: "item" },
+            ]}
+            style={{
+              inputIOS: styles.inputGradient,
+              inputAndroid: styles.inputGradient,
+              iconContainer: { top: 18, right: 15 },
+            }}
+            useNativeAndroidPickerStyle={false}
+            Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
+          />
+        </LinearGradient>
+
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
           </View>
+        ) : salesData.length === 0 ? (
+          <View style={styles.centered}>
+            <Ionicons name="documents-outline" size={48} color={Colors.text.disabled} style={{ marginBottom: Spacing.md }} />
+            <Text style={styles.emptyText}>No sales data available.</Text>
+          </View>
+        ) : selectedSummary === "DayWise" ? (
+          <>
+            <View style={styles.summaryRow}>
+              <ModernCard style={styles.summaryBox} elevated={false}>
+                <Text style={styles.summaryLabel}>Total Bills</Text>
+                <Text style={styles.summaryNumber}>
+                  {salesData.reduce((sum, i) => sum + (i.total_bills || 0), 0)}
+                </Text>
+              </ModernCard>
+              <ModernCard style={styles.summaryBox} elevated={false}>
+                <Text style={styles.summaryLabel}>Total Amount</Text>
+                <Text style={[styles.summaryNumber, { color: Colors.primary.main }]}>
+                  ₹{salesData
+                    .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)
+                    .toFixed(2)}
+                </Text>
+              </ModernCard>
+            </View>
 
+            <FlatList
+              data={salesData}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={renderDayWise}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              showsVerticalScrollIndicator={false}
+            />
+          </>
+        ) : selectedSummary === "item" ? (
           <FlatList
             data={salesData}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={renderDayWise}
+            renderItem={renderMonthWise}
+            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
             showsVerticalScrollIndicator={false}
           />
-        </>
-      ) : selectedSummary === "item" ? (
-        <FlatList
-          data={salesData}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMonthWise}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Total Sales Today</Text>
-            <Text style={styles.totalValue}>{totalSales.toFixed(2)}</Text>
-          </View>
+        ) : (
+          <>
+            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+              <Text style={styles.summaryTitle}>Total Sales Today</Text>
+              <Text style={styles.totalValue}>₹{totalSales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+            </ModernCard>
 
-          <Text style={styles.sectionTitle}>All Transactions</Text>
-          <FlatList
-            data={salesData}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-          />
-        </>
-      )}
+            <Text style={styles.sectionTitle}>All Transactions</Text>
+            <FlatList
+              data={salesData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderItem}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              showsVerticalScrollIndicator={false}
+            />
+          </>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
+  },
+  content: {
+    flex: 1,
+    padding: Spacing.base,
+  },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -299,124 +325,208 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   gradientBox: {
-    borderRadius: 12,
-    marginBottom: 15,
-    paddingHorizontal: 2,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   inputGradient: {
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     paddingVertical: 14,
     paddingHorizontal: 16,
     color: "#fff",
     fontWeight: "600",
     backgroundColor: "transparent",
   },
-  centered: { alignItems: "center", marginTop: 50 },
+  centered: {
+    alignItems: "center",
+    marginTop: 50,
+    justifyContent: 'center',
+    flex: 1,
+  },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
   },
   summaryBox: {
     flex: 1,
-    backgroundColor: "#FFF8F3",
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 5,
+    padding: Spacing.md,
     alignItems: "center",
   },
-  summaryLabel: { fontSize: 14, color: "#777", fontWeight: "500" },
-  summaryNumber: { fontSize: 22, fontWeight: "700", color: "#000", marginTop: 4 },
+  summaryLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    fontWeight: "600",
+    textTransform: 'uppercase',
+  },
+  summaryNumber: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: "700",
+    color: Colors.dark.main,
+    marginTop: 4
+  },
   dayCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   dayRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  dayDate: { fontSize: 15, fontWeight: "700", color: "#000" },
-  dayBills: { fontSize: 13, color: "#777", marginTop: 2 },
-  dayAmount: { fontSize: 16, fontWeight: "700", color: "#FF914D" },
+  dayInfo: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  dayAmountContainer: {
+    alignItems: 'flex-end',
+    minWidth: 100,
+  },
+  dayDate: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: "700",
+    color: Colors.dark.main
+  },
+  dayBills: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginTop: 2
+  },
+  dayAmount: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: "700",
+    color: Colors.primary.main
+  },
   monthCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  monthCardExpanded: {
+    backgroundColor: '#fff',
   },
   monthHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  monthTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
-  monthSubtitle: { fontSize: 13, color: "#777", marginTop: 2 },
+  monthTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  monthTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: "700",
+    color: Colors.dark.main
+  },
+  monthSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginTop: 4,
+    marginLeft: 28,
+  },
   expandedContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
   },
   expandedBox: {
     flex: 1,
-    backgroundColor: "#FF914D",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginHorizontal: 5,
-  },
-  expandedLabel: { color: "#fff", fontSize: 13, fontWeight: "500" },
-  expandedValue: { color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 4 },
-  summaryCard: {
-    backgroundColor: "#FEEBDD",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md,
     alignItems: "center",
   },
-  summaryTitle: { fontSize: 14, color: "#555", fontWeight: "500" },
-  totalValue: { fontSize: 28, fontWeight: "bold", color: "#000", marginTop: 5 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10, color: "#000" },
-  transactionCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#f1f1f1",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+  expandedLabel: {
+    color: "#fff",
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "600",
+    textTransform: 'uppercase',
   },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  iconCircle: {
-    backgroundColor: "#FFE6D4",
-    padding: 10,
-    borderRadius: 50,
-  },
-  name: { fontWeight: "600", color: "#000", fontSize: 15 },
-  time: { color: "#777", fontSize: 12 },
-  amount: {
-    color: "#FF914D",
+  expandedValue: {
+    color: "#fff",
+    fontSize: Typography.fontSize.xl,
     fontWeight: "700",
-    fontSize: 15,
+    marginTop: 4
+  },
+  summaryCard: {
+    marginBottom: Spacing.lg,
+    alignItems: "center",
+  },
+  summaryTitle: {
+    fontSize: Typography.fontSize.sm,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: "600",
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  totalValue: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: Spacing.xs
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "800",
+    marginBottom: Spacing.sm,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginLeft: 4,
+  },
+  transactionCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background.primary,
+    borderColor: Colors.border.light,
+    borderWidth: 1,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  rowLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md
+  },
+  nameContainer: {
+    flex: 1,
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+    minWidth: 90,
+    marginLeft: Spacing.sm,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.primary.lightest,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  name: {
+    fontWeight: "700",
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base
+  },
+  time: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    marginTop: 2,
+  },
+  amount: {
+    color: Colors.primary.main,
+    fontWeight: "700",
+    fontSize: Typography.fontSize.base,
     textAlign: "right",
+  },
+  emptyText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
   },
 });

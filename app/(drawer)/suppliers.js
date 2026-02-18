@@ -1,33 +1,48 @@
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState, useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
-  View,
-  BackHandler,
+  View
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import ModernInput from "../../components/ui/ModernInput";
+import { Colors, Spacing, Typography } from "../../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/suppiers_api/suppliers/";
 
 export default function SuppliersScreen() {
-  const router = useRouter();
   const [data, setData] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [totalSuppliers, setTotalSuppliers] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const backAction = () => {
+      router.push("/(drawer)/company-info");
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, []);
 
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
-
       if (!token) {
         Alert.alert("Session Expired", "Please login again.");
         setLoading(false);
@@ -47,8 +62,6 @@ export default function SuppliersScreen() {
       try {
         result = JSON.parse(text);
       } catch (e) {
-        console.error("Invalid JSON:", text.slice(0, 200));
-        Alert.alert("Server Error", "Received invalid response from the server.");
         setLoading(false);
         return;
       }
@@ -58,19 +71,17 @@ export default function SuppliersScreen() {
       else if (Array.isArray(result.data)) arrayData = result.data;
       else if (Array.isArray(result.results)) arrayData = result.results;
 
-      // ✅ Fixed: ensure unique suppliers and unique IDs
       const formatted = arrayData
         .map((item, index) => {
           let name = item.name ?? "-";
           name = name.replace(/^\(.*?\)\s*/g, "").trim();
           name = name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
           const credit = Math.round(Number(item.credit ?? 0));
           const debit = Math.round(Number(item.debit ?? 0));
-          const balance = Math.round(credit - debit);
+          const balance = credit - debit;
 
           return {
-            id: item.code || item.id || `auto-${index}`, // ✅ unique fallback ID
+            id: item.code || item.id || `s-${index}`,
             name,
             place: item.place ?? "-",
             phone: item.phone2 ?? "-",
@@ -79,22 +90,16 @@ export default function SuppliersScreen() {
             balance,
           };
         })
-        // ✅ remove duplicates by ID
-        .filter(
-          (item, index, self) =>
-            index === self.findIndex((t) => t.id === item.id)
-        )
+        .filter((item, index, self) => index === self.findIndex((t) => t.id === item.id))
         .filter((item) => item.balance !== 0)
         .sort((a, b) => a.name.localeCompare(b.name));
 
       setData(formatted);
       setFiltered(formatted);
       setTotalSuppliers(formatted.length);
-      const totalBal = formatted.reduce((sum, c) => sum + c.balance, 0);
-      setTotalBalance(Math.round(totalBal));
+      setTotalBalance(formatted.reduce((sum, c) => sum + c.balance, 0));
     } catch (error) {
       console.error("🔥 Error fetching suppliers:", error);
-      Alert.alert("Network Error", "Could not connect to server.");
     } finally {
       setLoading(false);
     }
@@ -103,6 +108,13 @@ export default function SuppliersScreen() {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery("");
+      setFiltered(data);
+    }, [data])
+  );
 
   useEffect(() => {
     const filteredData = data.filter(
@@ -114,174 +126,273 @@ export default function SuppliersScreen() {
     setFiltered(filteredData);
   }, [searchQuery, data]);
 
-  // ✅ Clear search bar when returning to this page
-  useFocusEffect(
-    useCallback(() => {
-      setSearchQuery(""); // clear search bar every time page focused
-      return undefined;
-    }, [])
-  );
+  const renderCard = ({ item }) => (
+    <ModernCard style={styles.card} elevated>
+      <View style={styles.cardRow}>
+        <View style={styles.iconContainer}>
+          <Text style={styles.avatarText}>
+            {item.name ? item.name.charAt(0).toUpperCase() : "S"}
+          </Text>
+        </View>
 
-  // ✅ Handle back button navigation
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        router.push("/(drawer)/company-info");
-        return true;
-      };
-      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
-      return () => subscription.remove();
-    }, [router])
-  );
-
-  const renderCard = ({ item }) => {
-    const isNegative = item.balance < 0;
-    const formattedBalance = Math.abs(item.balance).toLocaleString("en-IN");
-    const displayText = isNegative ? `${formattedBalance}` : `${formattedBalance}`;
-
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardRow}>
-          <View style={{ flex: 3 }}>
-            <Text style={styles.cardValue}>{item.name}</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.cardValue} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <View style={styles.detailRow}>
+            <Ionicons name="call-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
             <Text style={styles.subText}>{item.phone}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="location-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
             <Text style={styles.subText}>{item.place}</Text>
           </View>
-          <View style={styles.balanceContainer}>
-            <Text style={[styles.balanceText, { color: isNegative ? "red" : "green" }]}>
-              {displayText}
-            </Text>
-          </View>
         </View>
-        <View style={styles.creditDebitRow}>
-          <Text style={[styles.subText, { color: "green" }]}>
-            Credit: {item.credit.toLocaleString("en-IN")}
-          </Text>
-          <Text style={[styles.subText, { color: "red" }]}>
-            Debit: {item.debit.toLocaleString("en-IN")}
-          </Text>
-        </View>
-      </View>
-    );
-  };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6600" />
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceLabel}>Balance</Text>
+          <Text
+            style={[
+              styles.balanceText,
+              { color: item.balance < 0 ? Colors.error.main : Colors.success.dark },
+            ]}
+            numberOfLines={1}
+          >
+            ₹{Math.abs(item.balance).toLocaleString("en-IN")}
+          </Text>
+          <Text style={[styles.drCr, { color: item.balance < 0 ? Colors.error.main : Colors.success.dark }]}>
+            {/* {item.balance < 0 ? "DR" : "CR"} */}
+          </Text>
+        </View>
       </View>
-    );
-  }
+
+      <View style={styles.divider} />
+
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Credit</Text>
+          <Text style={[styles.statValue, { color: Colors.success.main }]}>₹{item.credit.toLocaleString("en-IN")}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Debit</Text>
+          <Text style={[styles.statValue, { color: Colors.error.main }]}>₹{item.debit.toLocaleString("en-IN")}</Text>
+        </View>
+      </View>
+    </ModernCard>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Suppliers Statement</Text>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Suppliers</Text>
-          <Text style={styles.summaryValue}>{totalSuppliers}</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Balance</Text>
-          <Text
-            style={[
-              styles.summaryValue,
-              { color: totalBalance < 0 ? "red" : "green" },
-            ]}
-          >
-            {totalBalance.toLocaleString("en-IN")}
-          </Text>
-        </View>
-      </View>
-
-      <TextInput
-        style={styles.searchBox}
-        placeholder="Search by Name, Place or Phone"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
+      <ModernHeader
+        title="Suppliers Statement"
+        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        onLeftPress={() => router.push("/(drawer)/company-info")}
       />
 
-      <View style={styles.headingCard}>
-        <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
-        <Text style={[styles.headingText, { flex: 1, textAlign: "right" }]}>Balance</Text>
-      </View>
+      <View style={styles.content}>
+        <ModernCard style={styles.summaryCard} gradient>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Suppliers</Text>
+              <Text style={styles.summaryValue}>{totalSuppliers}</Text>
+            </View>
+            <View style={styles.totalDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total Balance</Text>
+              <Text style={styles.summaryValue}>
+                ₹{Math.abs(totalBalance).toLocaleString('en-IN')}
+                {/* <Text style={styles.miniDrCr}>{totalBalance < 0 ? " DR" : " CR"}</Text> */}
+              </Text>
+            </View>
+          </View>
+        </ModernCard>
 
-      {filtered.length === 0 ? (
-        <View style={{ padding: 20 }}>
-          <Text style={{ fontWeight: "bold", color: "red", textAlign: "center" }}>
-            ⚠️ No data found
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderCard}
+        <ModernInput
+          placeholder="Search Name, Place or Phone"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
+          containerStyle={styles.searchBox}
         />
-      )}
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderCard}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="people-outline" size={48} color={Colors.text.disabled} />
+                <Text style={styles.emptyText}>No suppliers found.</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#ff6600",
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
+  },
+  content: {
+    flex: 1,
+    padding: Spacing.base,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
   },
   summaryCard: {
-    backgroundColor: "#fffaf5",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: Spacing.base,
+    padding: Spacing.base,
   },
-  summaryItem: { alignItems: "center", flex: 1 },
-  summaryLabel: { fontSize: 14, fontWeight: "600", color: "#6b7280" },
-  summaryValue: { fontSize: 18, fontWeight: "bold" },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  totalDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  summaryLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'uppercase',
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#FFFFFF',
+  },
+  miniDrCr: {
+    fontSize: 10,
+    fontWeight: 'normal',
+  },
   searchBox: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+    marginBottom: Spacing.md,
   },
-  headingCard: {
-    flexDirection: "row",
-    backgroundColor: "#ffe6cc",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 8,
+  listContent: {
+    paddingBottom: Spacing['3xl'],
   },
-  headingText: { fontWeight: "bold", fontSize: 15, color: "#ff6600" },
   card: {
-    backgroundColor: "#fffaf5",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    elevation: 2,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.background.primary,
   },
-  cardRow: { flexDirection: "row", justifyContent: "space-between" },
-  creditDebitRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 5 },
-  cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
-  subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  avatarText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.dark,
+  },
+  infoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cardValue: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  subText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+  },
   balanceContainer: {
-    justifyContent: "center",
     alignItems: "flex-end",
-    flexShrink: 1,
-    flexGrow: 0,
-    minWidth: 120,
-    paddingLeft: 10,
+    minWidth: 100,
+    marginLeft: Spacing.sm,
   },
-  balanceText: { fontSize: 18, fontWeight: "bold", textAlign: "right", flexWrap: "nowrap" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  balanceLabel: {
+    fontSize: 10,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  balanceText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  drCr: {
+    fontSize: 10,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginVertical: Spacing.md,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.sm,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: Colors.border.light,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Spacing['3xl'],
+  },
+  emptyText: {
+    marginTop: Spacing.base,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+  },
 });

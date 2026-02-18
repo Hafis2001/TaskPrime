@@ -1,15 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import { Colors, Spacing, Typography } from "../../constants/modernTheme";
 
 const BASE_API_URL = "https://taskprime.app/api/sales-return/get-data/";
 
@@ -17,7 +22,9 @@ export default function SalesReturnScreen() {
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalAmount, setTotalAmount] = useState(0);
-  const [clientId, setClientId] = useState(null);
+  const router = useRouter();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     getClientIdAndFetch();
@@ -27,28 +34,26 @@ export default function SalesReturnScreen() {
     try {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
-        Alert.alert("Error", "Client ID not found. Please log in again.");
-        setLoading(false);
+        router.replace("/");
         return;
       }
 
       const parsedUser = JSON.parse(storedUser);
-      const storedClientId = parsedUser?.clientId;
+      let storedClientId = parsedUser?.clientId;
 
       if (!storedClientId) {
-        Alert.alert("Error", "Client ID missing in user data. Please log in again.");
+        Alert.alert("Error", "Account configuration missing. Please log in again.");
         setLoading(false);
         return;
       }
 
-      // Apply the same fix as LoginScreen: O -> 0
+      // Consistent ID cleaning (O -> 0)
       const cleanClientId = storedClientId.trim().replace(/O/g, "0");
       const token = parsedUser.token;
 
-      setClientId(cleanClientId);
       fetchSalesReturnData(cleanClientId, token);
     } catch (error) {
-      console.error("Error fetching client ID:", error);
+      console.error("Error initializing screen:", error);
       setLoading(false);
     }
   };
@@ -57,7 +62,6 @@ export default function SalesReturnScreen() {
     try {
       setLoading(true);
       const url = `${BASE_API_URL}?client_id=${storedClientId}`;
-      console.log("Fetching Sales Return from:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -67,19 +71,16 @@ export default function SalesReturnScreen() {
       });
       const result = await response.json();
 
-      if (result && result.success && result.client_id === storedClientId) {
+      if (result && result.success) {
         const data = Array.isArray(result.data) ? result.data : [];
         setSalesData(data);
-        const total = data.reduce((sum, item) => sum + (item.net || 0), 0);
+        const total = data.reduce((sum, item) => sum + (parseFloat(item.net) || 0), 0);
         setTotalAmount(total);
       } else {
-        console.warn("Client ID mismatch or invalid response:", result);
-        Alert.alert("No Data", "No sales return data found for your account.");
         setSalesData([]);
       }
     } catch (error) {
-      console.warn("Error fetching sales return data:", error);
-      Alert.alert("Error", "Failed to load sales return data.");
+      console.error("Error fetching data:", error);
       setSalesData([]);
     } finally {
       setLoading(false);
@@ -96,114 +97,177 @@ export default function SalesReturnScreen() {
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.iconContainer}>
-        <Ionicons name="storefront-outline" size={24} color="#ff7a00" />
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.customerName}>{item.customername}</Text>
-        <Text style={styles.dateText}>
-          {formatDate(item.date)} • #{item.invno}
-        </Text>
-      </View>
-      <Text style={styles.amountText}>{parseFloat(item.net).toFixed(2)}</Text>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View >
-        <Text style={styles.headerTitle}> Sales Return</Text>
-      </View>
-
-      {/* Summary */}
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total Invoice</Text>
-          <Text style={styles.summaryValue}>{salesData.length}</Text>
+    <ModernCard style={styles.transactionCard} elevated={false}>
+      <View style={styles.row}>
+        <View style={styles.rowLeft}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="return-down-back-outline" size={20} color={Colors.error.main} />
+          </View>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
+            <Text style={styles.time}>
+              {formatDate(item.date)} • #{item.invno}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.summaryCard, styles.activeCard]}>
-          <Text style={[styles.summaryLabel, styles.activeText]}>Total Amount</Text>
-          <Text style={[styles.summaryValue, styles.activeText]}>
-            {totalAmount.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount} numberOfLines={1}>
+            ₹{parseFloat(item.net).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </Text>
         </View>
       </View>
+    </ModernCard>
+  );
 
-      {/* Data */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#ff7a00" style={{ marginTop: 20 }} />
-      ) : salesData.length === 0 ? (
-        <Text style={styles.noDataText}>No sales return data found.</Text>
-      ) : (
-        <FlatList
-          data={salesData}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={{ paddingBottom: 20 }}
-        />
-      )}
-    </SafeAreaView>
+  return (
+    <View style={styles.container}>
+      <ModernHeader
+        title="Sales Return"
+        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => navigation.toggleDrawer()}
+      />
+
+      <View style={styles.content}>
+        <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+          <Text style={styles.summaryTitle}>Total Returns</Text>
+          <Text style={styles.totalValue}>₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{salesData.length} Invoices</Text>
+          </View>
+        </ModernCard>
+
+        <Text style={styles.sectionTitle}>Recent Returns</Text>
+
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
+        ) : salesData.length === 0 ? (
+          <View style={styles.centered}>
+            <Ionicons name="return-down-back" size={48} color={Colors.text.disabled} />
+            <Text style={styles.emptyText}>No sales return data found.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={salesData}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fefdfcff",
-
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
   },
-  headerTitle: { color: "#f9742dff", fontSize: 18, fontWeight: "700", marginLeft: 135 },
-  summaryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 15,
-    marginBottom: 10,
+  content: {
+    flex: 1,
+    padding: Spacing.base,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: Spacing['3xl'],
   },
   summaryCard: {
-    width: "45%",
-    backgroundColor: "#fff",
-    paddingVertical: 15,
-    borderRadius: 10,
+    marginBottom: Spacing.lg,
     alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
-  activeCard: { backgroundColor: "#ff7a00" },
-  summaryLabel: { fontSize: 14, color: "#555" },
-  summaryValue: { fontSize: 20, fontWeight: "700", marginTop: 5 },
-  activeText: { color: "#fff" },
-  itemContainer: {
+  summaryTitle: {
+    fontSize: Typography.fontSize.sm,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: "600",
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  totalValue: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: Spacing.xs
+  },
+  badge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: Spacing.sm,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "800",
+    marginBottom: Spacing.sm,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginLeft: 4,
+  },
+  transactionCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background.primary,
+    borderColor: Colors.border.light,
+    borderWidth: 1,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  rowLeft: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 15,
-    marginVertical: 6,
-    padding: 15,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    gap: Spacing.md
   },
-  iconContainer: {
-    backgroundColor: "#fff3e6",
-    padding: 10,
-    borderRadius: 50,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.error.lightest,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  textContainer: { flex: 1, marginLeft: 12 },
-  customerName: { fontSize: 16, fontWeight: "600", color: "#222" },
-  dateText: { fontSize: 13, color: "#777", marginTop: 3 },
-  amountText: { fontSize: 18, fontWeight: "600", color: "#f88126ff", marginTop: 9, },
-  noDataText: { textAlign: "center", color: "#666", marginTop: 40, fontSize: 15 },
+  nameContainer: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: "700",
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base
+  },
+  time: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    marginTop: 2,
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+    minWidth: 90,
+    marginLeft: Spacing.sm,
+  },
+  amount: {
+    color: Colors.error.main,
+    fontWeight: "700",
+    fontSize: Typography.fontSize.base,
+    textAlign: "right",
+  },
+  emptyText: {
+    marginTop: Spacing.base,
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
+  },
 });

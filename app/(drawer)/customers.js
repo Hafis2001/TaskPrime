@@ -1,5 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState, useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -8,11 +10,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  View,
   TouchableOpacity,
+  View
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+
+import ModernCard from "../../components/ui/ModernCard";
+import ModernHeader from "../../components/ui/ModernHeader";
+import ModernInput from "../../components/ui/ModernInput";
+import { Colors, Spacing, Typography } from "../../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
 
@@ -26,7 +31,6 @@ export default function DebtorsScreen() {
   const [rawJson, setRawJson] = useState(null);
   const router = useRouter();
 
-  // ✅ Handle Android back button
   useEffect(() => {
     const backAction = () => {
       router.replace("/company-info");
@@ -39,7 +43,6 @@ export default function DebtorsScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // ✅ Fetch data
   const fetchDebtors = async () => {
     try {
       setLoading(true);
@@ -108,7 +111,6 @@ export default function DebtorsScreen() {
     fetchDebtors();
   }, []);
 
-  // ✅ When user comes back to this page, clear search
   useFocusEffect(
     useCallback(() => {
       setSearchQuery("");
@@ -116,7 +118,6 @@ export default function DebtorsScreen() {
     }, [data])
   );
 
-  // ✅ Filter as you type
   useEffect(() => {
     const filteredData = data.filter(
       (i) =>
@@ -130,15 +131,14 @@ export default function DebtorsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6600" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
       </View>
     );
   }
 
-  // ✅ Card UI
   const renderCard = ({ item }) => (
     <TouchableOpacity
-      style={styles.card}
+      activeOpacity={0.7}
       onPress={() =>
         router.push({
           pathname: "/customer-ledger",
@@ -150,160 +150,234 @@ export default function DebtorsScreen() {
         })
       }
     >
-      <View style={styles.cardRow}>
-        <View style={{ flex: 3, paddingRight: 8 }}>
-          <Text style={styles.cardValue} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.subText}>{item.phone}</Text>
-          <Text style={styles.subText}>{item.place}</Text>
+      <ModernCard style={styles.card} elevated>
+        <View style={styles.cardRow}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.avatarText}>
+              {item.name ? item.name.charAt(0).toUpperCase() : "C"}
+            </Text>
+          </View>
+
+          <View style={styles.infoContainer}>
+            <Text style={styles.cardValue} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <View style={styles.detailRow}>
+              <Ionicons name="call-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.subText}>{item.phone}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.subText}>{item.place}</Text>
+            </View>
+          </View>
+
+          <View style={styles.balanceContainer}>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <Text
+              style={[
+                styles.balanceText,
+                { color: item.balance < 0 ? Colors.error.main : Colors.success.dark },
+              ]}
+              numberOfLines={1}
+            >
+              ₹{Math.abs(item.balance).toLocaleString("en-IN")}
+            </Text>
+            <Text style={[styles.drCr, { color: item.balance < 0 ? Colors.error.main : Colors.success.dark }]}>
+              {/* {item.balance < 0 ? "DR" : "CR"} */}
+            </Text>
+          </View>
         </View>
-        <View style={styles.balanceContainer}>
-          <Text
-            style={[
-              styles.balanceText,
-              { color: item.balance < 0 ? "red" : "#ff6600" },
-            ]}
-          >
-            {item.balance.toLocaleString("en-IN")}
-          </Text>
-        </View>
-      </View>
+      </ModernCard>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Customers Statement</Text>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Stores</Text>
-          <Text style={styles.summaryValue}>{totalStores}</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Balance</Text>
-          <Text style={styles.summaryValue}>{Math.round(totalBalance)}</Text>
-        </View>
-      </View>
-
-      <TextInput
-        style={styles.searchBox}
-        placeholder="Search by Name, Place or Phone"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
+      <ModernHeader
+        title="Customers Statement"
+        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        onLeftPress={() => router.replace("/company-info")}
       />
 
-      <View style={styles.headingCard}>
-        <Text style={[styles.headingText, { flex: 3 }]}>Name</Text>
-        <Text
-          style={[styles.headingText, { flex: 1, textAlign: "right" }]}
-          numberOfLines={1}
-        >
-          Balance
-        </Text>
-      </View>
+      <View style={styles.content}>
+        <ModernCard style={styles.summaryCard} gradient>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total Stores</Text>
+              <Text style={styles.summaryValue}>{totalStores}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total Balance</Text>
+              <Text style={styles.summaryValue}>₹{Math.round(totalBalance).toLocaleString('en-IN')}</Text>
+            </View>
+          </View>
+        </ModernCard>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderCard}
-        contentContainerStyle={{
-          paddingBottom: 100,
-          flexGrow: 1,
-          justifyContent: filtered.length === 0 ? "center" : "flex-start",
-        }}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          searchQuery.trim() !== "" ? (
-            <Text style={{ textAlign: "center", color: "#666", fontSize: 16 }}>
-              No results found for “{searchQuery}”.
-            </Text>
-          ) : (
-            <ScrollView style={{ padding: 20 }}>
-              <Text style={{ fontWeight: "bold", color: "red" }}>
-                ⚠️ No data displayed. API Raw Output:
-              </Text>
-              <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
-                {JSON.stringify(rawJson, null, 2)}
-              </Text>
-            </ScrollView>
-          )
-        }
-      />
+        <View style={styles.searchContainer}>
+          <ModernInput
+            placeholder="Search by Name, Place or Phone"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
+            containerStyle={styles.searchBox}
+          />
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderCard}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            searchQuery.trim() !== "" ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color={Colors.text.disabled} />
+                <Text style={styles.emptyText}>
+                  No results found for "{searchQuery}"
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ padding: 20 }}>
+                <Text style={{ fontWeight: "bold", color: "red" }}>
+                  ⚠️ No data displayed. API Raw Output:
+                </Text>
+                <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
+                  {JSON.stringify(rawJson, null, 2)}
+                </Text>
+              </ScrollView>
+            )
+          }
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#ff6600",
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.secondary
+  },
+  content: {
+    flex: 1,
+    padding: Spacing.base,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
   },
   summaryCard: {
-    backgroundColor: "#fffaf5",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    marginBottom: Spacing.base,
+    padding: Spacing.base,
   },
-  summaryItem: { alignItems: "center", flex: 1 },
-  summaryLabel: { fontSize: 14, fontWeight: "600", color: "#6b7280" },
-  summaryValue: { fontSize: 18, fontWeight: "bold", color: "#ff6600" },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  summaryLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'uppercase',
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#FFFFFF',
+  },
+  searchContainer: {
+    marginBottom: Spacing.xs,
+  },
   searchBox: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+    marginBottom: 0,
   },
-  headingCard: {
-    flexDirection: "row",
-    backgroundColor: "#ffe6cc",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 8,
+  listContent: {
+    paddingBottom: Spacing['3xl'],
   },
-  headingText: { fontWeight: "bold", fontSize: 15, color: "#ff6600" },
   card: {
-    backgroundColor: "#fffaf5",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
   cardRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
-  cardValue: { fontSize: 15, fontWeight: "600", color: "#1e293b" },
-  subText: { fontSize: 13, color: "#6b7280", marginBottom: 2 },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  avatarText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.dark,
+  },
+  infoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cardValue: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  subText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+  },
   balanceContainer: {
-    justifyContent: "center",
     alignItems: "flex-end",
-    flexShrink: 1,
-    flexBasis: 100,
+    minWidth: 100,
+    marginLeft: Spacing.sm,
+  },
+  balanceLabel: {
+    fontSize: 10,
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    marginBottom: 2,
   },
   balanceText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "right",
-    includeFontPadding: false,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
   },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  drCr: {
+    fontSize: 10,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Spacing['3xl'],
+  },
+  emptyText: {
+    marginTop: Spacing.base,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+  },
 });

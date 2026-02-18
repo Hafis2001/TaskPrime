@@ -1,50 +1,71 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Image,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import * as Device from "expo-device";
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import ModernButton from "../../components/ui/ModernButton";
+import ModernInput from "../../components/ui/ModernInput";
+import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
 
-export default function LicenseActivationScreen({ onActivationSuccess }) {
+export default function LicenseActivationScreen({ onActivationSuccess, onCancel, isAddingNew }) {
   const [licenseKey, setLicenseKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [deviceId, setDeviceId] = useState("");
   const [deviceName, setDeviceName] = useState("");
   const [checking, setChecking] = useState(true);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(30));
 
   useEffect(() => {
     initializeApp();
   }, []);
 
+  useEffect(() => {
+    if (!checking) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [checking]);
+
   const getDeviceId = async () => {
     try {
       let id = null;
-      
+
       if (Platform.OS === "android") {
         id = Application.androidId;
         if (id) return id;
 
-        // Fallback or request if needed, but keeping simple for now based on user's code
         const storedId = await AsyncStorage.getItem("device_hardware_id");
         if (storedId) return storedId;
 
-        const uuid = 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function(c) {
+        const uuid = 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function (c) {
           const r = Math.random() * 16 | 0;
           return r.toString(16);
         });
         await AsyncStorage.setItem("device_hardware_id", uuid);
         return uuid;
-        
+
       } else if (Platform.OS === "ios") {
         id = await Application.getIosIdForVendorAsync();
         if (id) return id;
@@ -52,19 +73,18 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
         const storedId = await AsyncStorage.getItem("device_hardware_id");
         if (storedId) return storedId;
 
-        const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
           const r = Math.random() * 16 | 0;
           const v = c === 'x' ? r : (r & 0x3 | 0x8);
           return v.toString(16);
         });
         await AsyncStorage.setItem("device_hardware_id", uuid);
         return uuid;
-        
+
       } else {
-        // Web or other
         const storedId = await AsyncStorage.getItem("device_hardware_id");
         if (storedId) return storedId;
-        
+
         const uuid = 'web-' + Math.random().toString(36).substring(2, 15);
         await AsyncStorage.setItem("device_hardware_id", uuid);
         return uuid;
@@ -93,12 +113,15 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
       setChecking(true);
       const id = await getDeviceId();
       setDeviceId(id);
-      
+
       const name = getDeviceName();
       setDeviceName(name);
-      
-      // Check registration
-      await checkDeviceRegistration(id);
+
+      if (!isAddingNew) {
+        await checkDeviceRegistration(id);
+      } else {
+        setChecking(false);
+      }
     } catch (error) {
       console.error(error);
       setChecking(false);
@@ -114,13 +137,29 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
       if (response.ok && data.success && data.customers) {
         for (const customer of data.customers) {
           if (customer.registered_devices?.some(d => d.device_id === deviceIdToCheck)) {
-            // Found
+            const newLicense = {
+              licenseKey: customer.license_key,
+              deviceId: deviceIdToCheck,
+              customerName: customer.customer_name,
+              clientId: customer.client_id || ""
+            };
+
+            // Get existing licenses
+            const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+            let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+
+            // Check for duplicates
+            if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
+              licenses.push(newLicense);
+              await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+            }
+
             await AsyncStorage.setItem("licenseActivated", "true");
             await AsyncStorage.setItem("licenseKey", customer.license_key);
             await AsyncStorage.setItem("deviceId", deviceIdToCheck);
             await AsyncStorage.setItem("customerName", customer.customer_name);
             await AsyncStorage.setItem("clientId", customer.client_id || "");
-            
+
             onActivationSuccess();
             return;
           }
@@ -141,7 +180,6 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
 
     setLoading(true);
     try {
-      // 1. Verify License Key
       const CHECK_LICENSE_API = `https://activate.imcbs.com/mobileapp/api/project/taskprime/`;
       const checkResponse = await fetch(CHECK_LICENSE_API);
       const checkData = await checkResponse.json();
@@ -151,23 +189,38 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
       }
 
       const customer = checkData.customers.find(c => c.license_key === licenseKey.trim());
-      
+
       if (!customer) {
         Alert.alert("Invalid License", "License key not found.");
         setLoading(false);
         return;
       }
 
-      // Check limits
       if (customer.registered_devices?.some(d => d.device_id === deviceId)) {
-        // Already registered logic, but maybe we just save it locally?
-         await AsyncStorage.setItem("licenseActivated", "true");
-         await AsyncStorage.setItem("licenseKey", licenseKey.trim());
-         await AsyncStorage.setItem("deviceId", deviceId);
-         await AsyncStorage.setItem("customerName", customer.customer_name);
-         await AsyncStorage.setItem("clientId", customer.client_id || "");
-         onActivationSuccess();
-         return;
+        const newLicense = {
+          licenseKey: licenseKey.trim(),
+          deviceId: deviceId,
+          customerName: customer.customer_name,
+          clientId: customer.client_id || ""
+        };
+
+        // Get existing licenses
+        const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+        let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+
+        // Check for duplicates
+        if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
+          licenses.push(newLicense);
+          await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+        }
+
+        await AsyncStorage.setItem("licenseActivated", "true");
+        await AsyncStorage.setItem("licenseKey", licenseKey.trim());
+        await AsyncStorage.setItem("deviceId", deviceId);
+        await AsyncStorage.setItem("customerName", customer.customer_name);
+        await AsyncStorage.setItem("clientId", customer.client_id || "");
+        onActivationSuccess();
+        return;
       }
 
       if (customer.license_summary.registered_devices >= customer.license_summary.max_devices) {
@@ -176,7 +229,6 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
         return;
       }
 
-      // 2. Register Device
       const REGISTER_API = `https://activate.imcbs.com/mobileapp/api/project/taskprime/license/register/`;
       const regResponse = await fetch(REGISTER_API, {
         method: "POST",
@@ -190,14 +242,31 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
 
       const regData = await regResponse.json();
       if (regResponse.ok && regData.success) {
-         await AsyncStorage.setItem("licenseActivated", "true");
-         await AsyncStorage.setItem("licenseKey", licenseKey.trim());
-         await AsyncStorage.setItem("deviceId", deviceId);
-         await AsyncStorage.setItem("customerName", customer.customer_name);
-         await AsyncStorage.setItem("clientId", customer.client_id || "");
-         
-         Alert.alert("Success", "Device registered!");
-         onActivationSuccess();
+        const newLicense = {
+          licenseKey: licenseKey.trim(),
+          deviceId: deviceId,
+          customerName: customer.customer_name,
+          clientId: customer.client_id || ""
+        };
+
+        // Get existing licenses
+        const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+        let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+
+        // Check for duplicates
+        if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
+          licenses.push(newLicense);
+          await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+        }
+
+        await AsyncStorage.setItem("licenseActivated", "true");
+        await AsyncStorage.setItem("licenseKey", licenseKey.trim());
+        await AsyncStorage.setItem("deviceId", deviceId);
+        await AsyncStorage.setItem("customerName", customer.customer_name);
+        await AsyncStorage.setItem("clientId", customer.client_id || "");
+
+        Alert.alert("Success", "Device registered!");
+        onActivationSuccess();
       } else {
         Alert.alert("Registration Failed", regData.message || "Unknown error");
       }
@@ -211,89 +280,204 @@ export default function LicenseActivationScreen({ onActivationSuccess }) {
 
   if (checking) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#ff6600" />
+      <LinearGradient
+        colors={['#FFFFFF', '#FFF5EB', '#FFE6CC']}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color={Colors.primary.main} />
         <Text style={styles.loadingText}>Checking registration...</Text>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
     <LinearGradient
-      colors={["#ffffff", "#ff6600"]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
+      colors={['#FFFFFF', '#FFF5EB', '#FFE6CC', '#ff6600']}
+      locations={[0, 0.3, 0.7, 1]}
       style={styles.container}
     >
-      <View style={styles.content}>
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         <View style={styles.logoContainer}>
+          <View style={styles.logoCircle}>
             <Image
-                source={require("../../assets/images/taskprime1.png")}
-                style={styles.logo}
-                resizeMode="contain"
+              source={require("../../assets/images/taskprime1.png")}
+              style={styles.logo}
+              resizeMode="contain"
             />
+          </View>
         </View>
 
         <Text style={styles.title}>Activate License</Text>
-        <Text style={styles.subtitle}>Enter your license key provided by TaskPrime.</Text>
+        <Text style={styles.subtitle}>
+          Enter your license key to get started with TaskPrime
+        </Text>
 
         <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Device ID:</Text>
-            <Text style={styles.infoValue}>{deviceId}</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Device ID</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{deviceId}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Device Name</Text>
+            <Text style={styles.infoValue}>{deviceName}</Text>
+          </View>
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="License Key"
-          placeholderTextColor="#666"
+        <ModernInput
+          placeholder="Enter License Key"
           value={licenseKey}
           onChangeText={setLicenseKey}
           autoCapitalize="none"
           editable={!loading}
+          containerStyle={styles.inputContainer}
         />
 
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
+        <ModernButton
+          title="Activate License"
           onPress={handleActivate}
+          loading={loading}
           disabled={loading}
-        >
-          {loading ? (
-             <ActivityIndicator color="#fff" />
-          ) : (
-             <Text style={styles.buttonText}>Activate</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          gradient={true}
+          size="large"
+          style={styles.button}
+        />
+
+        {onCancel && (
+          <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+            <Text style={styles.cancelButtonText}>Back to Login</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={styles.footerText}>
+          Need help? Contact support@taskprime.app
+        </Text>
+      </Animated.View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { justifyContent: "center", alignItems: "center", backgroundColor: '#fff' },
-  content: { flex: 1, justifyContent: "center", padding: 30 },
-  logoContainer: { alignItems: "center", marginBottom: 30 },
-  logo: { width: 150, height: 100 },
-  title: { fontSize: 24, fontWeight: "bold", color: "#fff", textAlign: "center", marginBottom: 10 },
-  subtitle: { fontSize: 16, color: "#eee", textAlign: "center", marginBottom: 30 },
-  infoBox: { backgroundColor: "rgba(255,255,255,0.2)", padding: 10, borderRadius: 10, marginBottom: 20 },
-  infoLabel: { color: "#fff", fontSize: 12, fontWeight: "bold" },
-  infoValue: { color: "#fff", fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 15,
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 20,
+  container: {
+    flex: 1,
   },
-  button: {
-    backgroundColor: "#171635", // Contrast color
-    borderRadius: 20,
-    padding: 18,
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  loadingText: { marginTop: 10, color: "#555" }
+
+  content: {
+    flex: 1,
+    justifyContent: "center",
+    padding: Spacing['2xl'],
+  },
+
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: Spacing['2xl'],
+  },
+
+  logoCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: Colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary.main,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+
+  logo: {
+    width: 120,
+    height: 80,
+  },
+
+  title: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.dark.main,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+
+  subtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+    textAlign: "center",
+    marginBottom: Spacing['2xl'],
+    paddingHorizontal: Spacing.base,
+  },
+
+  infoBox: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: Spacing.base,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 102, 0, 0.2)',
+  },
+
+  infoRow: {
+    marginBottom: Spacing.sm,
+  },
+
+  infoLabel: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+
+  infoValue: {
+    color: Colors.dark.main,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  inputContainer: {
+    marginBottom: Spacing.xl,
+  },
+
+  button: {
+    marginBottom: Spacing.md,
+  },
+
+  cancelButton: {
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+
+  cancelButtonText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: '600',
+  },
+
+  loadingText: {
+    marginTop: Spacing.base,
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
+  },
+
+  footerText: {
+    textAlign: 'center',
+    color: Colors.text.tertiary,
+    fontSize: Typography.fontSize.sm,
+    marginTop: Spacing.base,
+  },
 });
