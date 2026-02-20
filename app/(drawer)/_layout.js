@@ -194,6 +194,33 @@ export default function DrawerLayout() {
             ),
           }}
         />
+        <Drawer.Screen
+          name="stock-report"
+          options={{
+            title: "Stock Report",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="bar-chart-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="pdc-report"
+          options={{
+            title: "PDC Report",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="document-text-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="event-log"
+          options={{
+            title: "Event Log",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="list-outline" size={size} color={color} />
+            ),
+          }}
+        />
       </Drawer>
     </View>
   );
