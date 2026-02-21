@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { Screen } from "../../src/utils/Responsive";
 
 const STOCK_API_URL = "https://taskprime.app/api/get-stock-report/";
 
@@ -248,9 +249,15 @@ export default function StockReportScreen() {
                 ) : (
                     <FlatList
                         data={filteredData}
+                        numColumns={Screen.isTablet ? 2 : 1}
+                        key={Screen.isTablet ? 'tablet' : 'phone'}
                         keyExtractor={(item, index) => index.toString()}
                         renderItem={renderStockItem}
-                        contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+                        contentContainerStyle={[
+                            styles.listContent,
+                            { paddingBottom: insets.bottom + Spacing.xl }
+                        ]}
+                        columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />
@@ -341,6 +348,10 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.md,
         padding: Spacing.md,
         backgroundColor: Colors.background.primary,
+        flex: Screen.isTablet ? 0.485 : 1,
+    },
+    columnWrapper: {
+        justifyContent: 'space-between',
     },
     cardHeader: {
         flexDirection: 'row',

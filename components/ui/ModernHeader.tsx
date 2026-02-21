@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Shadows, Spacing, Typography } from '../../constants/modernTheme';
+import { moderateScale, verticalScale } from '../../src/utils/Responsive';
 
 interface ModernHeaderProps {
     title?: string;
@@ -62,17 +63,17 @@ const styles = StyleSheet.create({
     headerBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
+        height: verticalScale(56),
         paddingHorizontal: Spacing.sm,
     },
 
     leftAction: {
-        width: 48,
+        width: moderateScale(48),
         alignItems: 'flex-start',
     },
 
     rightAction: {
-        width: 48,
+        width: moderateScale(48),
         alignItems: 'flex-end',
     },
 
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         color: Colors.text.secondary,
         marginTop: 0,
         textAlign: 'center',

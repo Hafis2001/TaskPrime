@@ -100,6 +100,15 @@ export default function EventLogScreen() {
         if (user) fetchEventLog(user);
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "-";
+        const parts = dateStr.split("-");
+        if (parts.length === 3) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return dateStr;
+    };
+
     const renderEventItem = ({ item }) => (
         <ModernCard style={styles.eventCard} elevated={true}>
             <View style={styles.cardHeader}>
@@ -111,7 +120,7 @@ export default function EventLogScreen() {
                         <Text style={styles.userName}>{item.uid}</Text>
                         <View style={styles.dateTimeRow}>
                             <Ionicons name="calendar-outline" size={12} color={Colors.text.tertiary} />
-                            <Text style={styles.dateTimeText}>{item.edate}</Text>
+                            <Text style={styles.dateTimeText}>{formatDate(item.edate)}</Text>
                             <Ionicons name="time-outline" size={12} color={Colors.text.tertiary} style={{ marginLeft: 8 }} />
                             <Text style={styles.dateTimeText}>{item.etime}</Text>
                         </View>

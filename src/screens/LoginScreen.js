@@ -20,6 +20,7 @@ import {
 import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
 import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
+import { moderateScale, Screen } from "../../src/utils/Responsive";
 
 export default function LoginScreen({ onAddLicense }) {
   const router = useRouter();
@@ -202,7 +203,7 @@ export default function LoginScreen({ onAddLicense }) {
 
         console.log("✅ User data saved:", userData);
 
-        router.replace("/(drawer)/company-info");
+        router.replace("/(drawer)/(tabs)");
       } else {
         Alert.alert("Login Failed", "No token received from server.");
       }
@@ -448,7 +449,8 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    width: '100%',
+    width: Screen.isTablet ? 450 : '100%',
+    alignSelf: 'center',
   },
 
   logoContainer: {
@@ -457,9 +459,9 @@ const styles = StyleSheet.create({
   },
 
   logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: moderateScale(120),
+    height: moderateScale(120),
+    borderRadius: moderateScale(60),
     backgroundColor: Colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',

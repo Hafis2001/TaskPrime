@@ -4,6 +4,7 @@
  */
 
 import { Platform } from 'react-native';
+import { moderateScale, scale } from '../src/utils/Responsive';
 
 // Color Palette
 export const Colors = {
@@ -120,15 +121,15 @@ export const Typography = {
 
     // Font Sizes
     fontSize: {
-        xs: 12,
-        sm: 14,
-        base: 16,
-        lg: 18,
-        xl: 20,
-        '2xl': 24,
-        '3xl': 28,
-        '4xl': 32,
-        '5xl': 36,
+        xs: moderateScale(12),
+        sm: moderateScale(14),
+        base: moderateScale(16),
+        lg: moderateScale(18),
+        xl: moderateScale(20),
+        '2xl': moderateScale(24),
+        '3xl': moderateScale(28),
+        '4xl': moderateScale(32),
+        '5xl': moderateScale(36),
     },
 
     // Font Weights
@@ -150,15 +151,15 @@ export const Typography = {
 
 // Spacing Scale (based on 4px grid)
 export const Spacing = {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    base: 16,
-    lg: 20,
-    xl: 24,
-    '2xl': 32,
-    '3xl': 48,
-    '4xl': 64,
+    xs: scale(4),
+    sm: scale(8),
+    md: scale(12),
+    base: scale(16),
+    lg: scale(20),
+    xl: scale(24),
+    '2xl': scale(32),
+    '3xl': scale(48),
+    '4xl': scale(64),
 };
 
 // Border Radius

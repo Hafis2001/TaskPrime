@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { Screen } from "../../src/utils/Responsive";
 
 const PDC_API_URL = "https://taskprime.app/api/get-pdc/";
 
@@ -110,6 +111,15 @@ export default function PDCReportScreen() {
         applyFilters(pdcData, activeTab, text);
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "-";
+        const parts = dateStr.split("-");
+        if (parts.length === 3) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return dateStr;
+    };
+
     const renderPDCItem = ({ item }) => (
         <ModernCard style={styles.pdcCard} elevated={true}>
             <View style={styles.cardHeader}>
@@ -138,14 +148,14 @@ export default function PDCReportScreen() {
                         <Ionicons name="calendar-outline" size={14} color={Colors.text.tertiary} style={{ marginRight: 4 }} />
                         <View>
                             <Text style={styles.dateLabel}>Cheque Date</Text>
-                            <Text style={styles.dateValue}>{item.chequedate}</Text>
+                            <Text style={styles.dateValue}>{formatDate(item.chequedate)}</Text>
                         </View>
                     </View>
                     <View style={styles.dateItem}>
                         <Ionicons name="today-outline" size={14} color={Colors.text.tertiary} style={{ marginRight: 4 }} />
                         <View>
                             <Text style={styles.dateLabel}>Collection Date</Text>
-                            <Text style={styles.dateValue}>{item.colndate}</Text>
+                            <Text style={styles.dateValue}>{formatDate(item.colndate)}</Text>
                         </View>
                     </View>
                 </View>
@@ -225,12 +235,22 @@ export default function PDCReportScreen() {
                 ) : (
                     <FlatList
                         data={filteredData}
-                        keyExtractor={(item, index) => index.toString()}
                         renderItem={renderPDCItem}
-                        contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+                        numColumns={Screen.isTablet ? 2 : 1}
+                        key={Screen.isTablet ? 'tablet' : 'phone'}
+                        keyExtractor={(item, index) => index.toString()}
+                        contentContainerStyle={[
+                            styles.listContent,
+                            { paddingBottom: insets.bottom + Spacing.xl }
+                        ]}
+                        columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
                         showsVerticalScrollIndicator={false}
                         refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                colors={[Colors.primary.main]}
+                            />
                         }
                     />
                 )}
@@ -301,6 +321,10 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.md,
         padding: Spacing.md,
         backgroundColor: Colors.background.primary,
+        flex: Screen.isTablet ? 0.485 : 1,
+    },
+    columnWrapper: {
+        justifyContent: 'space-between',
     },
     cardHeader: {
         flexDirection: 'row',

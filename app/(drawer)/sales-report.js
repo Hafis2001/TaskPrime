@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { Screen } from "../../src/utils/Responsive";
 
 if (
   Platform.OS === "android" &&
@@ -271,9 +272,15 @@ export default function SalesReportScreen() {
         ) : selectedSummary === "item" ? (
           <FlatList
             data={salesData}
-            keyExtractor={(item) => item.id.toString()}
+            numColumns={Screen.isTablet ? 2 : 1}
+            key={Screen.isTablet ? 'tablet' : 'phone'}
             renderItem={renderMonthWise}
-            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + Spacing.xl },
+            ]}
+            columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
             showsVerticalScrollIndicator={false}
           />
         ) : (
@@ -481,6 +488,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
     borderColor: Colors.border.light,
     borderWidth: 1,
+  },
+  salesCard: {
+    marginBottom: Spacing.md,
+    backgroundColor: Colors.background.primary,
+    flex: Screen.isTablet ? 0.485 : 1,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
   },
   row: {
     flexDirection: "row",

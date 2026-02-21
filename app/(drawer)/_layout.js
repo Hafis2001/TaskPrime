@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer"; // ✅ Correct import
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { useEffect, useState } from "react";
 import {
@@ -18,6 +18,7 @@ import { Colors, Typography } from "../../constants/modernTheme";
 export default function DrawerLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [user, setUser] = useState({ name: "" });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -41,9 +42,25 @@ export default function DrawerLayout() {
   }, []);
 
   const confirmLogout = async () => {
-    await AsyncStorage.removeItem("user");
+    console.log("🚀 Logout initiated from Drawer");
     setShowLogoutModal(false);
-    router.replace("/");
+
+    // Clear session immediately
+    try {
+      await AsyncStorage.multiRemove(["user", "authToken"]);
+      console.log("🧹 Session data cleared");
+    } catch (e) {
+      console.error("Storage error:", e);
+    }
+
+    // Forceful reset to root index screen
+    setTimeout(() => {
+      console.log("🔄 Resetting navigation to Login screen...");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'index' }],
+      });
+    }, 200);
   };
 
   return (
@@ -123,6 +140,15 @@ export default function DrawerLayout() {
         )}
       >
         <Drawer.Screen
+          name="(tabs)"
+          options={{
+            title: "Home",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
           name="customers"
           options={{
             title: "Customers",
@@ -144,6 +170,7 @@ export default function DrawerLayout() {
           name="sales-report"
           options={{
             title: "Sales Report",
+            drawerItemStyle: { display: 'none' },
             drawerIcon: ({ color, size }) => (
               <Ionicons name="stats-chart-outline" size={size} color={color} />
             ),
@@ -162,6 +189,7 @@ export default function DrawerLayout() {
           name="purchase-report"
           options={{
             title: "Purchase Report",
+            drawerItemStyle: { display: 'none' },
             drawerIcon: ({ color, size }) => (
               <Ionicons name="cart-outline" size={size} color={color} />
             ),
@@ -177,27 +205,10 @@ export default function DrawerLayout() {
           }}
         />
         <Drawer.Screen
-          name="company-info"
-          options={{
-            title: "Company Info",
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="business-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="dashboard"
-          options={{
-            title: "License Info",
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="shield-checkmark-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
           name="stock-report"
           options={{
             title: "Stock Report",
+            drawerItemStyle: { display: 'none' },
             drawerIcon: ({ color, size }) => (
               <Ionicons name="bar-chart-outline" size={size} color={color} />
             ),
@@ -209,6 +220,15 @@ export default function DrawerLayout() {
             title: "PDC Report",
             drawerIcon: ({ color, size }) => (
               <Ionicons name="document-text-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="refresh-tag"
+          options={{
+            title: "Refresh Tag",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="sync-outline" size={size} color={color} />
             ),
           }}
         />
