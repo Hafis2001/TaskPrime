@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   StyleSheet,
   Text,
@@ -28,6 +29,16 @@ export default function SalesReturnScreen() {
 
   useEffect(() => {
     getClientIdAndFetch();
+
+    const backAction = () => {
+      router.replace("/(drawer)/(tabs)");
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
   }, []);
 
   const getClientIdAndFetch = async () => {
@@ -123,8 +134,8 @@ export default function SalesReturnScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Sales Return"
-        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
-        onLeftPress={() => navigation.toggleDrawer()}
+        leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>

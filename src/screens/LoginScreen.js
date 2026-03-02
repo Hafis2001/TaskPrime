@@ -200,6 +200,7 @@ export default function LoginScreen({ onAddLicense }) {
 
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         await AsyncStorage.setItem("authToken", userData.token);
+        await AsyncStorage.setItem("loginTimestamp", Date.now().toString());
 
         console.log("✅ User data saved:", userData);
 
@@ -335,9 +336,9 @@ export default function LoginScreen({ onAddLicense }) {
               <ModernInput
                 placeholder="Username"
                 value={username}
-                autoCapitalize="none"
+                autoCapitalize="characters"
                 autoCorrect={false}
-                onChangeText={setUsername}
+                onChangeText={(text) => setUsername(text.toUpperCase())}
                 containerStyle={styles.input}
               />
 

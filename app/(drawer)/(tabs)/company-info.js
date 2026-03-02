@@ -43,7 +43,7 @@ export default function CompanyInfoScreen() {
             const backHandler = BackHandler.addEventListener(
                 "hardwareBackPress",
                 () => {
-                    setShowLogoutModal(true);
+                    router.replace("/(drawer)/(tabs)");
                     return true;
                 }
             );
@@ -106,7 +106,7 @@ export default function CompanyInfoScreen() {
 
         // Clear session immediately
         try {
-            await AsyncStorage.multiRemove(["user", "authToken"]);
+            await AsyncStorage.multiRemove(["user", "authToken", "loginTimestamp"]);
             console.log("🧹 Session data cleared");
         } catch (e) {
             console.error("Storage error:", e);

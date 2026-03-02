@@ -47,7 +47,7 @@ export default function DrawerLayout() {
 
     // Clear session immediately
     try {
-      await AsyncStorage.multiRemove(["user", "authToken"]);
+      await AsyncStorage.multiRemove(["user", "authToken", "loginTimestamp"]);
       console.log("🧹 Session data cleared");
     } catch (e) {
       console.error("Storage error:", e);
@@ -238,6 +238,15 @@ export default function DrawerLayout() {
             title: "Event Log",
             drawerIcon: ({ color, size }) => (
               <Ionicons name="list-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="tender-cash"
+          options={{
+            title: "Tender Cash",
+            drawerIcon: ({ color, size }) => (
+              <Ionicons name="wallet-outline" size={size} color={color} />
             ),
           }}
         />

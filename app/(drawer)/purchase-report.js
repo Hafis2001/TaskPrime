@@ -5,6 +5,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   StyleSheet,
   Text,
@@ -52,6 +53,16 @@ export default function PurchaseReportScreen() {
       fetchReport(parsedUser, selectedSummary);
     };
     init();
+
+    const backAction = () => {
+      router.replace("/(drawer)/(tabs)");
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
   }, [selectedSummary]);
 
   const fetchReport = async (parsedUser, type) => {
@@ -113,8 +124,8 @@ export default function PurchaseReportScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Purchase Report"
-        leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
-        onLeftPress={() => navigation.toggleDrawer()}
+        leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>

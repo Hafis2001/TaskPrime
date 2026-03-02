@@ -25,7 +25,7 @@ export default function BankCashScreen() {
 
   useEffect(() => {
     const backAction = () => {
-      router.replace("/company-info");
+      router.replace("/(drawer)/(tabs)");
       return true;
     };
 
@@ -76,7 +76,7 @@ export default function BankCashScreen() {
       <ModernHeader
         title="Accounts"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/company-info")}
+        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
       />
 
       <ScrollView

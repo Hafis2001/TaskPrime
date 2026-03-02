@@ -33,7 +33,7 @@ export default function DebtorsScreen() {
 
   useEffect(() => {
     const backAction = () => {
-      router.replace("/company-info");
+      router.replace("/(drawer)/(tabs)");
       return true;
     };
     const backHandler = BackHandler.addEventListener(
@@ -197,7 +197,7 @@ export default function DebtorsScreen() {
       <ModernHeader
         title="Customers Statement"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/company-info")}
+        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>

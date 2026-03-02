@@ -32,7 +32,7 @@ export default function SuppliersScreen() {
 
   useEffect(() => {
     const backAction = () => {
-      router.push("/(drawer)/company-info");
+      router.replace("/(drawer)/(tabs)");
       return true;
     };
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
@@ -187,7 +187,7 @@ export default function SuppliersScreen() {
       <ModernHeader
         title="Suppliers Statement"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.push("/(drawer)/company-info")}
+        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>

@@ -7,7 +7,6 @@ import {
     ActivityIndicator,
     Animated,
     Dimensions,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -15,8 +14,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../../components/ui/ModernCard";
-import { Colors, Shadows, Spacing, Typography } from "../../../constants/modernTheme";
-import { Screen, moderateScale } from "../../../src/utils/Responsive";
+import { Colors, Shadows } from "../../../constants/modernTheme";
+import { Screen } from "../../../src/utils/Responsive";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -25,14 +24,13 @@ const API_URLS = {
     MonthWise: "https://taskprime.app/api/salesmonthwise/",
 };
 
-// Sub-component for individual animated bars to respect Rules of Hooks
+// ── Animated bar (compact height) ────────────────────────────────────────────
 const GraphBar = ({ height, color, label }) => {
     const animatedHeight = useMemo(() => new Animated.Value(0), []);
-
     useEffect(() => {
         Animated.timing(animatedHeight, {
             toValue: height,
-            duration: 1000,
+            duration: 900,
             useNativeDriver: false,
         }).start();
     }, [height]);
@@ -42,10 +40,7 @@ const GraphBar = ({ height, color, label }) => {
             <View style={styles.barArea}>
                 <Animated.View style={[styles.animatedBar, { height: animatedHeight, backgroundColor: color + "10" }]}>
                     <View style={[styles.barTop, { backgroundColor: color }]} />
-                    <LinearGradient
-                        colors={[color + "40", color + "05"]}
-                        style={styles.barGradient}
-                    />
+                    <LinearGradient colors={[color + "50", color + "05"]} style={styles.barGradient} />
                 </Animated.View>
             </View>
             <Text style={styles.axisLabel}>{label}</Text>
@@ -53,23 +48,20 @@ const GraphBar = ({ height, color, label }) => {
     );
 };
 
-// Perfect Graph Component
+// ── Compact chart ─────────────────────────────────────────────────────────────
 const PerfectGraph = ({ data, color, loading }) => {
-    if (loading) {
-        return <ActivityIndicator size="large" color={color} style={{ height: 180 }} />;
-    }
+    if (loading) return <ActivityIndicator size="small" color={color} style={{ height: 100 }} />;
     if (!data || data.length === 0) {
         return (
-            <View style={[styles.chartWrapper, styles.centered]}>
-                <Ionicons name="stats-chart-outline" size={32} color={Colors.text.disabled} />
-                <Text style={styles.emptyChartText}>No Data Available</Text>
+            <View style={[styles.chartContainer, styles.centered]}>
+                <Ionicons name="stats-chart-outline" size={26} color={Colors.text.disabled} />
+                <Text style={styles.emptyChartText}>No Data</Text>
             </View>
         );
     }
-
     const chartData = data.slice(-7);
     const maxVal = Math.max(...chartData.map(d => parseFloat(d.total_amount || 0)), 1);
-    const chartHeight = 150;
+    const chartHeight = 130;
 
     return (
         <View style={styles.chartContainer}>
@@ -79,7 +71,11 @@ const PerfectGraph = ({ data, color, loading }) => {
                         key={index}
                         height={(parseFloat(item.total_amount || 0) / maxVal) * chartHeight}
                         color={color}
-                        label={item.date ? new Date(item.date).toLocaleDateString('en', { weekday: 'short' }) : item.month_name?.substring(0, 3)}
+                        label={
+                            item.date
+                                ? new Date(item.date).toLocaleDateString("en", { weekday: "short" })
+                                : item.month_name?.substring(0, 3)
+                        }
                     />
                 ))}
             </View>
@@ -87,6 +83,7 @@ const PerfectGraph = ({ data, color, loading }) => {
     );
 };
 
+// ── Main screen ───────────────────────────────────────────────────────────────
 export default function DashboardScreen() {
     const router = useRouter();
     const navigation = useNavigation();
@@ -98,10 +95,7 @@ export default function DashboardScreen() {
 
     const summary = useMemo(() => {
         const total = salesData.reduce((sum, item) => sum + parseFloat(item.total_amount || 0), 0);
-        return {
-            total: total,
-            trend: "+14.2%" // Dynamic trend calculation could be added if needed
-        };
+        return { total };
     }, [salesData]);
 
     useEffect(() => {
@@ -126,9 +120,7 @@ export default function DashboardScreen() {
                 },
             });
             const json = await response.json();
-            if (json.success && Array.isArray(json.data)) {
-                setSalesData(json.data);
-            }
+            if (json.success && Array.isArray(json.data)) setSalesData(json.data);
         } catch (error) {
             console.error("Dashboard fetch error:", error);
         } finally {
@@ -136,367 +128,374 @@ export default function DashboardScreen() {
         }
     };
 
-    const QuickAction = ({ title, subtitle, icon, color, route }) => (
-        <TouchableOpacity
-            style={styles.actionCardWrap}
-            activeOpacity={0.7}
-            onPress={() => router.push(route)}
-        >
-            <ModernCard style={styles.actionCard}>
-                <View style={[styles.actionIconContainer, { backgroundColor: color + "12" }]}>
-                    <Ionicons name={icon} size={28} color={color} />
-                </View>
-                <Text style={styles.actionTitle}>{title}</Text>
-                <Text style={styles.actionSubtitle}>{subtitle}</Text>
-            </ModernCard>
-        </TouchableOpacity>
-    );
+    const QUICK_ACTIONS = [
+        { title: "Stock", icon: "cube-outline", color: "#4A90E2", route: "/(drawer)/stock-report" },
+        { title: "Events", icon: "list-outline", color: "#A569BD", route: "/(drawer)/event-log" },
+        { title: "PDC", icon: "document-text-outline", color: "#52BE80", route: "/(drawer)/pdc-report" },
+        { title: "Cash", icon: "cash-outline", color: "#F39C12", route: "/(drawer)/bank-cash" },
+    ];
+
+    // Top-3 breakdown items
+    const breakdownItems = salesData.slice(0, 3);
 
     return (
-        <View style={styles.container}>
-            {/* Custom Minimal Header */}
-            <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            {/* ── Header ── */}
+            <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={styles.menuIconButton}>
-                        <View style={styles.headerIconBox}>
-                            <Ionicons name="grid" size={20} color={Colors.primary.main} />
-                        </View>
+                    <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={styles.menuBtn}>
+                        <Ionicons name="grid" size={18} color={Colors.primary.main} />
                     </TouchableOpacity>
                     <View>
                         <Text style={styles.headerTitle}>Overview</Text>
-                        <Text style={styles.headerSubtitle}>Welcome back, {user?.name || "Admin"}</Text>
+                        <Text style={styles.headerSubtitle}>Welcome, {user?.name || "Admin"}</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.notifButton}>
-                    <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+                <TouchableOpacity style={styles.notifBtn}>
+                    <Ionicons name="notifications-outline" size={20} color={Colors.text.primary} />
                     <View style={styles.notifDot} />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 120 }]}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Main Dashboard Card */}
-                <ModernCard style={styles.dashboardCard} elevated>
-                    <View style={styles.cardTopRow}>
-                        <TouchableOpacity
-                            style={styles.typeSelector}
-                            onPress={() => setSalesType(salesType === "DayWise" ? "MonthWise" : "DayWise")}
-                        >
-                            <Text style={styles.typeSelectorText}>
+            {/* ── Flex body: fills ALL remaining space ── */}
+            <View style={[styles.body, { paddingBottom: insets.bottom + 8 }]}>
+
+                {/* ── Sales card + chart: biggest section ── */}
+                <ModernCard style={styles.salesCard} elevated>
+                    <View style={styles.salesTop}>
+                        <View>
+                            <Text style={styles.salesLabel}>
                                 {salesType === "DayWise" ? "Day-wise Sales" : "Month-wise Sales"}
                             </Text>
-                            <Ionicons name="chevron-down" size={16} color={Colors.text.secondary} />
-                        </TouchableOpacity>
-                        <View style={styles.trendRow}>
-                            <Text style={styles.trendLabel}>TREND</Text>
-                            <Text style={styles.trendPercent}>{summary.trend}</Text>
+                            {loading
+                                ? <ActivityIndicator size="small" color={Colors.primary.main} style={{ marginTop: 4 }} />
+                                : <Text style={styles.salesTotal}>
+                                    ₹{summary.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                  </Text>
+                            }
                         </View>
+                        <TouchableOpacity
+                            style={styles.toggleBtn}
+                            onPress={() => setSalesType(salesType === "DayWise" ? "MonthWise" : "DayWise")}
+                        >
+                            <Ionicons name="swap-horizontal" size={14} color={Colors.primary.main} />
+                            <Text style={styles.toggleText}>
+                                {salesType === "DayWise" ? "Monthly" : "Daily"}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
-                    <Text style={styles.mainTotalText}>
-                        ₹{summary.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </Text>
-
-                    <PerfectGraph data={salesData} color={Colors.primary.main} loading={loading} />
+                    {/* Chart fills remaining card height */}
+                    <View style={styles.chartFlex}>
+                        <PerfectGraph data={salesData} color={Colors.primary.main} loading={loading} />
+                    </View>
                 </ModernCard>
 
-                {/* Sales Breakdown Section */}
-                <Text style={styles.sectionHeader}>SALES BREAKDOWN</Text>
-                <ModernCard style={styles.breakdownCard} elevated={false}>
-                    {salesData.slice(0, 5).map((item, index) => (
-                        <View key={index} style={[styles.breakdownItem, index === 0 && { borderTopWidth: 0 }]}>
-                            <Text style={styles.breakdownLabel}>
-                                {item.date ? new Date(item.date).toLocaleDateString('en-US', { weekday: 'long' }) : item.month_name}
-                            </Text>
-                            <Text style={styles.breakdownValue}>
-                                ₹{parseFloat(item.total_amount).toLocaleString("en-IN")}
-                            </Text>
-                        </View>
+                {/* ── Quick Actions horizontal strip ── */}
+                <View style={styles.quickRow}>
+                    {QUICK_ACTIONS.map((a) => (
+                        <TouchableOpacity
+                            key={a.title}
+                            style={styles.quickItem}
+                            activeOpacity={0.75}
+                            onPress={() => router.push(a.route)}
+                        >
+                            <View style={[styles.quickIcon, { backgroundColor: a.color + "18" }]}>
+                                <Ionicons name={a.icon} size={26} color={a.color} />
+                            </View>
+                            <Text style={styles.quickLabel}>{a.title}</Text>
+                        </TouchableOpacity>
                     ))}
-                    <TouchableOpacity
-                        style={styles.viewFullRow}
-                        onPress={() => router.push("/(drawer)/sales-report")}
-                    >
-                        <Text style={styles.viewFullLink}>View Full Report</Text>
-                    </TouchableOpacity>
-                </ModernCard>
-
-                {/* Quick Actions Grid */}
-                <Text style={styles.sectionHeader}>QUICK ACTIONS</Text>
-                <View style={styles.quickGrid}>
-                    <QuickAction
-                        title="Stock Report"
-                        subtitle="Inventory details"
-                        icon="cube-outline"
-                        color="#4A90E2"
-                        route="/(drawer)/stock-report"
-                    />
-                    <QuickAction
-                        title="Event Log"
-                        subtitle="Activity tracking"
-                        icon="list-outline"
-                        color="#A569BD"
-                        route="/(drawer)/event-log"
-                    />
-                    <QuickAction
-                        title="PDC"
-                        subtitle="Pending checks"
-                        icon="document-text-outline"
-                        color="#52BE80"
-                        route="/(drawer)/pdc-report"
-                    />
-                    <QuickAction
-                        title="Cash & Bank"
-                        subtitle="Finance summary"
-                        icon="cash-outline"
-                        color="#F39C12"
-                        route="/(drawer)/bank-cash"
-                    />
                 </View>
-            </ScrollView>
+
+                {/* ── Sales Breakdown: grows to fill whatever is left ── */}
+                <View style={styles.sectionRow}>
+                    <Text style={styles.sectionHeader}>SALES BREAKDOWN</Text>
+                    <TouchableOpacity onPress={() => router.push("/(drawer)/sales-report")}>
+                        <Text style={styles.seeAll}>See all →</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <ModernCard style={styles.breakdownCard} elevated={false}>
+                    {breakdownItems.length === 0 && !loading ? (
+                        <Text style={styles.emptyBreakdown}>No data available</Text>
+                    ) : (
+                        breakdownItems.map((item, index) => (
+                            <View
+                                key={index}
+                                style={[styles.breakdownRow, index > 0 && styles.breakdownBorder]}
+                            >
+                                <View style={styles.breakdownDot} />
+                                <Text style={styles.breakdownLabel} numberOfLines={1}>
+                                    {item.date
+                                        ? new Date(item.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+                                        : item.month_name}
+                                </Text>
+                                <Text style={styles.breakdownValue}>
+                                    ₹{parseFloat(item.total_amount).toLocaleString("en-IN")}
+                                </Text>
+                            </View>
+                        ))
+                    )}
+                </ModernCard>
+            </View>
         </View>
     );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F9FAFC",
+        backgroundColor: "#F1F5F9",
     },
+
+    // Header
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: Spacing.xl,
-        paddingBottom: Spacing.md,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         backgroundColor: "#ffffff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#F1F5F9",
     },
     headerLeft: {
         flexDirection: "row",
         alignItems: "center",
+        gap: 10,
     },
-    menuIconButton: {
-        marginRight: Spacing.md,
-    },
-    headerIconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+    menuBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         backgroundColor: Colors.primary.main + "15",
         justifyContent: "center",
         alignItems: "center",
     },
     headerTitle: {
-        fontSize: Typography.fontSize.xl,
+        fontSize: 17,
         fontWeight: "900",
         color: Colors.dark.main,
+        lineHeight: 20,
     },
     headerSubtitle: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: 11,
         color: Colors.text.tertiary,
+        lineHeight: 14,
     },
-    notifButton: {
-        width: 45,
-        height: 45,
-        borderRadius: 12,
+    notifBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         backgroundColor: "#F0F4F8",
         justifyContent: "center",
         alignItems: "center",
     },
     notifDot: {
         position: "absolute",
-        top: 12,
-        right: 12,
-        width: 8,
-        height: 8,
+        top: 8,
+        right: 8,
+        width: 7,
+        height: 7,
         borderRadius: 4,
         backgroundColor: Colors.error.main,
-        borderWidth: 2,
-        borderColor: "#ffffff",
+        borderWidth: 1.5,
+        borderColor: "#fff",
     },
-    scrollContent: {
-        padding: Spacing.xl,
+
+    // Flex body — replaces ScrollView
+    body: {
+        flex: 1,
+        padding: 12,
+        gap: 10,
     },
-    dashboardCard: {
-        padding: Spacing.xl,
-        borderRadius: 28,
-        marginBottom: Spacing.xl,
+
+    // Sales card — grows to fill available vertical space
+    salesCard: {
+        flex: 1,
+        padding: 18,
+        borderRadius: 20,
     },
-    cardTopRow: {
+
+    // Chart stretches inside the card
+    chartFlex: {
+        flex: 1,
+        minHeight: 100,
+    },
+    salesTop: {
         flexDirection: "row",
         justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: Spacing.md,
+        alignItems: "flex-start",
+        marginBottom: 6,
     },
-    typeSelector: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F2F5F8",
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-    },
-    typeSelectorText: {
-        fontSize: Typography.fontSize.sm,
+    salesLabel: {
+        fontSize: 11,
         fontWeight: "700",
         color: Colors.text.secondary,
-        marginRight: 4,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
     },
-    trendRow: {
-        backgroundColor: "#FFF5EB",
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 10,
-        alignItems: "center",
-    },
-    trendLabel: {
-        fontSize: 10,
-        fontWeight: "900",
-        color: Colors.text.tertiary,
-    },
-    trendPercent: {
-        fontSize: 12,
-        fontWeight: "900",
-        color: Colors.primary.main,
-    },
-    mainTotalText: {
-        fontSize: moderateScale(32),
+    salesTotal: {
+        fontSize: 30,
         fontWeight: "900",
         color: Colors.dark.main,
-        marginBottom: Spacing.xl,
+        marginTop: 2,
     },
+    toggleBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: Colors.primary.main + "12",
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    toggleText: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: Colors.primary.main,
+    },
+
+    // Chart — height is driven by flex parent now
     chartContainer: {
-        height: 180,
-        width: '100%',
-        justifyContent: 'flex-end',
+        flex: 1,
+        width: "100%",
+        justifyContent: "flex-end",
     },
     pointsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        height: 160,
+        flex: 1,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
     },
     pointGroup: {
-        alignItems: 'center',
+        alignItems: "center",
         flex: 1,
     },
     barArea: {
         flex: 1,
-        width: '100%',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
+        width: "100%",
+        justifyContent: "flex-end",
+        alignItems: "center",
     },
     animatedBar: {
-        width: Screen.isTablet ? 20 : 12,
-        borderRadius: 6,
-        marginBottom: 10,
-        overflow: 'hidden',
+        width: Screen.isTablet ? 18 : 10,
+        borderRadius: 5,
+        marginBottom: 6,
+        overflow: "hidden",
     },
     barTop: {
-        height: 4,
-        width: '100%',
+        height: 3,
+        width: "100%",
     },
     barGradient: {
         flex: 1,
-        width: '100%',
+        width: "100%",
     },
     axisLabel: {
-        fontSize: 10,
+        fontSize: 9,
         color: Colors.text.tertiary,
         fontWeight: "700",
     },
-    sectionHeader: {
+    centered: {
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    emptyChartText: {
+        marginTop: 4,
+        color: Colors.text.disabled,
+        fontSize: 11,
+        fontWeight: "700",
+    },
+
+    // Quick actions
+    quickRow: {
+        flexDirection: "row",
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 10,
+        justifyContent: "space-around",
+        ...Shadows.sm,
+    },
+    quickItem: {
+        alignItems: "center",
+        gap: 5,
+    },
+    quickIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    quickLabel: {
         fontSize: 12,
+        fontWeight: "700",
+        color: Colors.text.secondary,
+    },
+
+    // Section header
+    sectionRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 2,
+    },
+    sectionHeader: {
+        fontSize: 10,
         fontWeight: "900",
         color: "#94A3B8",
-        letterSpacing: 2,
-        marginBottom: Spacing.lg,
-        marginLeft: 4,
+        letterSpacing: 1.5,
     },
+    seeAll: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: Colors.primary.main,
+    },
+
+    // Breakdown card — grows to fill leftover space
     breakdownCard: {
+        flex: 1,
         padding: 0,
-        borderRadius: 24,
-        marginBottom: Spacing.xl,
-        overflow: 'hidden',
+        borderRadius: 16,
+        overflow: "hidden",
         backgroundColor: "#ffffff",
         ...Shadows.sm,
     },
-    breakdownItem: {
+    breakdownRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        padding: Spacing.xl,
+        alignItems: "center",
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        gap: 10,
+    },
+    breakdownBorder: {
         borderTopWidth: 1,
         borderTopColor: "#F1F5F9",
     },
+    breakdownDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        backgroundColor: Colors.primary.main + "80",
+    },
     breakdownLabel: {
-        fontSize: Typography.fontSize.base,
+        flex: 1,
+        fontSize: 14,
         color: "#475569",
         fontWeight: "600",
     },
     breakdownValue: {
-        fontSize: Typography.fontSize.base,
+        fontSize: 14,
         fontWeight: "800",
         color: Colors.primary.main,
     },
-    viewFullRow: {
-        padding: Spacing.lg,
-        alignItems: "center",
-    },
-    viewFullLink: {
-        fontSize: Typography.fontSize.sm,
-        color: Colors.primary.main,
-        fontWeight: "800",
-    },
-    quickGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-    },
-    actionCardWrap: {
-        width: Screen.isTablet ? "24%" : "48%",
-        marginBottom: Spacing.md,
-    },
-    actionCard: {
-        padding: Spacing.md,
-        alignItems: "center",
-        borderRadius: 24,
-        height: 170,
-        justifyContent: "center",
-        backgroundColor: "#ffffff",
-        ...Shadows.sm,
-    },
-    actionIconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 20,
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: Spacing.md,
-    },
-    actionTitle: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: "800",
-        color: Colors.dark.main,
+    emptyBreakdown: {
         textAlign: "center",
-    },
-    actionSubtitle: {
-        fontSize: 10,
-        color: Colors.text.tertiary,
-        fontWeight: "700",
-        marginTop: 4,
-    },
-    centered: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    chartWrapper: {
-        height: 180,
-    },
-    emptyChartText: {
-        marginTop: 8,
+        padding: 16,
         color: Colors.text.disabled,
-        fontWeight: '700',
+        fontSize: 13,
     },
 });
