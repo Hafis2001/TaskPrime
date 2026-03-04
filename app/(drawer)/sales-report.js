@@ -1,14 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
   FlatList,
   LayoutAnimation,
   Platform,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,6 +24,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
 import { Screen } from "../../src/utils/Responsive";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 if (
   Platform.OS === "android" &&
@@ -34,53 +37,71 @@ const API_URLS = {
   today: "https://taskprime.app/api/salestoday/",
   DayWise: "https://taskprime.app/api/salesdaywise/",
   item: "https://taskprime.app/api/salesmonthwise/",
+  typeWise: "https://taskprime.app/api/type-wise-sales-today/",
 };
 
 export default function SalesReportScreen() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedSummary, setSelectedSummary] = useState("today");
   const [salesData, setSalesData] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [user, setUser] = useState(null);
+  const [isLicensed, setIsLicensed] = useState(null);
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { checkModule } = useLicenseModules();
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: false,
+      headerShown: true,
+      headerTitle: "Sales Report",
     });
   }, [navigation]);
 
-  useEffect(() => {
-    const init = async () => {
-      const storedUser = await AsyncStorage.getItem("user");
-      if (!storedUser) {
-        Alert.alert("Session Expired", "Please login again.");
-        router.replace("/");
-        setLoading(false);
-        return;
-      }
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      fetchReport(parsedUser, selectedSummary);
-    };
-    init();
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD017", "Sales Report", () => {
+          router.replace("/(drawer)/(tabs)");
+        });
 
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [selectedSummary]);
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        const storedUser = await AsyncStorage.getItem("user");
+        if (!storedUser) {
+          Alert.alert("Session Expired", "Please login again.");
+          router.replace("/");
+          setLoading(false);
+          return;
+        }
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        fetchReport(parsedUser, selectedSummary);
+      };
+      runCheck();
 
-  const fetchReport = async (parsedUser, type) => {
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+      return () => backHandler.remove();
+    }, [selectedSummary, salesData.length])
+  );
+
+  const fetchReport = async (parsedUser, type, isRefreshing = false) => {
     try {
-      setLoading(true);
+      if (!isRefreshing) setLoading(true);
+      else setRefreshing(true);
+
       const response = await fetch(
         `${API_URLS[type]}?client_id=${parsedUser.clientId}`,
         {
@@ -102,7 +123,7 @@ export default function SalesReportScreen() {
       if (json.success && Array.isArray(json.data)) {
         setSalesData(json.data);
       } else if (json.data) {
-        setSalesData([json.data]);
+        setSalesData(Array.isArray(json.data) ? json.data : [json.data]);
       } else {
         setSalesData([]);
       }
@@ -111,13 +132,46 @@ export default function SalesReportScreen() {
       setSalesData([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const onRefresh = useCallback(() => {
+    if (user) {
+      fetchReport(user, selectedSummary, true);
+    }
+  }, [user, selectedSummary]);
+
+  const handleTypeChange = (value) => {
+    if (value && value !== selectedSummary) {
+      setSalesData([]); // Clear old data for better UX
+      setSelectedSummary(value);
+    }
+  };
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
+
   const totalSales = salesData.reduce(
-    (sum, item) => sum + parseFloat(item.nettotal || 0),
+    (sum, item) => {
+      const val = item.nettotal || item.total_amount || 0;
+      return sum + parseFloat(val);
+    },
     0
   );
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
 
   const renderItem = ({ item }) => (
     <ModernCard style={styles.transactionCard} elevated={false}>
@@ -133,7 +187,7 @@ export default function SalesReportScreen() {
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.amount} numberOfLines={1}>
-            ₹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{Math.floor(parseFloat(item.nettotal || 0)).toFixed(3)}
           </Text>
         </View>
       </View>
@@ -155,7 +209,7 @@ export default function SalesReportScreen() {
         </View>
         <View style={styles.dayAmountContainer}>
           <Text style={styles.dayAmount} numberOfLines={1}>
-            ₹{parseFloat(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{Math.floor(parseFloat(item.total_amount)).toFixed(3)}
           </Text>
         </View>
       </View>
@@ -198,7 +252,7 @@ export default function SalesReportScreen() {
                 <View style={[styles.expandedBox, { backgroundColor: Colors.success.main }]}>
                   <Text style={styles.expandedLabel}>Total Amount</Text>
                   <Text style={styles.expandedValue}>
-                    ₹{parseFloat(item.total_amount).toFixed(2)}
+                    ₹{Math.floor(parseFloat(item.total_amount)).toFixed(3)}
                   </Text>
                 </View>
               </View>
@@ -206,6 +260,41 @@ export default function SalesReportScreen() {
           </ModernCard>
         </TouchableOpacity>
       </View>
+    );
+  };
+
+  const TYPE_COLORS = [
+    { bg: "#4F46E5", light: "#EEF2FF" },
+    { bg: "#0EA5E9", light: "#E0F2FE" },
+    { bg: "#10B981", light: "#D1FAE5" },
+    { bg: "#F59E0B", light: "#FEF3C7" },
+    { bg: "#EF4444", light: "#FEE2E2" },
+    { bg: "#8B5CF6", light: "#EDE9FE" },
+  ];
+
+  const renderTypeWise = ({ item, index }) => {
+    const color = TYPE_COLORS[index % TYPE_COLORS.length];
+    return (
+      <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg }]} elevated={false}>
+        <View style={styles.typeCardInner}>
+          <View style={[styles.typeBadge, { backgroundColor: color.light }]}>
+            <Text style={[styles.typeBadgeText, { color: color.bg }]}>{item.payment_type}</Text>
+          </View>
+          <View style={styles.typeInfo}>
+            <Text style={styles.typeName}>{item.name}</Text>
+            <View style={styles.typeMetaRow}>
+              <Ionicons name="receipt-outline" size={13} color={Colors.text.secondary} />
+              <Text style={styles.typeMeta}>{item.billcount} Bills</Text>
+            </View>
+          </View>
+          <View style={styles.typeAmountBox}>
+            <Text style={[styles.typeAmount, { color: color.bg }]}>
+              ₹{Math.floor(parseFloat(item.nettotal || 0)).toFixed(3)}
+            </Text>
+            <Text style={styles.typeAmountLabel}>Net Total</Text>
+          </View>
+        </View>
+      </ModernCard>
     );
   };
 
@@ -226,13 +315,14 @@ export default function SalesReportScreen() {
           style={styles.gradientBox}
         >
           <RNPickerSelect
-            onValueChange={(value) => setSelectedSummary(value)}
+            onValueChange={handleTypeChange}
             value={selectedSummary}
             placeholder={{}}
             items={[
               { label: "Today Sales", value: "today" },
               { label: "Day Wise Sales", value: "DayWise" },
               { label: "Month Wise Sales", value: "item" },
+              { label: "Type Wise Sales", value: "typeWise" },
             ]}
             style={{
               inputIOS: styles.inputGradient,
@@ -265,19 +355,19 @@ export default function SalesReportScreen() {
               <ModernCard style={styles.summaryBox} elevated={false}>
                 <Text style={styles.summaryLabel}>Total Amount</Text>
                 <Text style={[styles.summaryNumber, { color: Colors.primary.main }]}>
-                  ₹{salesData
-                    .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)
-                    .toFixed(2)}
+                  ₹{Math.floor(salesData
+                    .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)).toFixed(3)}
                 </Text>
               </ModernCard>
             </View>
 
             <FlatList
               data={salesData}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item, index) => index.toString()}
               renderItem={renderDayWise}
               contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
               showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
           </>
         ) : selectedSummary === "item" ? (
@@ -293,12 +383,34 @@ export default function SalesReportScreen() {
             ]}
             columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
             showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
           />
+        ) : selectedSummary === "typeWise" ? (
+          <>
+            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+              <Text style={styles.summaryTitle}>Total Type-Wise Sales</Text>
+              <Text style={styles.totalValue}>
+                ₹{Math.floor(totalSales).toFixed(3)}
+              </Text>
+              <Text style={[styles.summaryTitle, { marginTop: 4 }]}>
+                {salesData.reduce((sum, i) => sum + (i.billcount || 0), 0)} Total Bills
+              </Text>
+            </ModernCard>
+            <Text style={styles.sectionTitle}>Payment Type Breakdown</Text>
+            <FlatList
+              data={salesData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderTypeWise}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
+            />
+          </>
         ) : (
           <>
             <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
               <Text style={styles.summaryTitle}>Total Sales Today</Text>
-              <Text style={styles.totalValue}>₹{totalSales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+              <Text style={styles.totalValue}>₹{Math.floor(totalSales).toFixed(3)}</Text>
             </ModernCard>
 
             <Text style={styles.sectionTitle}>All Transactions</Text>
@@ -308,6 +420,7 @@ export default function SalesReportScreen() {
               renderItem={renderItem}
               contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
               showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
           </>
         )}
@@ -554,5 +667,61 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.text.secondary,
     fontSize: Typography.fontSize.base,
+  },
+  typeCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary.main,
+    backgroundColor: Colors.background.primary,
+  },
+  typeCardInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  typeBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  typeBadgeText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  typeInfo: {
+    flex: 1,
+  },
+  typeName: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: "700",
+    color: Colors.dark.main,
+  },
+  typeMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 3,
+  },
+  typeMeta: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    fontWeight: "500",
+  },
+  typeAmountBox: {
+    alignItems: "flex-end",
+  },
+  typeAmount: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: "800",
+  },
+  typeAmountLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    fontWeight: "500",
+    marginTop: 2,
   },
 });

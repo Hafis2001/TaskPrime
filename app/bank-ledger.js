@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../src/utils/useLicenseModules";
 
 import ModernCard from "../components/ui/ModernCard";
 import ModernHeader from "../components/ui/ModernHeader";
@@ -40,15 +41,34 @@ export default function BankLedgerScreen() {
   );
   const [filterType, setFilterType] = useState("all");
   const [dailyBalances, setDailyBalances] = useState({});
+  const [isLicensed, setIsLicensed] = useState(null);
 
-  useEffect(() => {
-    if (!account_code) {
-      console.warn("⚠️ No account_code provided — skipping fetch");
-      setLoading(false);
-      return;
-    }
-    fetchLedger(account_code);
-  }, [account_code]);
+  const { checkModule } = useLicenseModules();
+
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD020", "Bank Book", () => {
+          router.back();
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+
+        if (!account_code) {
+          Alert.alert("Error", "No account code provided.");
+          router.back();
+          return;
+        }
+
+        if (data.length === 0) fetchLedger(account_code);
+      };
+      runCheck();
+    }, [account_code, selectedDate, data.length])
+  );
 
   const fetchLedger = async (code) => {
     setLoading(true);
@@ -243,6 +263,15 @@ export default function BankLedgerScreen() {
       </ModernCard>
     );
   };
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   return (
     <View style={styles.container}>

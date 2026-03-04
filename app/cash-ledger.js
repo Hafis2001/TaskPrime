@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../src/utils/useLicenseModules";
 
 import ModernCard from "../components/ui/ModernCard";
 import ModernHeader from "../components/ui/ModernHeader";
@@ -42,15 +43,34 @@ export default function CashLedgerScreen() {
   const [dailyBalances, setDailyBalances] = useState({});
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
+  const [isLicensed, setIsLicensed] = useState(null);
 
-  useEffect(() => {
-    if (!account_code) {
-      console.warn("⚠️ No account_code provided — skipping fetch");
-      setLoading(false);
-      return;
-    }
-    fetchLedger(account_code);
-  }, [account_code]);
+  const { checkModule } = useLicenseModules();
+
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD019", "Cash Book", () => {
+          router.back();
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+
+        if (!account_code) {
+          Alert.alert("Error", "No account code provided.");
+          router.back();
+          return;
+        }
+
+        if (data.length === 0) fetchLedger(account_code);
+      };
+      runCheck();
+    }, [account_code, data.length])
+  );
 
   const fetchLedger = async (code) => {
     setLoading(true);
@@ -280,6 +300,15 @@ export default function CashLedgerScreen() {
       </ModernCard>
     );
   };
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   return (
     <View style={styles.container}>

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
@@ -26,20 +27,36 @@ export default function SalesReturnScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { checkModule } = useLicenseModules();
+  const [isLicensed, setIsLicensed] = useState(null);
 
-  useEffect(() => {
-    getClientIdAndFetch();
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD018", "Sales Return", () => {
+          router.replace("/(drawer)/(tabs)");
+        });
 
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, []);
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        if (salesData.length === 0) getClientIdAndFetch();
+      };
+      runCheck();
+
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+      return () => backHandler.remove();
+    }, [salesData.length])
+  );
 
   const getClientIdAndFetch = async () => {
     try {
@@ -97,6 +114,15 @@ export default function SalesReturnScreen() {
       setLoading(false);
     }
   };
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

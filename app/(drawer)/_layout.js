@@ -170,7 +170,6 @@ export default function DrawerLayout() {
           name="sales-report"
           options={{
             title: "Sales Report",
-            drawerItemStyle: { display: 'none' },
             drawerIcon: ({ color, size }) => (
               <Ionicons name="stats-chart-outline" size={size} color={color} />
             ),

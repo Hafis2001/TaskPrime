@@ -134,34 +134,28 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
       const response = await fetch(CHECK_LICENSE_API);
       const data = await response.json();
 
-      if (response.ok && data.success && data.customers) {
-        for (const customer of data.customers) {
-          if (customer.registered_devices?.some(d => d.device_id === deviceIdToCheck)) {
-            const newLicense = {
-              licenseKey: customer.license_key,
-              deviceId: deviceIdToCheck,
-              customerName: customer.customer_name,
-              clientId: customer.client_id || ""
-            };
-
-            // Get existing licenses
-            const storedLicenses = await AsyncStorage.getItem("knownLicenses");
-            let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
-
-            // Check for duplicates
-            if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
-              licenses.push(newLicense);
-              await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+      if (response.ok && data.success) {
+        // 1. Check regular customers
+        if (data.customers) {
+          for (const customer of data.customers) {
+            if (customer.registered_devices?.some(d => d.device_id === deviceIdToCheck)) {
+              await saveLicense(customer.license_key, deviceIdToCheck, customer.customer_name, customer.client_id || "");
+              onActivationSuccess();
+              return;
             }
+          }
+        }
 
-            await AsyncStorage.setItem("licenseActivated", "true");
-            await AsyncStorage.setItem("licenseKey", customer.license_key);
-            await AsyncStorage.setItem("deviceId", deviceIdToCheck);
-            await AsyncStorage.setItem("customerName", customer.customer_name);
-            await AsyncStorage.setItem("clientId", customer.client_id || "");
-
-            onActivationSuccess();
-            return;
+        // 2. Check demo licenses (Since demo licenses don't typically have registered_devices array in the response, 
+        // we might skip auto-check for demo unless they are already in AsyncStorage. 
+        // But for consistency, if they ever add registered_devices to demo, we support it here.)
+        if (data.demo_licenses) {
+          for (const demo of data.demo_licenses) {
+            if (demo.registered_devices?.some(d => d.device_id === deviceIdToCheck)) {
+              await saveLicense(demo.demo_license, deviceIdToCheck, demo.company, demo.client_id || "");
+              onActivationSuccess();
+              return;
+            }
           }
         }
       }
@@ -170,6 +164,29 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
       console.error("Check registration error", error);
       setChecking(false);
     }
+  };
+
+  const saveLicense = async (key, dId, name, cId) => {
+    const newLicense = {
+      licenseKey: key,
+      deviceId: dId,
+      customerName: name,
+      clientId: cId
+    };
+
+    const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+    let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+
+    if (!licenses.some(l => l.licenseKey === key)) {
+      licenses.push(newLicense);
+      await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+    }
+
+    await AsyncStorage.setItem("licenseActivated", "true");
+    await AsyncStorage.setItem("licenseKey", key);
+    await AsyncStorage.setItem("deviceId", dId);
+    await AsyncStorage.setItem("customerName", name);
+    await AsyncStorage.setItem("clientId", cId);
   };
 
   const handleActivate = async () => {
@@ -184,11 +201,31 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
       const checkResponse = await fetch(CHECK_LICENSE_API);
       const checkData = await checkResponse.json();
 
-      if (!checkResponse.ok || !checkData.success || !checkData.customers) {
+      if (!checkResponse.ok || !checkData.success) {
         throw new Error("Failed to validate license server.");
       }
 
-      const customer = checkData.customers.find(c => c.license_key === licenseKey.trim());
+      const inputKey = licenseKey.trim().toUpperCase();
+      let customer = checkData.customers?.find(c => c.license_key?.toUpperCase() === inputKey);
+      let isDemo = false;
+
+      if (!customer && checkData.demo_licenses) {
+        const demo = checkData.demo_licenses.find(d => d.demo_license?.toUpperCase() === inputKey);
+        if (demo) {
+          isDemo = true;
+          customer = {
+            license_key: demo.demo_license,
+            customer_name: demo.company,
+            client_id: demo.client_id,
+            license_summary: {
+              registered_devices: demo.demo_login_limit > 0 ? 0 : 99, // Fallback logic
+              max_devices: demo.demo_login_limit
+            }
+          };
+          // Note: Demo response doesn't show registered_devices list usually, 
+          // so we rely on registration API if not found.
+        }
+      }
 
       if (!customer) {
         Alert.alert("Invalid License", "License key not found.");
@@ -209,9 +246,12 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
         let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
 
         // Check for duplicates
-        if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
+        const isDuplicate = licenses.some(l => l.licenseKey === newLicense.licenseKey);
+        if (!isDuplicate) {
           licenses.push(newLicense);
           await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
+        } else {
+          Alert.alert("License Already Added", `The license for ${customer.customer_name} is already added on this device.`);
         }
 
         await AsyncStorage.setItem("licenseActivated", "true");
@@ -234,7 +274,7 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          license_key: licenseKey.trim(),
+          license_key: customer.license_key, // Use the matched key (regular or demo)
           device_id: deviceId,
           device_name: deviceName
         })
@@ -242,29 +282,7 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
 
       const regData = await regResponse.json();
       if (regResponse.ok && regData.success) {
-        const newLicense = {
-          licenseKey: licenseKey.trim(),
-          deviceId: deviceId,
-          customerName: customer.customer_name,
-          clientId: customer.client_id || ""
-        };
-
-        // Get existing licenses
-        const storedLicenses = await AsyncStorage.getItem("knownLicenses");
-        let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
-
-        // Check for duplicates
-        if (!licenses.some(l => l.licenseKey === newLicense.licenseKey)) {
-          licenses.push(newLicense);
-          await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
-        }
-
-        await AsyncStorage.setItem("licenseActivated", "true");
-        await AsyncStorage.setItem("licenseKey", licenseKey.trim());
-        await AsyncStorage.setItem("deviceId", deviceId);
-        await AsyncStorage.setItem("customerName", customer.customer_name);
-        await AsyncStorage.setItem("clientId", customer.client_id || "");
-
+        await saveLicense(customer.license_key, deviceId, customer.customer_name, customer.client_id || "");
         Alert.alert("Success", "Device registered!");
         onActivationSuccess();
       } else {

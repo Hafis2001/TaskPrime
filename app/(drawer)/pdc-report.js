@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -19,6 +19,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
 import { Screen } from "../../src/utils/Responsive";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const PDC_API_URL = "https://taskprime.app/api/get-pdc/";
 
@@ -33,6 +34,8 @@ export default function PDCReportScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
+    const { checkModule } = useLicenseModules();
+    const [isLicensed, setIsLicensed] = useState(null);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -40,7 +43,39 @@ export default function PDCReportScreen() {
         });
     }, [navigation]);
 
+    useFocusEffect(
+        useCallback(() => {
+            const runCheck = async () => {
+                const allowed = await checkModule("MOD032", "PDC", () => {
+                    router.replace("/(drawer)/(tabs)");
+                });
+
+                if (!allowed) {
+                    setIsLicensed(false);
+                    return;
+                }
+                setIsLicensed(true);
+                init();
+            };
+            runCheck();
+
+            const backAction = () => {
+                router.replace("/(drawer)/(tabs)");
+                return true;
+            };
+            const backHandler = BackHandler.addEventListener(
+                "hardwareBackPress",
+                backAction
+            );
+            return () => backHandler.remove();
+        }, [])
+    );
+
     const init = async () => {
+        if (!(await checkModule("MOD032", "PDC"))) {
+            router.replace("/(drawer)/(tabs)");
+            return;
+        }
         const storedUser = await AsyncStorage.getItem("user");
         if (!storedUser) {
             router.replace("/");
@@ -95,6 +130,15 @@ export default function PDCReportScreen() {
             setRefreshing(false);
         }
     };
+
+    if (isLicensed === null) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+                <ActivityIndicator size="large" color={Colors.primary.main} />
+            </View>
+        );
+    }
+    if (!isLicensed) return null;
 
     const applyFilters = (data, status, search) => {
         let filtered = data.filter((item) => item.status === status);

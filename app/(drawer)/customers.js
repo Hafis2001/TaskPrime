@@ -18,6 +18,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import ModernInput from "../../components/ui/ModernInput";
 import { Colors, Spacing, Typography } from "../../constants/modernTheme";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
 
@@ -30,18 +31,36 @@ export default function DebtorsScreen() {
   const [totalBalance, setTotalBalance] = useState(0);
   const [rawJson, setRawJson] = useState(null);
   const router = useRouter();
+  const { checkModule } = useLicenseModules();
+  const [isLicensed, setIsLicensed] = useState(null);
 
-  useEffect(() => {
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD033", "Customers", () => {
+          router.replace("/(drawer)/(tabs)");
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        if (data.length === 0) fetchDebtors();
+      };
+      runCheck();
+
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+      return () => backHandler.remove();
+    }, [data.length])
+  );
 
   const fetchDebtors = async () => {
     try {
@@ -107,9 +126,7 @@ export default function DebtorsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchDebtors();
-  }, []);
+
 
   useFocusEffect(
     useCallback(() => {
@@ -127,6 +144,15 @@ export default function DebtorsScreen() {
     );
     setFiltered(filteredData);
   }, [searchQuery, data]);
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   if (loading) {
     return (

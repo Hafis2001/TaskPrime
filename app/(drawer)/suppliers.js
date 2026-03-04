@@ -17,6 +17,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import ModernInput from "../../components/ui/ModernInput";
 import { Colors, Spacing, Typography } from "../../constants/modernTheme";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URL = "https://taskprime.app/api/suppiers_api/suppliers/";
 
@@ -29,15 +30,33 @@ export default function SuppliersScreen() {
   const [totalBalance, setTotalBalance] = useState(0);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { checkModule } = useLicenseModules();
+  const [isLicensed, setIsLicensed] = useState(null);
 
-  useEffect(() => {
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => backHandler.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD034", "Suppliers", () => {
+          router.replace("/(drawer)/(tabs)");
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        if (data.length === 0) fetchSuppliers();
+      };
+      runCheck();
+
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+      return () => backHandler.remove();
+    }, [data.length])
+  );
 
   const fetchSuppliers = async () => {
     try {
@@ -105,9 +124,7 @@ export default function SuppliersScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, []);
+
 
   useFocusEffect(
     useCallback(() => {
@@ -125,6 +142,15 @@ export default function SuppliersScreen() {
     );
     setFiltered(filteredData);
   }, [searchQuery, data]);
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   const renderCard = ({ item }) => (
     <ModernCard style={styles.card} elevated>
@@ -166,19 +192,7 @@ export default function SuppliersScreen() {
         </View>
       </View>
 
-      <View style={styles.divider} />
 
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Credit</Text>
-          <Text style={[styles.statValue, { color: Colors.success.main }]}>₹{item.credit.toLocaleString("en-IN")}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Debit</Text>
-          <Text style={[styles.statValue, { color: Colors.error.main }]}>₹{item.debit.toLocaleString("en-IN")}</Text>
-        </View>
-      </View>
     </ModernCard>
   );
 

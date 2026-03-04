@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../src/utils/useLicenseModules";
 
 import ModernCard from "../components/ui/ModernCard";
 import ModernHeader from "../components/ui/ModernHeader";
@@ -37,6 +38,27 @@ export default function BankBookScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
+  const [isLicensed, setIsLicensed] = useState(null);
+
+  const { checkModule } = useLicenseModules();
+
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD020", "Bank Book", () => {
+          router.replace("/(drawer)/bank-cash");
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        if (data.length === 0) fetchBankBook();
+      };
+      runCheck();
+    }, [data.length])
+  );
 
   const fetchBankBook = useCallback(async () => {
     setLoading(true);
@@ -82,9 +104,23 @@ export default function BankBookScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchBankBook();
-  }, [fetchBankBook]);
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
+
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
 
   const onRefresh = () => {
     setRefreshing(true);

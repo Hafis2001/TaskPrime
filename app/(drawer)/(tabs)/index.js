@@ -16,11 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../../components/ui/ModernCard";
 import { Colors, Shadows } from "../../../constants/modernTheme";
 import { Screen } from "../../../src/utils/Responsive";
+import { useLicenseModules } from "../../../src/utils/useLicenseModules";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const API_URLS = {
-    DayWise: "https://taskprime.app/api/salesdaywise/",
+    Today: "https://taskprime.app/api/salestoday/",
     MonthWise: "https://taskprime.app/api/salesmonthwise/",
 };
 
@@ -49,7 +50,7 @@ const GraphBar = ({ height, color, label }) => {
 };
 
 // ── Compact chart ─────────────────────────────────────────────────────────────
-const PerfectGraph = ({ data, color, loading }) => {
+const PerfectGraph = ({ data, color, loading, salesType }) => {
     if (loading) return <ActivityIndicator size="small" color={color} style={{ height: 100 }} />;
     if (!data || data.length === 0) {
         return (
@@ -59,8 +60,10 @@ const PerfectGraph = ({ data, color, loading }) => {
             </View>
         );
     }
-    const chartData = data.slice(-7);
-    const maxVal = Math.max(...chartData.map(d => parseFloat(d.total_amount || 0)), 1);
+    const isToday = salesType === "Today";
+    const chartData = data.slice(-10);
+    const getValue = (d) => parseFloat((isToday ? d.nettotal : d.total_amount) || 0);
+    const maxVal = Math.max(...chartData.map(getValue), 1);
     const chartHeight = 130;
 
     return (
@@ -69,11 +72,11 @@ const PerfectGraph = ({ data, color, loading }) => {
                 {chartData.map((item, index) => (
                     <GraphBar
                         key={index}
-                        height={(parseFloat(item.total_amount || 0) / maxVal) * chartHeight}
+                        height={(getValue(item) / maxVal) * chartHeight}
                         color={color}
                         label={
-                            item.date
-                                ? new Date(item.date).toLocaleDateString("en", { weekday: "short" })
+                            isToday
+                                ? `#${String(item.billno).slice(-3)}`
                                 : item.month_name?.substring(0, 3)
                         }
                     />
@@ -89,28 +92,28 @@ export default function DashboardScreen() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const [user, setUser] = useState(null);
+    const { checkModule, hasModule } = useLicenseModules();
+
+    // Graph state — switches between Today and MonthWise
     const [loading, setLoading] = useState(true);
-    const [salesType, setSalesType] = useState("DayWise");
+    const [salesType, setSalesType] = useState("Today");
     const [salesData, setSalesData] = useState([]);
 
+    // Breakdown state — always DayWise, independent
+    const [breakdownLoading, setBreakdownLoading] = useState(true);
+    const [breakdownData, setBreakdownData] = useState([]);
+
     const summary = useMemo(() => {
-        const total = salesData.reduce((sum, item) => sum + parseFloat(item.total_amount || 0), 0);
-        return { total };
-    }, [salesData]);
+        const isToday = salesType === "Today";
+        const total = salesData.reduce(
+            (sum, item) => sum + parseFloat((isToday ? item.nettotal : item.total_amount) || 0),
+            0
+        );
+        const count = isToday ? salesData.length : null;
+        return { total, count };
+    }, [salesData, salesType]);
 
-    useEffect(() => {
-        const loadInitial = async () => {
-            const storedUser = await AsyncStorage.getItem("user");
-            if (storedUser) {
-                const parsed = JSON.parse(storedUser);
-                setUser(parsed);
-                fetchDashboardData(parsed, salesType);
-            }
-        };
-        loadInitial();
-    }, [salesType]);
-
-    const fetchDashboardData = async (parsedUser, type) => {
+    const fetchGraphData = async (parsedUser, type) => {
         try {
             setLoading(true);
             const response = await fetch(`${API_URLS[type]}?client_id=${parsedUser.clientId}`, {
@@ -121,22 +124,66 @@ export default function DashboardScreen() {
             });
             const json = await response.json();
             if (json.success && Array.isArray(json.data)) setSalesData(json.data);
+            else setSalesData([]);
         } catch (error) {
-            console.error("Dashboard fetch error:", error);
+            console.error("Graph fetch error:", error);
+            setSalesData([]);
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchBreakdownData = async (parsedUser) => {
+        try {
+            setBreakdownLoading(true);
+            const response = await fetch(
+                `https://taskprime.app/api/salesdaywise/?client_id=${parsedUser.clientId}`,
+                {
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${parsedUser.token}`,
+                    },
+                }
+            );
+            const json = await response.json();
+            if (json.success && Array.isArray(json.data)) setBreakdownData(json.data.slice(0, 5));
+            else setBreakdownData([]);
+        } catch (error) {
+            console.error("Breakdown fetch error:", error);
+            setBreakdownData([]);
+        } finally {
+            setBreakdownLoading(false);
+        }
+    };
+
+    // On mount: load user and fetch breakdown data (never changes)
+    useEffect(() => {
+        const loadInitial = async () => {
+            const storedUser = await AsyncStorage.getItem("user");
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser);
+                setUser(parsed);
+                fetchBreakdownData(parsed);
+            }
+        };
+        loadInitial();
+    }, []);
+
+    // Whenever user loads or toggle changes, fetch graph data
+    useEffect(() => {
+        if (user) {
+            fetchGraphData(user, salesType);
+        }
+    }, [user, salesType]);
+
     const QUICK_ACTIONS = [
-        { title: "Stock", icon: "cube-outline", color: "#4A90E2", route: "/(drawer)/stock-report" },
-        { title: "Events", icon: "list-outline", color: "#A569BD", route: "/(drawer)/event-log" },
-        { title: "PDC", icon: "document-text-outline", color: "#52BE80", route: "/(drawer)/pdc-report" },
+        { title: "Stock", icon: "cube-outline", color: "#4A90E2", route: "/(drawer)/stock-report", moduleCode: "MOD030", moduleName: "Stock Report" },
+        { title: "Events", icon: "list-outline", color: "#A569BD", route: "/(drawer)/event-log", moduleCode: "MOD031", moduleName: "Event Log" },
+        { title: "PDC", icon: "document-text-outline", color: "#52BE80", route: "/(drawer)/pdc-report", moduleCode: "MOD032", moduleName: "PDC" },
         { title: "Cash", icon: "cash-outline", color: "#F39C12", route: "/(drawer)/bank-cash" },
     ];
 
-    // Top-3 breakdown items
-    const breakdownItems = salesData.slice(0, 3);
+    const breakdownItems = breakdownData;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -165,29 +212,34 @@ export default function DashboardScreen() {
                     <View style={styles.salesTop}>
                         <View>
                             <Text style={styles.salesLabel}>
-                                {salesType === "DayWise" ? "Day-wise Sales" : "Month-wise Sales"}
+                                {salesType === "Today" ? "Today's Sales" : "Month-wise Sales"}
                             </Text>
                             {loading
                                 ? <ActivityIndicator size="small" color={Colors.primary.main} style={{ marginTop: 4 }} />
-                                : <Text style={styles.salesTotal}>
-                                    ₹{summary.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                                  </Text>
+                                : <>
+                                    <Text style={styles.salesTotal}>
+                                        ₹{Math.floor(summary.total).toFixed(3)}
+                                    </Text>
+                                    {salesType === "Today" && summary.count !== null && (
+                                        <Text style={styles.salesCount}>{summary.count} Bills</Text>
+                                    )}
+                                </>
                             }
                         </View>
                         <TouchableOpacity
                             style={styles.toggleBtn}
-                            onPress={() => setSalesType(salesType === "DayWise" ? "MonthWise" : "DayWise")}
+                            onPress={() => setSalesType(salesType === "Today" ? "MonthWise" : "Today")}
                         >
                             <Ionicons name="swap-horizontal" size={14} color={Colors.primary.main} />
                             <Text style={styles.toggleText}>
-                                {salesType === "DayWise" ? "Monthly" : "Daily"}
+                                {salesType === "Today" ? "Monthly" : "Today"}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* Chart fills remaining card height */}
                     <View style={styles.chartFlex}>
-                        <PerfectGraph data={salesData} color={Colors.primary.main} loading={loading} />
+                        <PerfectGraph data={salesData} color={Colors.primary.main} loading={loading} salesType={salesType} />
                     </View>
                 </ModernCard>
 
@@ -198,7 +250,19 @@ export default function DashboardScreen() {
                             key={a.title}
                             style={styles.quickItem}
                             activeOpacity={0.75}
-                            onPress={() => router.push(a.route)}
+                            onPress={async () => {
+                                if (a.title === "Cash") {
+                                    const hasBank = await hasModule("MOD020");
+                                    const hasCash = await hasModule("MOD019");
+                                    if (!hasBank && !hasCash) {
+                                        await checkModule("MOD019", "Bank & Cash"); // Re-use checkModule for consistent UI
+                                        return;
+                                    }
+                                } else if (a.moduleCode && !(await checkModule(a.moduleCode, a.moduleName))) {
+                                    return;
+                                }
+                                router.push(a.route);
+                            }}
                         >
                             <View style={[styles.quickIcon, { backgroundColor: a.color + "18" }]}>
                                 <Ionicons name={a.icon} size={26} color={a.color} />
@@ -211,7 +275,7 @@ export default function DashboardScreen() {
                 {/* ── Sales Breakdown: grows to fill whatever is left ── */}
                 <View style={styles.sectionRow}>
                     <Text style={styles.sectionHeader}>SALES BREAKDOWN</Text>
-                    <TouchableOpacity onPress={() => router.push("/(drawer)/sales-report")}>
+                    <TouchableOpacity onPress={async () => { if (await checkModule("MOD017", "Sales Report")) router.push("/(drawer)/sales-report"); }}>
                         <Text style={styles.seeAll}>See all →</Text>
                     </TouchableOpacity>
                 </View>
@@ -232,7 +296,7 @@ export default function DashboardScreen() {
                                         : item.month_name}
                                 </Text>
                                 <Text style={styles.breakdownValue}>
-                                    ₹{parseFloat(item.total_amount).toLocaleString("en-IN")}
+                                    ₹{Math.floor(parseFloat(item.total_amount || 0)).toFixed(3)}
                                 </Text>
                             </View>
                         ))
@@ -342,6 +406,12 @@ const styles = StyleSheet.create({
         fontWeight: "900",
         color: Colors.dark.main,
         marginTop: 2,
+    },
+    salesCount: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: Colors.text.secondary,
+        marginTop: 1,
     },
     toggleBtn: {
         flexDirection: "row",
@@ -488,9 +558,15 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     breakdownValue: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "800",
         color: Colors.primary.main,
+    },
+    breakdownSub: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: Colors.text.tertiary,
+        marginHorizontal: 4,
     },
     emptyBreakdown: {
         textAlign: "center",

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -10,12 +10,13 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const BY_USER_API = "https://taskprime.app/api/tender-cash-by-user/";
 const BY_TYPE_API = "https://taskprime.app/api/tender-cash-bytype/";
@@ -40,9 +41,12 @@ const getCodeColor = (code) => CODE_COLORS[code] || fallbackColor;
 export default function TenderCashScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { checkModule } = useLicenseModules();
 
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState("user"); // "user" | "type"
+
+    const [isLicensed, setIsLicensed] = useState(null);
 
     // Cash By User state
     const [userLoading, setUserLoading] = useState(true);
@@ -56,27 +60,38 @@ export default function TenderCashScreen() {
     const [typeData, setTypeData] = useState([]);
 
     // ── Init ────────────────────────────────────────────────────────────────────
-    useEffect(() => {
-        const backAction = () => { router.replace("/(drawer)/(tabs)"); return true; };
-        const sub = BackHandler.addEventListener("hardwareBackPress", backAction);
-        return () => sub.remove();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            const runCheck = async () => {
+                const allowed = await checkModule("MOD036", "Tender Cash", () => {
+                    router.replace("/(drawer)/(tabs)");
+                });
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const raw = await AsyncStorage.getItem("user");
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    setUser(parsed);
-                    fetchByUser(parsed);
-                    fetchByType(parsed);
+                if (!allowed) {
+                    setIsLicensed(false);
+                    return;
                 }
-            } catch (e) {
-                console.error(e);
-            }
-        })();
-    }, []);
+                setIsLicensed(true);
+
+                try {
+                    const raw = await AsyncStorage.getItem("user");
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        setUser(parsed);
+                        if (userItems.length === 0) fetchByUser(parsed);
+                        if (typeData.length === 0) fetchByType(parsed);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+            runCheck();
+
+            const backAction = () => { router.replace("/(drawer)/(tabs)"); return true; };
+            const sub = BackHandler.addEventListener("hardwareBackPress", backAction);
+            return () => sub.remove();
+        }, [userItems.length, typeData.length])
+    );
 
     // ── Fetchers ────────────────────────────────────────────────────────────────
     const fetchByUser = async (u) => {
@@ -88,7 +103,7 @@ export default function TenderCashScreen() {
             });
             const json = await res.json();
             if (json.success && json.data) {
-                setUserTotal(json.data.total || 0);
+                setUserTotal(json.data.grand_total || 0);
                 setUserItems(json.data.items || []);
             } else {
                 setUserError("No data returned.");
@@ -188,13 +203,13 @@ export default function TenderCashScreen() {
                     <Text style={styles.sectionCardTitle}>Tender Breakdown</Text>
                     <View style={styles.chipsRow}>
                         {userItems.map((item, i) => (
-                            <CodeChip key={i} code={item.code} amount={item.amount} />
+                            <CodeChip key={i} code={item.code} amount={item.total_amount} />
                         ))}
                     </View>
 
                     {/* Table rows */}
                     <View style={styles.tableHeader}>
-                        <Text style={[styles.tableCell, styles.tableHeaderText, { flex: 1 }]}>Code</Text>
+                        <Text style={[styles.tableCell, styles.tableHeaderText, { flex: 2 }]}>Code / Name</Text>
                         <Text style={[styles.tableCell, styles.tableHeaderText, { textAlign: "right", flex: 1 }]}>Amount</Text>
                     </View>
                     {userItems.map((item, i) => {
@@ -207,17 +222,18 @@ export default function TenderCashScreen() {
                                     { backgroundColor: i % 2 === 0 ? "#FAFBFF" : "#fff" },
                                 ]}
                             >
-                                <View style={styles.codeCell}>
+                                <View style={[styles.codeCell, { flex: 2 }]}>
                                     <View style={[styles.codeBadge, { backgroundColor: c.bg }]}>
                                         <Text style={[styles.codeBadgeText, { color: c.text }]}>
                                             {item.code}
                                         </Text>
                                     </View>
+                                    <Text style={styles.userText}>{item.currency_name || "—"}</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: "flex-end" }}>
-                                    <Text style={styles.amountText}>₹{fmt(item.amount)}</Text>
+                                    <Text style={styles.amountText}>₹{fmt(item.total_amount)}</Text>
                                     <Text style={styles.percentText}>
-                                        {userTotal ? ((item.amount / userTotal) * 100).toFixed(1) : 0}%
+                                        {userTotal ? ((item.total_amount / userTotal) * 100).toFixed(1) : 0}%
                                     </Text>
                                 </View>
                             </View>
@@ -276,7 +292,7 @@ export default function TenderCashScreen() {
                         {/* Chips */}
                         <View style={styles.chipsRow}>
                             {(group.items || []).map((item, i) => (
-                                <CodeChip key={i} code={item.code} amount={item.amount} />
+                                <CodeChip key={i} code={item.code} amount={item.total_amount} />
                             ))}
                         </View>
 
@@ -309,10 +325,10 @@ export default function TenderCashScreen() {
                                     </View>
                                     <View style={{ flex: 1, alignItems: "flex-end" }}>
                                         <Text style={[styles.amountText, { color: "#059669" }]}>
-                                            ₹{fmt(item.amount)}
+                                            ₹{fmt(item.total_amount)}
                                         </Text>
                                         <Text style={styles.percentText}>
-                                            {group.total ? ((item.amount / group.total) * 100).toFixed(1) : 0}%
+                                            {group.total ? ((item.total_amount / group.total) * 100).toFixed(1) : 0}%
                                         </Text>
                                     </View>
                                 </View>
@@ -350,7 +366,15 @@ export default function TenderCashScreen() {
         </View>
     );
 
-    // ── Render ──────────────────────────────────────────────────────────────────
+    if (isLicensed === null) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+                <ActivityIndicator size="large" color={Colors.primary.main} />
+            </View>
+        );
+    }
+    if (!isLicensed) return null;
+
     return (
         <View style={styles.container}>
             <ModernHeader

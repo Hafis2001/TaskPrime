@@ -21,9 +21,11 @@ import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
 import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
 import { moderateScale, Screen } from "../../src/utils/Responsive";
+import { useLicenseModules } from "../utils/useLicenseModules";
 
 export default function LoginScreen({ onAddLicense }) {
   const router = useRouter();
+  const { refreshModules } = useLicenseModules();
 
   const [clientId, setClientId] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -201,6 +203,13 @@ export default function LoginScreen({ onAddLicense }) {
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         await AsyncStorage.setItem("authToken", userData.token);
         await AsyncStorage.setItem("loginTimestamp", Date.now().toString());
+
+        // Refresh license data immediately on login
+        try {
+          await refreshModules();
+        } catch (e) {
+          console.warn("License refresh failed on login:", e);
+        }
 
         console.log("✅ User data saved:", userData);
 
@@ -405,7 +414,7 @@ export default function LoginScreen({ onAddLicense }) {
             {shops.length > 0 ? (
               <FlatList
                 data={shops}
-                keyExtractor={(item, index) => item.clientId || index.toString()}
+                keyExtractor={(item, index) => `${item.clientId}_${item.licenseKey}_${index}`}
                 renderItem={renderShopItem}
                 contentContainerStyle={styles.listContent}
               />

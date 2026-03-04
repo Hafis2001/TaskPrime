@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -17,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URLS = {
   today: "https://taskprime.app/api/purchasetoday/",
@@ -32,6 +32,8 @@ export default function PurchaseReportScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { checkModule } = useLicenseModules();
+  const [isLicensed, setIsLicensed] = useState(null);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -39,31 +41,33 @@ export default function PurchaseReportScreen() {
     });
   }, [navigation]);
 
-  useEffect(() => {
-    const init = async () => {
-      const storedUser = await AsyncStorage.getItem("user");
-      if (!storedUser) {
-        Alert.alert("Session Expired", "Please login again.");
-        router.replace("/");
-        setLoading(false);
-        return;
-      }
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      fetchReport(parsedUser, selectedSummary);
-    };
-    init();
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD038", "Purchase Report", () => {
+          router.replace("/(drawer)/(tabs)");
+        });
 
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
-    );
-    return () => backHandler.remove();
-  }, [selectedSummary]);
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        init();
+      };
+      runCheck();
+
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+      return () => backHandler.remove();
+    }, [selectedSummary])
+  );
 
   const fetchReport = async (parsedUser, type) => {
     try {
@@ -93,6 +97,15 @@ export default function PurchaseReportScreen() {
       setLoading(false);
     }
   };
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+  if (!isLicensed) return null;
 
   const totalPurchase = purchaseData.reduce(
     (sum, item) => sum + parseFloat(item.nettotal || 0),

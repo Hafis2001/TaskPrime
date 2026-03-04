@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -11,7 +11,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -19,6 +19,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
 import { Screen } from "../../src/utils/Responsive";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const STOCK_API_URL = "https://taskprime.app/api/get-stock-report/";
 
@@ -33,6 +34,8 @@ export default function StockReportScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
+    const { checkModule } = useLicenseModules();
+    const [isLicensed, setIsLicensed] = useState(null);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -40,7 +43,36 @@ export default function StockReportScreen() {
         });
     }, [navigation]);
 
+    useFocusEffect(
+        useCallback(() => {
+            const runCheck = async () => {
+                const allowed = await checkModule("MOD037", "Stock Report", () => {
+                    router.replace("/(drawer)/(tabs)");
+                });
+
+                if (!allowed) {
+                    setIsLicensed(false);
+                    return;
+                }
+                setIsLicensed(true);
+                init();
+            };
+            runCheck();
+
+            const backAction = () => {
+                router.replace("/(drawer)/(tabs)");
+                return true;
+            };
+            const backHandler = BackHandler.addEventListener(
+                "hardwareBackPress",
+                backAction
+            );
+            return () => backHandler.remove();
+        }, [])
+    );
+
     const init = async () => {
+        // The license check logic is now moved to the useEffect below
         const storedUser = await AsyncStorage.getItem("user");
         if (!storedUser) {
             router.replace("/");
@@ -112,6 +144,15 @@ export default function StockReportScreen() {
         setRefreshing(true);
         if (user) fetchStockReport(user);
     };
+
+    if (isLicensed === null) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+                <ActivityIndicator size="large" color={Colors.primary.main} />
+            </View>
+        );
+    }
+    if (!isLicensed) return null;
 
     const handleSearch = (textOrToggleValue) => {
         // Determine if the call is from text input or toggle

@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   BackHandler,
   Dimensions,
   ScrollView,
@@ -12,6 +14,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
@@ -22,20 +25,54 @@ const { width } = Dimensions.get("window");
 export default function BankCashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { checkModule, hasModule } = useLicenseModules();
 
-  useEffect(() => {
-    const backAction = () => {
-      router.replace("/(drawer)/(tabs)");
-      return true;
-    };
+  const [isLicensed, setIsLicensed] = useState(null);
 
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const hasBank = await hasModule("MOD020");
+        const hasCash = await hasModule("MOD019");
+
+        if (!hasBank && !hasCash) {
+          setIsLicensed(false);
+          // Standardizing with a slight delay for reliability
+          setTimeout(() => {
+            Alert.alert(
+              "Module Not Purchased",
+              'You have not purchased the "Bank & Cash" module. Please contact your administrator to activate it.',
+              [{ text: "OK", onPress: () => router.replace("/(drawer)/(tabs)") }]
+            );
+          }, 300);
+          return;
+        }
+        setIsLicensed(true);
+      };
+      runCheck();
+
+      const backAction = () => {
+        router.replace("/(drawer)/(tabs)");
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+
+      return () => backHandler.remove();
+    }, [])
+  );
+
+  if (isLicensed === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
     );
-
-    return () => backHandler.remove();
-  }, []);
+  }
+  if (!isLicensed) return null;
 
   const MenuCard = ({ title, subtitle, icon, colors, onPress }) => (
     <TouchableOpacity
@@ -93,7 +130,7 @@ export default function BankCashScreen() {
             subtitle="View bank details & ledgers"
             icon="card-outline"
             colors={["#4e73df", "#224abe"]}
-            onPress={() => router.push("bankBook")}
+            onPress={async () => { if (await checkModule("MOD020", "Bank Book")) router.push("bankBook"); }}
           />
 
           <MenuCard
@@ -101,7 +138,7 @@ export default function BankCashScreen() {
             subtitle="Cash summary & transactions"
             icon="cash-outline"
             colors={["#1cc88a", "#13855c"]}
-            onPress={() => router.push("cashBook")}
+            onPress={async () => { if (await checkModule("MOD019", "Cash Book")) router.push("cashBook"); }}
           />
         </View>
       </ScrollView>

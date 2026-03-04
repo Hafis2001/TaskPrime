@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLicenseModules } from "../src/utils/useLicenseModules";
 
 import ModernCard from "../components/ui/ModernCard";
 import ModernHeader from "../components/ui/ModernHeader";
@@ -40,9 +41,27 @@ export default function CustomerLedgerScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState(null); // "from" or "to"
 
-  useEffect(() => {
-    fetchLedger();
-  }, [code]);
+  const [isLicensed, setIsLicensed] = useState(null);
+
+  const { checkModule } = useLicenseModules();
+
+  useFocusEffect(
+    useCallback(() => {
+      const runCheck = async () => {
+        const allowed = await checkModule("MOD033", "Customers", () => {
+          router.back();
+        });
+
+        if (!allowed) {
+          setIsLicensed(false);
+          return;
+        }
+        setIsLicensed(true);
+        if (ledger.length === 0) fetchLedger();
+      };
+      runCheck();
+    }, [code, ledger.length])
+  );
 
   const fetchLedger = async () => {
     try {
@@ -241,13 +260,14 @@ export default function CustomerLedgerScreen() {
     </ModernCard>
   ));
 
-  if (loading) {
+  if (isLicensed === null) {
     return (
-      <View style={styles.loader}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
         <ActivityIndicator size="large" color={Colors.primary.main} />
       </View>
     );
   }
+  if (!isLicensed) return null;
 
   return (
     <View style={styles.container}>
