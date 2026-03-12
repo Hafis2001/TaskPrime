@@ -17,8 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernButton from "../../../components/ui/ModernButton";
 import ModernCard from "../../../components/ui/ModernCard";
 import ModernHeader from "../../../components/ui/ModernHeader";
-import { Colors, Spacing, Typography } from "../../../constants/modernTheme";
-import { Screen } from "../../../src/utils/Responsive";
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from "../../../constants/modernTheme";
+import { Screen, moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../../src/utils/Responsive";
+import { useLicenseModules } from "../../../src/utils/useLicenseModules";
 
 const API_URL = "https://taskprime.app/api/get-misel-data/";
 
@@ -141,17 +142,17 @@ export default function CompanyInfoScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="Company Info"
-                leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="menu-outline" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => navigation.toggleDrawer()}
-                rightIcon={<Ionicons name="log-out-outline" size={26} color={Colors.primary.main} />}
+                rightIcon={<Ionicons name="log-out-outline" size={moderateScale(26)} color={Colors.primary.main} />}
                 onRightPress={() => setShowLogoutModal(true)}
             />
 
             <ScrollView
                 contentContainerStyle={{
-                    padding: Spacing.base,
-                    paddingBottom: insets.bottom + 30,
-                    width: Screen.isTablet ? 600 : '100%',
+                    padding: moderateScale(Spacing.base),
+                    paddingBottom: insets.bottom + moderateVerticalScale(30),
+                    width: Screen.isTablet ? moderateScale(600) : '100%',
                     alignSelf: 'center',
                 }}
                 showsVerticalScrollIndicator={false}
@@ -174,7 +175,7 @@ export default function CompanyInfoScreen() {
                 {/* Company Details */}
                 <ModernCard style={styles.detailsCard} elevated>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="business" size={24} color={Colors.primary.main} style={{ marginRight: 8 }} />
+                        <Ionicons name="business" size={moderateScale(24)} color={Colors.primary.main} style={{ marginRight: moderateScale(8) }} />
                         <Text style={styles.cardTitle}>Company Details</Text>
                     </View>
 
@@ -201,7 +202,7 @@ export default function CompanyInfoScreen() {
                 <View style={styles.modalOverlay}>
                     <ModernCard style={styles.modalCard} elevated>
                         <View style={styles.modalIconContainer}>
-                            <Ionicons name="log-out" size={32} color={Colors.primary.main} />
+                            <Ionicons name="log-out" size={moderateScale(32)} color={Colors.primary.main} />
                         </View>
 
                         <Text style={styles.modalTitle}>Logging Out?</Text>
@@ -217,7 +218,7 @@ export default function CompanyInfoScreen() {
                                 style={styles.modalButton}
                                 size="small"
                             />
-                            <View style={{ width: Spacing.md }} />
+                            <View style={{ width: moderateScale(Spacing.md) }} />
                             <ModernButton
                                 title="Yes, Logout"
                                 onPress={confirmLogout}
@@ -245,62 +246,62 @@ const styles = StyleSheet.create({
         alignItems: "center"
     },
     userCard: {
-        marginBottom: Spacing.lg,
+        marginBottom: moderateVerticalScale(Spacing.lg),
         padding: 0,
     },
     userCardContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: Spacing.lg,
+        padding: moderateScale(Spacing.lg),
     },
     avatarContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: moderateScale(50),
+        height: moderateScale(50),
+        borderRadius: moderateScale(25),
         backgroundColor: Colors.primary.lightest,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.md,
+        marginRight: moderateScale(Spacing.md),
         borderWidth: 1,
         borderColor: Colors.primary.light,
     },
     avatarText: {
-        fontSize: Typography.fontSize['2xl'],
+        fontSize: moderateScale(Typography.fontSize['2xl']),
         fontWeight: Typography.fontWeight.bold,
         color: Colors.primary.dark,
     },
     welcomeText: {
-        fontSize: Typography.fontSize.lg,
+        fontSize: moderateScale(Typography.fontSize.lg),
         fontWeight: Typography.fontWeight.bold,
         color: '#FFFFFF',
     },
     clientId: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 2,
+        marginTop: moderateVerticalScale(2),
     },
     detailsCard: {
-        padding: Spacing.lg,
+        padding: moderateScale(Spacing.lg),
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: moderateVerticalScale(Spacing.md),
     },
     cardTitle: {
-        fontSize: Typography.fontSize.xl,
+        fontSize: moderateScale(Typography.fontSize.xl),
         fontWeight: Typography.fontWeight.bold,
         color: Colors.dark.main,
     },
     divider: {
         height: 1,
         backgroundColor: Colors.border.light,
-        marginBottom: Spacing.md,
+        marginBottom: moderateVerticalScale(Spacing.md),
     },
     row: {
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingVertical: Spacing.sm,
+        paddingVertical: moderateVerticalScale(Spacing.sm),
         borderBottomWidth: 0.5,
         borderColor: Colors.border.light,
     },
@@ -308,46 +309,46 @@ const styles = StyleSheet.create({
         fontWeight: Typography.fontWeight.semibold,
         color: Colors.primary.main,
         flex: 1,
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
     },
     value: {
         flex: 2,
         color: Colors.text.primary,
         textAlign: "right",
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
     },
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         alignItems: "center",
-        padding: Spacing.xl,
+        padding: moderateScale(Spacing.xl),
     },
     modalCard: {
-        width: Screen.isTablet ? 400 : "100%",
+        width: Screen.isTablet ? moderateScale(400) : "100%",
         alignItems: "center",
-        padding: Spacing.xl,
+        padding: moderateScale(Spacing.xl),
     },
     modalIconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: moderateScale(60),
+        height: moderateScale(60),
+        borderRadius: moderateScale(30),
         backgroundColor: Colors.primary.lightest,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: Spacing.lg,
+        marginBottom: moderateVerticalScale(Spacing.lg),
     },
     modalTitle: {
-        fontSize: Typography.fontSize['2xl'],
+        fontSize: moderateScale(Typography.fontSize['2xl']),
         fontWeight: Typography.fontWeight.bold,
         color: Colors.dark.main,
-        marginBottom: Spacing.sm,
+        marginBottom: moderateVerticalScale(Spacing.sm),
     },
     modalText: {
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
         color: Colors.text.secondary,
         textAlign: "center",
-        marginBottom: Spacing.xl,
+        marginBottom: moderateVerticalScale(Spacing.xl),
     },
     modalButtons: {
         flexDirection: "row",

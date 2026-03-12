@@ -17,11 +17,18 @@ export const scale = (size: number) => (width / guidelineBaseWidth) * size;
 export const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 
 /**
- * Scaled value with a factor to prevent extreme scaling on large devices (tablebs)
+ * Scaled value with a factor to prevent extreme scaling on large devices (tablets)
  * @param size Value to scale
  * @param factor Factor of scaling (0.5 is default)
  */
 export const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+/**
+ * Vertical Scaled value with a factor
+ * @param size Value to scale
+ * @param factor Factor of scaling (0.5 is default)
+ */
+export const moderateVerticalScale = (size: number, factor = 0.5) => size + (verticalScale(size) - size) * factor;
 
 /**
  * Helper to detect if device is a tablet

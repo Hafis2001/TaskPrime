@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -16,8 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
-import { Colors, Spacing, Typography } from "../../constants/modernTheme";
-import { Screen } from "../../src/utils/Responsive";
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from "../../constants/modernTheme";
+import { Screen, moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const REFRESH_TAG_API = "https://taskprime.app/api/get-refresh-tag/";
@@ -142,8 +142,8 @@ export default function RefreshTagScreen() {
     const renderItem = ({ item }) => (
         <ModernCard style={styles.logCard} elevated>
             <View style={styles.cardHeader}>
-                <View style={styles.iconContainer}>
-                    <Ionicons name="sync-circle" size={24} color={Colors.primary.main} />
+                <View style={[styles.iconContainer, { width: moderateScale(40), height: moderateScale(40), borderRadius: moderateScale(20), marginRight: moderateScale(Spacing.md) }]}>
+                    <Ionicons name="sync-circle" size={moderateScale(24)} color={Colors.primary.main} />
                 </View>
                 <View style={styles.headerTextContainer}>
                     <Text style={styles.remarkText}>{item.remark}</Text>
@@ -155,11 +155,11 @@ export default function RefreshTagScreen() {
 
             <View style={styles.cardFooter}>
                 <View style={styles.infoRow}>
-                    <Ionicons name="calendar-outline" size={14} color={Colors.text.tertiary} style={styles.footerIcon} />
+                    <Ionicons name="calendar-outline" size={moderateScale(14)} color={Colors.text.tertiary} style={styles.footerIcon} />
                     <Text style={styles.footerText}>{formatDate(item.edate)}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                    <Ionicons name="time-outline" size={14} color={Colors.text.tertiary} style={styles.footerIcon} />
+                    <Ionicons name="time-outline" size={moderateScale(14)} color={Colors.text.tertiary} style={styles.footerIcon} />
                     <Text style={styles.footerText}>{formatTime(item.etime)}</Text>
                 </View>
             </View>
@@ -180,9 +180,9 @@ export default function RefreshTagScreen() {
             <StatusBar barStyle="dark-content" />
             <ModernHeader
                 title="Refresh Tags"
-                leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => router.push("/(drawer)/(tabs)")}
-                rightIcon={<Ionicons name="refresh-outline" size={22} color={Colors.primary.main} />}
+                rightIcon={<Ionicons name="refresh-outline" size={moderateScale(22)} color={Colors.primary.main} />}
                 onRightPress={onRefresh}
             />
 
@@ -212,7 +212,7 @@ export default function RefreshTagScreen() {
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="document-text-outline" size={64} color={Colors.text.tertiary} />
+                            <Ionicons name="document-text-outline" size={moderateScale(64)} color={Colors.text.tertiary} />
                             <Text style={styles.emptyText}>No refresh logs found</Text>
                         </View>
                     }
@@ -233,16 +233,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     loadingText: {
-        marginTop: Spacing.md,
+        marginTop: moderateVerticalScale(Spacing.md),
         color: Colors.text.secondary,
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
     },
     listContent: {
-        padding: Spacing.md,
+        padding: moderateScale(Spacing.md),
     },
     logCard: {
-        marginBottom: Spacing.md,
-        padding: Spacing.md,
+        marginBottom: moderateVerticalScale(Spacing.md),
+        padding: moderateScale(Spacing.md),
         flex: Screen.isTablet ? 0.48 : 1,
     },
     columnWrapper: {
@@ -254,32 +254,32 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.sm,
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: moderateScale(40),
+        height: moderateScale(40),
+        borderRadius: moderateScale(20),
         backgroundColor: Colors.primary.lightest,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: Spacing.md,
+        marginRight: moderateScale(Spacing.md),
     },
     headerTextContainer: {
         flex: 1,
     },
     remarkText: {
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
         fontWeight: Typography.fontWeight.bold,
         color: Colors.dark.main,
     },
     userText: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: moderateScale(Typography.fontSize.xs),
         color: Colors.primary.main,
         fontWeight: Typography.fontWeight.medium,
-        marginTop: 2,
+        marginTop: moderateVerticalScale(2),
     },
     divider: {
         height: 1,
         backgroundColor: Colors.border.light,
-        marginVertical: Spacing.sm,
+        marginVertical: moderateVerticalScale(Spacing.sm),
     },
     cardFooter: {
         flexDirection: "row",
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     footerText: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: moderateScale(Typography.fontSize.xs),
         color: Colors.text.tertiary,
     },
     emptyContainer: {
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
         marginTop: 100,
     },
     emptyText: {
-        marginTop: Spacing.md,
-        fontSize: Typography.fontSize.base,
+        marginTop: moderateVerticalScale(Spacing.md),
+        fontSize: moderateScale(Typography.fontSize.base),
         color: Colors.text.tertiary,
         fontWeight: Typography.fontWeight.medium,
     },

@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -14,6 +14,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
@@ -88,7 +89,7 @@ export default function BankCashScreen() {
           style={styles.cardGradient}
         >
           <View style={styles.iconWrap}>
-            <Ionicons name={icon} size={32} color="#fff" />
+            <Ionicons name={icon} size={moderateScale(32)} color="#fff" />
           </View>
 
           <View style={styles.cardContent}>
@@ -99,7 +100,7 @@ export default function BankCashScreen() {
           <View style={styles.arrowWrap}>
             <Ionicons
               name="chevron-forward"
-              size={24}
+              size={moderateScale(24)}
               color="rgba(255,255,255,0.8)"
             />
           </View>
@@ -112,7 +113,7 @@ export default function BankCashScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Accounts"
-        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        leftIcon={<Ionicons name="arrow-back" size={moderateScale(24)} color={Colors.primary.main} />}
         onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
@@ -152,12 +153,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.secondary,
   },
   content: {
-    padding: Spacing.lg,
+    padding: moderateScale(Spacing.lg),
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: Colors.text.secondary,
-    marginBottom: Spacing.xl,
+    marginBottom: moderateVerticalScale(Spacing.xl),
     textAlign: 'center',
   },
   cardsWrapper: {
@@ -168,38 +169,38 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 0,
-    borderRadius: BorderRadius.xl,
+    borderRadius: moderateScale(BorderRadius.xl),
     overflow: 'hidden',
     ...Shadows.md,
   },
   cardGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.xl,
-    minHeight: 120,
+    padding: moderateScale(Spacing.xl),
+    minHeight: verticalScale(120),
   },
   iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: moderateScale(56),
+    height: moderateScale(56),
+    borderRadius: moderateScale(16),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
-    marginRight: Spacing.lg,
+    marginRight: moderateScale(Spacing.lg),
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
     color: "#fff",
-    fontSize: Typography.fontSize.xl,
+    fontSize: moderateScale(Typography.fontSize.xl),
     fontWeight: Typography.fontWeight.bold,
-    marginBottom: 4,
+    marginBottom: moderateVerticalScale(4),
   },
   cardSubtitle: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: Typography.fontSize.sm,
-    lineHeight: 20,
+    fontSize: moderateScale(Typography.fontSize.sm),
+    lineHeight: moderateVerticalScale(20),
   },
   arrowWrap: {
     marginLeft: Spacing.sm,

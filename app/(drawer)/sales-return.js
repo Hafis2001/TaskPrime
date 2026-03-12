@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
@@ -138,7 +139,7 @@ export default function SalesReturnScreen() {
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="return-down-back-outline" size={20} color={Colors.error.main} />
+            <Ionicons name="return-down-back-outline" size={moderateScale(20)} color={Colors.error.main} />
           </View>
           <View style={styles.nameContainer}>
             <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
@@ -160,12 +161,12 @@ export default function SalesReturnScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Sales Return"
-        leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+        leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
         onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
-        <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+        <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
           <Text style={styles.summaryTitle}>Total Returns</Text>
           <Text style={styles.totalValue}>{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
           <View style={styles.badge}>
@@ -181,7 +182,7 @@ export default function SalesReturnScreen() {
           </View>
         ) : salesData.length === 0 ? (
           <View style={styles.centered}>
-            <Ionicons name="return-down-back" size={48} color={Colors.text.disabled} />
+            <Ionicons name="return-down-back" size={moderateScale(48)} color={Colors.text.disabled} />
             <Text style={styles.emptyText}>No sales return data found.</Text>
           </View>
         ) : (
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: Spacing.base,
+    padding: moderateScale(Spacing.base),
   },
   centered: {
     flex: 1,
@@ -218,43 +219,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   summaryTitle: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: 'rgba(255,255,255,0.9)',
     fontWeight: "600",
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   totalValue: {
-    fontSize: Typography.fontSize['3xl'],
+    fontSize: moderateScale(Typography.fontSize['3xl']),
     fontWeight: "bold",
     color: "#fff",
-    marginTop: Spacing.xs
+    marginTop: moderateVerticalScale(Spacing.xs)
   },
   badge: {
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: Spacing.sm,
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: moderateVerticalScale(4),
+    borderRadius: moderateScale(12),
+    marginTop: moderateVerticalScale(Spacing.sm),
   },
   badgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: moderateScale(10),
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     fontWeight: "800",
-    marginBottom: Spacing.sm,
+    marginBottom: moderateVerticalScale(Spacing.sm),
     color: Colors.text.tertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginLeft: 4,
+    marginLeft: moderateScale(4),
   },
   transactionCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: moderateScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.sm),
     backgroundColor: Colors.background.primary,
     borderColor: Colors.border.light,
     borderWidth: 1,
@@ -268,13 +269,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md
+    gap: moderateScale(Spacing.md)
   },
   iconCircle: {
-    width: 40,
-    height: 40,
+    width: moderateScale(40),
+    height: moderateScale(40),
     backgroundColor: Colors.error.lightest,
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -284,22 +285,22 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "700",
     color: Colors.text.primary,
-    fontSize: Typography.fontSize.base
+    fontSize: moderateScale(Typography.fontSize.base)
   },
   time: {
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.xs,
-    marginTop: 2,
+    fontSize: moderateScale(Typography.fontSize.xs),
+    marginTop: moderateVerticalScale(2),
   },
   amountContainer: {
     alignItems: 'flex-end',
-    minWidth: 90,
-    marginLeft: Spacing.sm,
+    minWidth: moderateScale(90),
+    marginLeft: moderateScale(Spacing.sm),
   },
   amount: {
     color: Colors.error.main,
     fontWeight: "700",
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     textAlign: "right",
   },
   emptyText: {

@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const BY_USER_API = "https://taskprime.app/api/tender-cash-by-user/";
@@ -153,9 +154,9 @@ export default function TenderCashScreen() {
         >
             <Ionicons
                 name={icon}
-                size={16}
+                size={moderateScale(16)}
                 color={activeTab === id ? "#fff" : Colors.text.secondary}
-                style={{ marginRight: 6 }}
+                style={{ marginRight: moderateScale(6) }}
             />
             <Text style={[styles.tabText, activeTab === id && styles.tabTextActive]}>
                 {label}
@@ -166,10 +167,10 @@ export default function TenderCashScreen() {
     const CodeChip = ({ code, amount }) => {
         const c = getCodeColor(code);
         return (
-            <View style={[styles.chip, { backgroundColor: c.bg }]}>
-                <View style={[styles.chipDot, { backgroundColor: c.dot }]} />
-                <Text style={[styles.chipCode, { color: c.text }]}>{code}</Text>
-                <Text style={[styles.chipAmt, { color: c.text }]}>{fmt(amount)}</Text>
+            <View style={[styles.chip, { backgroundColor: c.bg, paddingHorizontal: moderateScale(12), paddingVertical: moderateVerticalScale(6), borderRadius: moderateScale(20), gap: moderateScale(6) }]}>
+                <View style={[styles.chipDot, { width: moderateScale(8), height: moderateScale(8), borderRadius: moderateScale(4), backgroundColor: c.dot }]} />
+                <Text style={[styles.chipCode, { color: c.text, fontSize: moderateScale(Typography.fontSize.sm) }]}>{code}</Text>
+                <Text style={[styles.chipAmt, { color: c.text, fontSize: moderateScale(Typography.fontSize.sm) }]}>{fmt(amount)}</Text>
             </View>
         );
     };
@@ -190,7 +191,7 @@ export default function TenderCashScreen() {
                 >
                     <View style={styles.totalBannerInner}>
                         <View style={styles.totalIconWrap}>
-                            <Ionicons name="person-circle-outline" size={32} color="#fff" />
+                            <Ionicons name="person-circle-outline" size={moderateScale(32)} color="#fff" />
                         </View>
                         <View>
                             <Text style={styles.totalLabel}>Total by User</Text>
@@ -281,7 +282,7 @@ export default function TenderCashScreen() {
                 >
                     <View style={styles.totalBannerInner}>
                         <View style={styles.totalIconWrap}>
-                            <Ionicons name="layers-outline" size={32} color="#fff" />
+                            <Ionicons name="layers-outline" size={moderateScale(32)} color="#fff" />
                         </View>
                         <View>
                             <Text style={styles.totalLabel}>Total by Type</Text>
@@ -364,10 +365,10 @@ export default function TenderCashScreen() {
 
     const ErrorView = ({ msg, onRetry }) => (
         <View style={styles.centered}>
-            <Ionicons name="cloud-offline-outline" size={56} color={Colors.text.disabled} />
+            <Ionicons name="cloud-offline-outline" size={moderateScale(56)} color={Colors.text.disabled} />
             <Text style={styles.errorText}>{msg}</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.8}>
-                <Ionicons name="refresh" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Ionicons name="refresh" size={moderateScale(16)} color="#fff" style={{ marginRight: moderateScale(6) }} />
                 <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
         </View>
@@ -386,7 +387,7 @@ export default function TenderCashScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="Tender Cash"
-                leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="arrow-back" size={moderateScale(24)} color={Colors.primary.main} />}
                 onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
@@ -416,10 +417,10 @@ const styles = StyleSheet.create({
     // Tabs
     tabBar: {
         flexDirection: "row",
-        margin: Spacing.md,
+        margin: moderateScale(Spacing.md),
         backgroundColor: "#fff",
-        borderRadius: BorderRadius.xl,
-        padding: 4,
+        borderRadius: moderateScale(BorderRadius.xl),
+        padding: moderateScale(4),
         ...Shadows.sm,
     },
     tab: {
@@ -427,15 +428,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 10,
-        borderRadius: BorderRadius.lg,
+        paddingVertical: moderateVerticalScale(10),
+        borderRadius: moderateScale(BorderRadius.lg),
     },
     tabActive: {
         backgroundColor: Colors.primary.main,
         ...Shadows.md,
     },
     tabText: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         fontWeight: "600",
         color: Colors.text.secondary,
     },
@@ -445,15 +446,15 @@ const styles = StyleSheet.create({
 
     // Scroll
     scroll: {
-        paddingHorizontal: Spacing.md,
-        paddingTop: 4,
+        paddingHorizontal: moderateScale(Spacing.md),
+        paddingTop: moderateVerticalScale(4),
     },
 
     // Total banner
     totalBanner: {
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.xl,
-        marginBottom: Spacing.md,
+        borderRadius: moderateScale(BorderRadius.xl),
+        padding: moderateScale(Spacing.xl),
+        marginBottom: moderateVerticalScale(Spacing.md),
         overflow: "hidden",
         ...Shadows.lg,
     },
@@ -462,23 +463,23 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     totalIconWrap: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: moderateScale(56),
+        height: moderateScale(56),
+        borderRadius: moderateScale(28),
         backgroundColor: "rgba(255,255,255,0.2)",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: Spacing.lg,
+        marginRight: moderateScale(Spacing.lg),
     },
     totalLabel: {
         color: "rgba(255,255,255,0.85)",
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         fontWeight: "600",
-        marginBottom: 4,
+        marginBottom: moderateVerticalScale(4),
     },
     totalValue: {
         color: "#fff",
-        fontSize: 28,
+        fontSize: moderateScale(28),
         fontWeight: "800",
         letterSpacing: -0.5,
     },
@@ -495,16 +496,16 @@ const styles = StyleSheet.create({
     // Section card
     sectionCard: {
         backgroundColor: "#fff",
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        marginBottom: Spacing.md,
+        borderRadius: moderateScale(BorderRadius.xl),
+        padding: moderateScale(Spacing.lg),
+        marginBottom: moderateVerticalScale(Spacing.md),
         ...Shadows.sm,
     },
     sectionCardTitle: {
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
         fontWeight: "700",
         color: Colors.text.primary,
-        marginBottom: Spacing.md,
+        marginBottom: moderateVerticalScale(Spacing.md),
     },
 
     // Chips
@@ -539,14 +540,14 @@ const styles = StyleSheet.create({
     // Table
     tableHeader: {
         flexDirection: "row",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: moderateVerticalScale(8),
+        paddingHorizontal: moderateScale(12),
         backgroundColor: "#F8FAFC",
-        borderRadius: BorderRadius.sm,
-        marginBottom: 4,
+        borderRadius: moderateScale(BorderRadius.sm),
+        marginBottom: moderateVerticalScale(4),
     },
     tableCell: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: moderateScale(Typography.fontSize.xs),
     },
     tableHeaderText: {
         fontWeight: "700",
@@ -557,39 +558,39 @@ const styles = StyleSheet.create({
     tableRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: BorderRadius.sm,
-        marginBottom: 2,
+        paddingVertical: moderateVerticalScale(10),
+        paddingHorizontal: moderateScale(12),
+        borderRadius: moderateScale(BorderRadius.sm),
+        marginBottom: moderateVerticalScale(2),
     },
     codeCell: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: moderateScale(8),
     },
     codeBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateVerticalScale(4),
+        borderRadius: moderateScale(6),
     },
     codeBadgeText: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         fontWeight: "700",
     },
     userText: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         color: Colors.text.secondary,
     },
     amountText: {
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
         fontWeight: "700",
         color: Colors.text.primary,
     },
     percentText: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: moderateScale(Typography.fontSize.xs),
         color: Colors.text.tertiary,
-        marginTop: 2,
+        marginTop: moderateVerticalScale(2),
     },
     tableTotalRow: {
         flexDirection: "row",
@@ -597,18 +598,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderTopWidth: 1,
         borderTopColor: "#EEF2FF",
-        marginTop: 8,
-        paddingTop: 12,
+        marginTop: moderateVerticalScale(8),
+        paddingTop: moderateVerticalScale(12),
     },
     tableTotalLabel: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         fontWeight: "700",
         color: Colors.text.secondary,
         textTransform: "uppercase",
         letterSpacing: 0.5,
     },
     tableTotalValue: {
-        fontSize: Typography.fontSize.lg,
+        fontSize: moderateScale(Typography.fontSize.lg),
         fontWeight: "800",
         color: Colors.primary.main,
     },
@@ -618,21 +619,21 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: Spacing.md,
+        marginBottom: moderateVerticalScale(Spacing.md),
     },
     groupBadge: {
         backgroundColor: "#ECFDF5",
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 20,
+        paddingHorizontal: moderateScale(14),
+        paddingVertical: moderateVerticalScale(6),
+        borderRadius: moderateScale(20),
     },
     groupBadgeText: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         fontWeight: "700",
         color: "#059669",
     },
     groupTotal: {
-        fontSize: Typography.fontSize.lg,
+        fontSize: moderateScale(Typography.fontSize.lg),
         fontWeight: "800",
         color: "#059669",
     },

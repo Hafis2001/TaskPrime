@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const EVENT_LOG_API_URL = "https://taskprime.app/api/get-eventlog/";
@@ -147,9 +148,9 @@ export default function EventLogScreen() {
                     <View>
                         <Text style={styles.userName}>{item.uid}</Text>
                         <View style={styles.dateTimeRow}>
-                            <Ionicons name="calendar-outline" size={12} color={Colors.text.tertiary} />
+                            <Ionicons name="calendar-outline" size={moderateScale(12)} color={Colors.text.tertiary} />
                             <Text style={styles.dateTimeText}>{formatDate(item.edate)}</Text>
-                            <Ionicons name="time-outline" size={12} color={Colors.text.tertiary} style={{ marginLeft: 8 }} />
+                            <Ionicons name="time-outline" size={moderateScale(12)} color={Colors.text.tertiary} style={{ marginLeft: moderateScale(8) }} />
                             <Text style={styles.dateTimeText}>{item.etime}</Text>
                         </View>
                     </View>
@@ -160,7 +161,7 @@ export default function EventLogScreen() {
 
             <View style={styles.cardContent}>
                 <View style={styles.eventDescriptionBox}>
-                    <Ionicons name="information-circle-outline" size={18} color={Colors.primary.main} style={styles.eventIcon} />
+                    <Ionicons name="information-circle-outline" size={moderateScale(18)} color={Colors.primary.main} style={styles.eventIcon} />
                     <Text style={styles.eventDescription}>{item.sevent.trim()}</Text>
                 </View>
             </View>
@@ -180,13 +181,13 @@ export default function EventLogScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="Event Log"
-                leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             <View style={styles.content}>
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search-outline" size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search events or users..."
@@ -197,7 +198,7 @@ export default function EventLogScreen() {
                     {searchQuery !== "" && (
                         <Ionicons
                             name="close-circle"
-                            size={20}
+                            size={moderateScale(20)}
                             color={Colors.text.disabled}
                             onPress={() => handleSearch("")}
                         />
@@ -211,7 +212,7 @@ export default function EventLogScreen() {
                     </View>
                 ) : filteredData.length === 0 ? (
                     <View style={styles.centered}>
-                        <Ionicons name="list-outline" size={64} color={Colors.text.disabled} />
+                        <Ionicons name="list-outline" size={moderateScale(64)} color={Colors.text.disabled} />
                         <Text style={styles.emptyText}>No events found.</Text>
                     </View>
                 ) : (
@@ -237,30 +238,30 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background.secondary,
     },
     content: {
-        flex: 1,
-        padding: Spacing.base,
-    },
+    flex: 1,
+    padding: moderateScale(Spacing.base),
+  },
     searchContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.background.primary,
-        borderRadius: BorderRadius.lg,
-        paddingHorizontal: Spacing.md,
-        marginBottom: Spacing.md,
-        height: 52,
-        borderWidth: 1,
-        borderColor: Colors.border.light,
-        ...Shadows.sm,
-    },
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background.primary,
+    borderRadius: moderateScale(BorderRadius.lg),
+    paddingHorizontal: moderateScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    height: verticalScale(52),
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    ...Shadows.sm,
+  },
     searchIcon: {
         marginRight: Spacing.sm,
     },
     searchInput: {
-        flex: 1,
-        fontSize: Typography.fontSize.base,
-        color: Colors.text.primary,
-        fontWeight: "500",
-    },
+    flex: 1,
+    fontSize: moderateScale(Typography.fontSize.base),
+    color: Colors.text.primary,
+    fontWeight: "500",
+  },
     eventCard: {
         marginBottom: Spacing.md,
         padding: Spacing.md,
@@ -277,31 +278,31 @@ const styles = StyleSheet.create({
         gap: Spacing.md,
     },
     avatarCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.primary.lightest,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: Colors.primary.light,
-    },
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.primary.light,
+  },
     avatarText: {
         color: Colors.primary.main,
         fontWeight: "bold",
         fontSize: Typography.fontSize.lg,
     },
     userName: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: "700",
-        color: Colors.text.primary,
-    },
+    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: "700",
+    color: Colors.text.primary,
+  },
     dateTimeRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 2,
-        gap: 4,
-    },
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: moderateVerticalScale(2),
+    gap: moderateScale(4),
+  },
     dateTimeText: {
         fontSize: 11,
         color: Colors.text.tertiary,
@@ -316,24 +317,24 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     eventDescriptionBox: {
-        flexDirection: "row",
-        backgroundColor: Colors.background.secondary,
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        borderLeftWidth: 4,
-        borderLeftColor: Colors.primary.main,
-    },
+    flexDirection: "row",
+    backgroundColor: Colors.background.secondary,
+    padding: moderateScale(Spacing.md),
+    borderRadius: moderateScale(BorderRadius.md),
+    borderLeftWidth: moderateScale(4),
+    borderLeftColor: Colors.primary.main,
+  },
     eventIcon: {
         marginTop: 2,
         marginRight: Spacing.sm,
     },
     eventDescription: {
-        flex: 1,
-        fontSize: Typography.fontSize.sm,
-        color: Colors.text.secondary,
-        lineHeight: 20,
-        fontWeight: "500",
-    },
+    flex: 1,
+    fontSize: moderateScale(Typography.fontSize.sm),
+    color: Colors.text.secondary,
+    lineHeight: moderateVerticalScale(20),
+    fontWeight: "500",
+  },
     centered: {
         flex: 1,
         justifyContent: "center",

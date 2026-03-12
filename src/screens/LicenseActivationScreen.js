@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
-import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
+import { BorderRadius, Colors, Spacing, Typography, Shadows } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale } from "../utils/Responsive";
 
 export default function LicenseActivationScreen({ onActivationSuccess, onCancel, isAddingNew }) {
   const [licenseKey, setLicenseKey] = useState("");
@@ -222,8 +223,6 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
               max_devices: demo.demo_login_limit
             }
           };
-          // Note: Demo response doesn't show registered_devices list usually, 
-          // so we rely on registration API if not found.
         }
       }
 
@@ -232,6 +231,26 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
         setLoading(false);
         return;
       }
+
+      // --- Conflict Check Start ---
+      const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+      let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+      
+      const targetClientId = (customer.client_id || "").toString().trim().toUpperCase();
+      const existingConflict = licenses.find(l => 
+        (l.clientId || "").toString().trim().toUpperCase() === targetClientId &&
+        l.licenseKey.toUpperCase() !== inputKey // Allow re-adding/refreshing the SAME license key
+      );
+
+      if (existingConflict) {
+        Alert.alert(
+          "Already Registered",
+          `A license is already registered for this client ID (${targetClientId}) under "${existingConflict.customerName}".\n\nPlease remove the existing license before adding a new one for this shop.`
+        );
+        setLoading(false);
+        return;
+      }
+      // --- Conflict Check End ---
 
       if (customer.registered_devices?.some(d => d.device_id === deviceId)) {
         const newLicense = {
@@ -396,18 +415,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
-    padding: Spacing['2xl'],
+    padding: moderateScale(Spacing['2xl']),
   },
 
   logoContainer: {
     alignItems: "center",
-    marginBottom: Spacing['2xl'],
+    marginBottom: moderateVerticalScale(Spacing['2xl']),
   },
 
   logoCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: moderateScale(140),
+    height: moderateScale(140),
+    borderRadius: moderateScale(70),
     backgroundColor: Colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -419,83 +438,83 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 120,
-    height: 80,
+    width: moderateScale(120),
+    height: moderateScale(80),
   },
 
   title: {
-    fontSize: Typography.fontSize['3xl'],
+    fontSize: moderateScale(Typography.fontSize['3xl']),
     fontWeight: Typography.fontWeight.bold,
     color: Colors.dark.main,
     textAlign: "center",
-    marginBottom: Spacing.sm,
+    marginBottom: moderateVerticalScale(Spacing.sm),
   },
 
   subtitle: {
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     color: Colors.text.secondary,
     textAlign: "center",
-    marginBottom: Spacing['2xl'],
-    paddingHorizontal: Spacing.base,
+    marginBottom: moderateVerticalScale(Spacing['2xl']),
+    paddingHorizontal: moderateScale(Spacing.base),
   },
 
   infoBox: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    padding: Spacing.base,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.xl,
+    padding: moderateScale(Spacing.base),
+    borderRadius: moderateScale(BorderRadius.md),
+    marginBottom: moderateVerticalScale(Spacing.xl),
     borderWidth: 1,
     borderColor: 'rgba(255, 102, 0, 0.2)',
   },
 
   infoRow: {
-    marginBottom: Spacing.sm,
+    marginBottom: moderateVerticalScale(Spacing.sm),
   },
 
   infoLabel: {
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: moderateScale(Typography.fontSize.xs),
+    fontWeight: Typography.fontWeight.bold,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: moderateVerticalScale(4),
   },
 
   infoValue: {
     color: Colors.dark.main,
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     fontWeight: Typography.fontWeight.medium,
   },
 
   inputContainer: {
-    marginBottom: Spacing.xl,
+    marginBottom: moderateVerticalScale(Spacing.xl),
   },
 
   button: {
-    marginBottom: Spacing.md,
+    marginBottom: moderateVerticalScale(Spacing.md),
   },
 
   cancelButton: {
-    padding: Spacing.md,
+    padding: moderateScale(Spacing.md),
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: moderateVerticalScale(Spacing.lg),
   },
 
   cancelButtonText: {
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: '600',
   },
 
   loadingText: {
-    marginTop: Spacing.base,
+    marginTop: moderateVerticalScale(Spacing.base),
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
   },
 
   footerText: {
     textAlign: 'center',
     color: Colors.text.tertiary,
-    fontSize: Typography.fontSize.sm,
-    marginTop: Spacing.base,
+    fontSize: moderateScale(Typography.fontSize.sm),
+    marginTop: moderateVerticalScale(Spacing.base),
   },
 });

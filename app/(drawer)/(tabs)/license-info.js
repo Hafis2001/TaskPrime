@@ -16,8 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernButton from "../../../components/ui/ModernButton";
 import ModernCard from "../../../components/ui/ModernCard";
 import ModernHeader from "../../../components/ui/ModernHeader";
-import { BorderRadius, Colors, Spacing, Typography } from "../../../constants/modernTheme";
-import { Screen } from "../../../src/utils/Responsive";
+import { BorderRadius, Colors, Spacing, Typography, Shadows } from "../../../constants/modernTheme";
+import { Screen, moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../../src/utils/Responsive";
 
 export default function LicenseInfoScreen() {
     const router = useRouter();
@@ -129,7 +129,7 @@ export default function LicenseInfoScreen() {
     const InfoRow = ({ label, value, icon }) => (
         <View style={styles.infoRow}>
             <View style={styles.labelContainer}>
-                {icon && <Ionicons name={icon} size={16} color={Colors.primary.main} style={styles.rowIcon} />}
+                {icon && <Ionicons name={icon} size={moderateScale(16)} color={Colors.primary.main} style={styles.rowIcon} />}
                 <Text style={styles.label}>{label}</Text>
             </View>
             <Text style={styles.value} numberOfLines={1} ellipsizeMode="middle">{value}</Text>
@@ -140,7 +140,7 @@ export default function LicenseInfoScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="License Info"
-                leftIcon={<Ionicons name="menu-outline" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="menu-outline" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => navigation.toggleDrawer()}
             />
 
@@ -149,8 +149,8 @@ export default function LicenseInfoScreen() {
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        paddingBottom: insets.bottom + Spacing.xl,
-                        width: Screen.isTablet ? 600 : '100%',
+                        paddingBottom: insets.bottom + moderateVerticalScale(Spacing.xl),
+                        width: Screen.isTablet ? moderateScale(600) : '100%',
                         alignSelf: 'center',
                     }
                 ]}
@@ -160,7 +160,7 @@ export default function LicenseInfoScreen() {
                     <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
                             <View style={styles.iconContainer}>
-                                <Ionicons name="shield-checkmark" size={28} color={Colors.primary.main} />
+                                <Ionicons name="shield-checkmark" size={moderateScale(28)} color={Colors.primary.main} />
                             </View>
                             <View>
                                 <Text style={styles.cardTitle}>Active License</Text>
@@ -184,7 +184,7 @@ export default function LicenseInfoScreen() {
                         loading={loading}
                         disabled={loading}
                         variant="danger"
-                        icon={<Ionicons name="log-out-outline" size={20} color="#fff" />}
+                        icon={<Ionicons name="log-out-outline" size={moderateScale(20)} color="#fff" />}
                     />
                     <Text style={styles.warningText}>
                         Removing license will deactivate this device.
@@ -201,11 +201,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background.secondary
     },
     scrollContent: {
-        padding: Spacing.lg
+        padding: moderateScale(Spacing.lg)
     },
     mainCard: {
         padding: 0,
-        marginBottom: Spacing.xl,
+        marginBottom: moderateVerticalScale(Spacing.xl),
         backgroundColor: Colors.background.primary,
         borderRadius: BorderRadius.lg,
         overflow: 'hidden',
@@ -213,39 +213,39 @@ const styles = StyleSheet.create({
         borderColor: Colors.border.light,
     },
     cardContent: {
-        padding: Spacing.xl,
+        padding: moderateScale(Spacing.xl),
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.lg
+        marginBottom: moderateVerticalScale(Spacing.lg)
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: moderateScale(48),
+        height: moderateScale(48),
+        borderRadius: moderateScale(24),
         backgroundColor: Colors.primary.lightest,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.md,
+        marginRight: moderateScale(Spacing.md),
     },
     cardTitle: {
-        fontSize: Typography.fontSize.xl,
+        fontSize: moderateScale(Typography.fontSize.xl),
         fontWeight: Typography.fontWeight.bold,
         color: Colors.dark.main
     },
     cardSubtitle: {
-        fontSize: Typography.fontSize.sm,
+        fontSize: moderateScale(Typography.fontSize.sm),
         color: Colors.success.main,
         fontWeight: Typography.fontWeight.medium,
     },
     divider: {
         height: 1,
         backgroundColor: Colors.border.light,
-        marginBottom: Spacing.lg,
+        marginBottom: moderateVerticalScale(Spacing.lg),
     },
     infoRow: {
-        marginBottom: Spacing.lg
+        marginBottom: moderateVerticalScale(Spacing.lg)
     },
     labelContainer: {
         flexDirection: 'row',
@@ -253,27 +253,27 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     rowIcon: {
-        marginRight: Spacing.xs,
+        marginRight: moderateScale(Spacing.xs),
     },
     label: {
-        fontSize: Typography.fontSize.xs,
+        fontSize: moderateScale(Typography.fontSize.xs),
         color: Colors.text.tertiary,
         textTransform: 'uppercase',
         fontWeight: Typography.fontWeight.bold,
         letterSpacing: 0.5,
     },
     value: {
-        fontSize: Typography.fontSize.base,
+        fontSize: moderateScale(Typography.fontSize.base),
         color: Colors.text.primary,
         fontWeight: Typography.fontWeight.semibold
     },
     actionsContainer: {
-        paddingHorizontal: Spacing.md,
+        paddingHorizontal: moderateScale(Spacing.md),
     },
     warningText: {
         textAlign: 'center',
         color: Colors.text.tertiary,
-        fontSize: Typography.fontSize.xs,
-        marginTop: Spacing.md,
+        fontSize: moderateScale(Typography.fontSize.xs),
+        marginTop: moderateVerticalScale(Spacing.md),
     },
 });

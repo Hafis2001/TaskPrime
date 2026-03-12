@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
-import { Screen } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const PDC_API_URL = "https://taskprime.app/api/get-pdc/";
@@ -168,10 +168,10 @@ export default function PDCReportScreen() {
     const renderPDCItem = ({ item }) => (
         <ModernCard style={styles.pdcCard} elevated={true}>
             <View style={styles.cardHeader}>
-                <View style={[styles.iconCircle, { backgroundColor: item.status === 'I' ? Colors.success.lightest : Colors.primary.lightest }]}>
+                <View style={[styles.iconCircle, { width: moderateScale(48), height: moderateScale(48), borderRadius: moderateScale(24), backgroundColor: item.status === 'I' ? Colors.success.lightest : Colors.primary.lightest }]}>
                     <Ionicons
                         name={item.status === 'I' ? "arrow-down-circle-outline" : "arrow-up-circle-outline"}
-                        size={24}
+                        size={moderateScale(24)}
                         color={item.status === 'I' ? Colors.success.main : Colors.primary.main}
                     />
                 </View>
@@ -190,14 +190,14 @@ export default function PDCReportScreen() {
             <View style={styles.cardContent}>
                 <View style={styles.dateRow}>
                     <View style={styles.dateItem}>
-                        <Ionicons name="calendar-outline" size={14} color={Colors.text.tertiary} style={{ marginRight: 4 }} />
+                        <Ionicons name="calendar-outline" size={moderateScale(14)} color={Colors.text.tertiary} style={{ marginRight: moderateScale(4) }} />
                         <View>
                             <Text style={styles.dateLabel}>Cheque Date</Text>
                             <Text style={styles.dateValue}>{formatDate(item.chequedate)}</Text>
                         </View>
                     </View>
                     <View style={styles.dateItem}>
-                        <Ionicons name="today-outline" size={14} color={Colors.text.tertiary} style={{ marginRight: 4 }} />
+                        <Ionicons name="today-outline" size={moderateScale(14)} color={Colors.text.tertiary} style={{ marginRight: moderateScale(4) }} />
                         <View>
                             <Text style={styles.dateLabel}>Collection Date</Text>
                             <Text style={styles.dateValue}>{formatDate(item.colndate)}</Text>
@@ -223,7 +223,7 @@ export default function PDCReportScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="PDC Report"
-                leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
@@ -235,7 +235,7 @@ export default function PDCReportScreen() {
                         onPress={() => handleTabChange('I')}
                         activeOpacity={0.8}
                     >
-                        <Ionicons name="download-outline" size={18} color={activeTab === 'I' ? '#fff' : Colors.text.secondary} />
+                        <Ionicons name="download-outline" size={moderateScale(18)} color={activeTab === 'I' ? '#fff' : Colors.text.secondary} />
                         <Text style={[styles.tabText, activeTab === 'I' && styles.activeTabText]}>Incoming</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -243,13 +243,13 @@ export default function PDCReportScreen() {
                         onPress={() => handleTabChange('O')}
                         activeOpacity={0.8}
                     >
-                        <Ionicons name="paper-plane-outline" size={18} color={activeTab === 'O' ? '#fff' : Colors.text.secondary} />
+                        <Ionicons name="paper-plane-outline" size={moderateScale(18)} color={activeTab === 'O' ? '#fff' : Colors.text.secondary} />
                         <Text style={[styles.tabText, activeTab === 'O' && styles.activeTabText]}>Outgoing</Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search-outline" size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search party or cheque no..."
@@ -260,7 +260,7 @@ export default function PDCReportScreen() {
                     {searchQuery !== "" && (
                         <Ionicons
                             name="close-circle"
-                            size={18}
+                            size={moderateScale(18)}
                             color={Colors.text.disabled}
                             onPress={() => handleSearch("")}
                         />
@@ -274,7 +274,7 @@ export default function PDCReportScreen() {
                     </View>
                 ) : filteredData.length === 0 ? (
                     <View style={styles.centered}>
-                        <Ionicons name="document-text-outline" size={64} color={Colors.text.disabled} />
+                        <Ionicons name="document-text-outline" size={moderateScale(64)} color={Colors.text.disabled} />
                         <Text style={styles.emptyText}>No {activeTab === 'I' ? 'Incoming' : 'Outgoing'} records found.</Text>
                     </View>
                 ) : (
@@ -310,58 +310,58 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background.secondary,
     },
     content: {
-        flex: 1,
-        padding: Spacing.base,
-    },
+    flex: 1,
+    padding: moderateScale(Spacing.base),
+  },
     tabContainer: {
-        flexDirection: 'row',
-        backgroundColor: Colors.background.primary,
-        borderRadius: BorderRadius.lg,
-        padding: 4,
-        marginBottom: Spacing.md,
-        ...Shadows.xs,
-    },
+    flexDirection: 'row',
+    backgroundColor: Colors.background.primary,
+    borderRadius: moderateScale(BorderRadius.lg),
+    padding: moderateScale(4),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    ...Shadows.xs,
+  },
     tab: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: BorderRadius.md,
-        gap: 8,
-    },
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: moderateVerticalScale(10),
+    borderRadius: moderateScale(BorderRadius.md),
+    gap: moderateScale(8),
+  },
     activeTab: {
         backgroundColor: Colors.primary.main,
         ...Shadows.sm,
     },
     tabText: {
-        fontSize: Typography.fontSize.sm,
-        fontWeight: '700',
-        color: Colors.text.secondary,
-    },
+    fontSize: moderateScale(Typography.fontSize.sm),
+    fontWeight: '700',
+    color: Colors.text.secondary,
+  },
     activeTabText: {
         color: '#fff',
     },
     searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.background.primary,
-        borderRadius: BorderRadius.md,
-        paddingHorizontal: Spacing.md,
-        marginBottom: Spacing.md,
-        height: 50,
-        borderWidth: 1,
-        borderColor: Colors.border.light,
-        ...Shadows.xs,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderRadius: moderateScale(BorderRadius.md),
+    paddingHorizontal: moderateScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    height: verticalScale(50),
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    ...Shadows.xs,
+  },
     searchIcon: {
         marginRight: Spacing.sm,
     },
     searchInput: {
-        flex: 1,
-        fontSize: Typography.fontSize.base,
-        color: Colors.text.primary,
-    },
+    flex: 1,
+    fontSize: moderateScale(Typography.fontSize.base),
+    color: Colors.text.primary,
+  },
     pdcCard: {
         marginBottom: Spacing.md,
         padding: Spacing.md,
@@ -376,41 +376,41 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     iconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: Spacing.md,
-    },
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(24),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(Spacing.md),
+  },
     partyInfo: {
         flex: 1,
     },
     partyName: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: '800',
-        color: Colors.text.primary,
-    },
-    chequeNum: {
-        fontSize: Typography.fontSize.xs,
-        color: Colors.text.secondary,
-        marginTop: 2,
-    },
+    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: '800',
+    color: Colors.text.primary,
+  },
+  chequeNum: {
+    fontSize: moderateScale(Typography.fontSize.xs),
+    color: Colors.text.secondary,
+    marginTop: moderateVerticalScale(2),
+  },
     amountBox: {
         alignItems: 'flex-end',
     },
     amountLabel: {
-        fontSize: 10,
-        color: Colors.text.tertiary,
-        textTransform: 'uppercase',
-        fontWeight: '600',
-    },
-    amountValue: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: '800',
-        color: Colors.primary.main,
-        marginTop: 2,
-    },
+    fontSize: moderateScale(10),
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  amountValue: {
+    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: '800',
+    color: Colors.primary.main,
+    marginTop: moderateVerticalScale(2),
+  },
     divider: {
         height: 1,
         backgroundColor: Colors.border.light,
@@ -429,17 +429,17 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     dateLabel: {
-        fontSize: 10,
-        color: Colors.text.tertiary,
-        textTransform: 'uppercase',
-        fontWeight: '600',
-    },
-    dateValue: {
-        fontSize: Typography.fontSize.sm,
-        color: Colors.text.primary,
-        fontWeight: '700',
-        marginTop: 2,
-    },
+    fontSize: moderateScale(10),
+    color: Colors.text.tertiary,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  dateValue: {
+    fontSize: moderateScale(Typography.fontSize.sm),
+    color: Colors.text.primary,
+    fontWeight: '700',
+    marginTop: moderateVerticalScale(2),
+  },
     statusFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',

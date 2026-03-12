@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
-import { Screen } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const STOCK_API_URL = "https://taskprime.app/api/get-stock-report/";
@@ -175,7 +175,7 @@ export default function StockReportScreen() {
         <ModernCard style={styles.stockCard} elevated={true}>
             <View style={styles.cardHeader}>
                 <View style={styles.iconCircle}>
-                    <Ionicons name="cube-outline" size={20} color={Colors.primary.main} />
+                    <Ionicons name="cube-outline" size={moderateScale(20)} color={Colors.primary.main} />
                 </View>
                 <View style={styles.productInfo}>
                     <Text style={styles.productName}>{item.name}</Text>
@@ -224,13 +224,13 @@ export default function StockReportScreen() {
         <View style={styles.container}>
             <ModernHeader
                 title="Stock Report"
-                leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+                leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
                 onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             <View style={styles.content}>
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search-outline" size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search products..."
@@ -244,7 +244,7 @@ export default function StockReportScreen() {
                     {searchQuery !== "" && (
                         <Ionicons
                             name="close-circle"
-                            size={18}
+                            size={moderateScale(18)}
                             color={Colors.text.disabled}
                             onPress={() => {
                                 setSearchQuery("");
@@ -258,7 +258,7 @@ export default function StockReportScreen() {
                         onPress={toggleStockFilter}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="funnel-outline" size={16} color={showStockOnly ? "#fff" : Colors.primary.main} />
+                        <Ionicons name="funnel-outline" size={moderateScale(16)} color={showStockOnly ? "#fff" : Colors.primary.main} />
                         <Text style={[styles.filterBtnText, showStockOnly && styles.filterBtnTextActive]}>Stock Only</Text>
                     </TouchableOpacity>
                 </View>
@@ -283,7 +283,7 @@ export default function StockReportScreen() {
                     </View>
                 ) : filteredData.length === 0 ? (
                     <View style={styles.centered}>
-                        <Ionicons name="cube-outline" size={64} color={Colors.text.disabled} />
+                        <Ionicons name="cube-outline" size={moderateScale(64)} color={Colors.text.disabled} />
                         <Text style={styles.emptyText}>No products found.</Text>
                     </View>
                 ) : (
@@ -315,30 +315,30 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background.secondary,
     },
     content: {
-        flex: 1,
-        padding: Spacing.base,
-    },
+    flex: 1,
+    padding: moderateScale(Spacing.base),
+  },
     searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.background.primary,
-        borderRadius: BorderRadius.md,
-        paddingHorizontal: Spacing.md,
-        marginBottom: Spacing.md,
-        height: 50,
-        borderWidth: 1,
-        borderColor: Colors.border.light,
-        ...Shadows.xs,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderRadius: moderateScale(BorderRadius.md),
+    paddingHorizontal: moderateScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    height: verticalScale(50),
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    ...Shadows.xs,
+  },
     filterBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.primary.lightest,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
-        borderRadius: BorderRadius.sm,
-        gap: 4,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary.lightest,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateVerticalScale(6),
+    borderRadius: moderateScale(BorderRadius.sm),
+    gap: moderateScale(4),
+  },
     filterBtnActive: {
         backgroundColor: Colors.primary.main,
     },
@@ -374,16 +374,16 @@ const styles = StyleSheet.create({
         ...Shadows.xs,
     },
     statsLabel: {
-        fontSize: Typography.fontSize.xs,
-        color: Colors.text.secondary,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    statsValue: {
-        fontSize: Typography.fontSize.xl,
-        fontWeight: '800',
-        color: Colors.dark.main,
-    },
+    fontSize: moderateScale(Typography.fontSize.xs),
+    color: Colors.text.secondary,
+    fontWeight: '700',
+    marginBottom: moderateVerticalScale(4),
+  },
+  statsValue: {
+    fontSize: moderateScale(Typography.fontSize.xl),
+    fontWeight: '800',
+    color: Colors.dark.main,
+  },
     stockCard: {
         marginBottom: Spacing.md,
         padding: Spacing.md,
@@ -398,27 +398,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     iconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.primary.lightest,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: Spacing.md,
-    },
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(22),
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: moderateScale(Spacing.md),
+  },
     productInfo: {
         flex: 1,
     },
     productName: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: '700',
-        color: Colors.text.primary,
-    },
-    productCode: {
-        fontSize: Typography.fontSize.xs,
-        color: Colors.text.secondary,
-        marginTop: 2,
-    },
+    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  productCode: {
+    fontSize: moderateScale(Typography.fontSize.xs),
+    color: Colors.text.secondary,
+    marginTop: moderateVerticalScale(2),
+  },
     badge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -473,32 +473,32 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     priceLabel: {
-        fontSize: 10,
-        color: Colors.text.tertiary,
-        marginBottom: 2,
-    },
-    bmrpValue: {
-        fontSize: Typography.fontSize.sm,
-        color: Colors.text.secondary,
-        // textDecorationLine: 'line-through',
-    },
-    salesPriceValue: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: '700',
-        color: Colors.primary.main,
-    },
-    stockItem: {
-        minWidth: 60,
-    },
-    stockLabel: {
-        fontSize: 10,
-        color: Colors.text.tertiary,
-        marginBottom: 2,
-    },
-    stockValue: {
-        fontSize: Typography.fontSize.lg,
-        fontWeight: '800',
-    },
+    fontSize: moderateScale(10),
+    color: Colors.text.tertiary,
+    marginBottom: moderateVerticalScale(2),
+  },
+  bmrpValue: {
+    fontSize: moderateScale(Typography.fontSize.sm),
+    color: Colors.text.secondary,
+    // textDecorationLine: 'line-through',
+  },
+  salesPriceValue: {
+    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: '700',
+    color: Colors.primary.main,
+  },
+  stockItem: {
+    minWidth: moderateScale(60),
+  },
+  stockLabel: {
+    fontSize: moderateScale(10),
+    color: Colors.text.tertiary,
+    marginBottom: moderateVerticalScale(2),
+  },
+  stockValue: {
+    fontSize: moderateScale(Typography.fontSize.lg),
+    fontWeight: '800',
+  },
     centered: {
         flex: 1,
         justifyContent: 'center',

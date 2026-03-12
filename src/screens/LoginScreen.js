@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -20,8 +21,8 @@ import {
 } from "react-native";
 import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
-import { BorderRadius, Colors, Spacing, Typography } from "../../constants/modernTheme";
-import { moderateScale, Screen } from "../../src/utils/Responsive";
+import { BorderRadius, Colors, Spacing, Typography, Shadows } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../utils/useLicenseModules";
 
 export default function LoginScreen({ onAddLicense }) {
@@ -38,6 +39,7 @@ export default function LoginScreen({ onAddLicense }) {
   const [slideAnim] = useState(new Animated.Value(30));
   const [shops, setShops] = useState([]);
   const [showShopModal, setShowShopModal] = useState(false);
+  const [shopModalTab, setShopModalTab] = useState("switch"); // "switch", "add", "remove"
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -240,6 +242,78 @@ export default function LoginScreen({ onAddLicense }) {
     }
   };
 
+  const handleRemoveShop = async (shop) => {
+    Alert.alert(
+      "Remove Shop",
+      `Are you sure you want to remove ${shop.customerName}? This will deactivate this device for this license locally.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const LOGOUT_API = "https://activate.imcbs.com/mobileapp/api/project/taskprime/logout/";
+
+              // 1. API Call
+              try {
+                await fetch(LOGOUT_API, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    license_key: shop.licenseKey,
+                    device_id: shop.deviceId
+                  })
+                });
+              } catch (e) {
+                console.warn("Logout API failed, continuing local cleanup", e);
+              }
+
+              // 2. SecureStore cleanup
+              if (shop.clientId) {
+                const safeId = String(shop.clientId).trim().toUpperCase();
+                await SecureStore.deleteItemAsync(`savedUsername_${safeId}`).catch(() => { });
+                await SecureStore.deleteItemAsync(`savedPassword_${safeId}`).catch(() => { });
+              }
+
+              // 3. Update knownLicenses
+              const storedLicenses = await AsyncStorage.getItem("knownLicenses");
+              let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
+              const updatedLicenses = licenses.filter(l => l.licenseKey !== shop.licenseKey);
+              await AsyncStorage.setItem("knownLicenses", JSON.stringify(updatedLicenses));
+              setShops(updatedLicenses);
+
+              // 4. If current active shop, clear it
+              if (shop.clientId === clientId) {
+                await AsyncStorage.multiRemove([
+                  "licenseActivated",
+                  "licenseKey",
+                  "deviceId",
+                  "customerName",
+                  "clientId",
+                  "user",
+                  "authToken",
+                  "loginTimestamp"
+                ]);
+                setClientId("");
+                setCustomerName("");
+                Alert.alert("Shop Removed", "Active shop removed. You need to add a license or select another shop.");
+              } else {
+                Alert.alert("Shop Removed", "Shop removed successfully.");
+              }
+            } catch (error) {
+              console.error("Error removing shop", error);
+              Alert.alert("Error", "Failed to remove shop.");
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleSwitchShop = async (shop) => {
     try {
       await AsyncStorage.setItem("licenseKey", shop.licenseKey);
@@ -256,26 +330,39 @@ export default function LoginScreen({ onAddLicense }) {
   };
 
   const renderShopItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.shopItem,
-        item.clientId === clientId && styles.activeShopItem
-      ]}
-      onPress={() => handleSwitchShop(item)}
-    >
-      <View>
-        <Text style={[
-          styles.shopItemName,
-          item.clientId === clientId && styles.activeShopItemText
-        ]}>
-          {item.customerName}
-        </Text>
-        <Text style={styles.shopItemSub}>ID: {item.clientId}</Text>
-      </View>
-      {item.clientId === clientId && (
-        <View style={styles.activeIndicator} />
+    <View style={styles.shopItemContainer}>
+      <TouchableOpacity
+        style={[
+          styles.shopItem,
+          item.clientId === clientId && styles.activeShopItem,
+          shopModalTab === "remove" && styles.removeModeShopItem
+        ]}
+        onPress={() => shopModalTab === "switch" && handleSwitchShop(item)}
+        disabled={shopModalTab === "remove"}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={[
+            styles.shopItemName,
+            item.clientId === clientId && styles.activeShopItemText
+          ]}>
+            {item.customerName}
+          </Text>
+          <Text style={styles.shopItemSub}>ID: {item.clientId}</Text>
+        </View>
+        {item.clientId === clientId && shopModalTab === "switch" && (
+          <View style={styles.activeIndicator} />
+        )}
+      </TouchableOpacity>
+      
+      {shopModalTab === "remove" && (
+        <TouchableOpacity 
+          style={styles.removeButton}
+          onPress={() => handleRemoveShop(item)}
+        >
+          <Ionicons name="trash-outline" size={20} color={Colors.error.main} />
+        </TouchableOpacity>
       )}
-    </TouchableOpacity>
+    </View>
   );
 
   if (initializing) {
@@ -385,16 +472,13 @@ export default function LoginScreen({ onAddLicense }) {
               <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => setShowShopModal(true)}
+                  onPress={() => {
+                    setShopModalTab("switch");
+                    setShowShopModal(true);
+                  }}
                 >
-                  <Text style={styles.actionButtonText}>Switch Shop</Text>
-                </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={onAddLicense}
-                >
-                  <Text style={styles.actionButtonText}>Add License</Text>
+                  <Ionicons name="business-outline" size={20} color={Colors.primary.main} style={{ marginRight: 6 }} />
+                  <Text style={styles.actionButtonText}>Shops</Text>
                 </TouchableOpacity>
               </View>
 
@@ -407,7 +491,7 @@ export default function LoginScreen({ onAddLicense }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Switch Shop Modal */}
+      {/* Shops Management Modal */}
       <Modal
         visible={showShopModal}
         transparent={true}
@@ -417,29 +501,73 @@ export default function LoginScreen({ onAddLicense }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Shop</Text>
+              <Text style={styles.modalTitle}>Shop Management</Text>
               <TouchableOpacity onPress={() => setShowShopModal(false)}>
-                <Text style={styles.closeButton}>Close</Text>
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
 
-            {shops.length > 0 ? (
-              <FlatList
-                data={shops}
-                keyExtractor={(item, index) => `${item.clientId}_${item.licenseKey}_${index}`}
-                renderItem={renderShopItem}
-                contentContainerStyle={styles.listContent}
-              />
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>No shops found</Text>
-                <TouchableOpacity onPress={() => {
-                  setShowShopModal(false);
-                  onAddLicense && onAddLicense();
-                }}>
-                  <Text style={styles.addShopLink}>Add a License</Text>
-                </TouchableOpacity>
+            {/* Tab Bar */}
+            <View style={styles.tabBar}>
+              <TouchableOpacity 
+                style={[styles.tab, shopModalTab === "switch" && styles.activeTab]}
+                onPress={() => setShopModalTab("switch")}
+              >
+                <Text style={[styles.tabText, shopModalTab === "switch" && styles.activeTabText]}>Switch</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, shopModalTab === "add" && styles.activeTab]}
+                onPress={() => setShopModalTab("add")}
+              >
+                <Text style={[styles.tabText, shopModalTab === "add" && styles.activeTabText]}>Add</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, shopModalTab === "remove" && styles.activeTab]}
+                onPress={() => setShopModalTab("remove")}
+              >
+                <Text style={[styles.tabText, shopModalTab === "remove" && styles.activeTabText]}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+
+            {shopModalTab === "add" ? (
+              <View style={styles.addTabContent}>
+                <View style={styles.addIconCircle}>
+                  <Ionicons name="add-circle-outline" size={60} color={Colors.primary.main} />
+                </View>
+                <Text style={styles.addTitle}>Add New Shop</Text>
+                <Text style={styles.addSubtitle}>
+                  Register a new license to access another shop's data on this device.
+                </Text>
+                <ModernButton
+                  title="Add License"
+                  onPress={() => {
+                    setShowShopModal(false);
+                    onAddLicense && onAddLicense();
+                  }}
+                  variant="primary"
+                  gradient
+                  style={{ width: '100%', marginTop: Spacing.xl }}
+                />
               </View>
+            ) : (
+              <>
+                {shops.length > 0 ? (
+                  <FlatList
+                    data={shops}
+                    keyExtractor={(item, index) => `${item.clientId}_${item.licenseKey}_${index}`}
+                    renderItem={renderShopItem}
+                    contentContainerStyle={styles.listContent}
+                  />
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="business-outline" size={64} color={Colors.text.tertiary} />
+                    <Text style={styles.emptyStateText}>No shops added yet</Text>
+                    <TouchableOpacity onPress={() => setShopModalTab("add")}>
+                      <Text style={styles.addShopLink}>Add your first shop</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -467,17 +595,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: Spacing.xl,
+    padding: moderateScale(Spacing.xl),
   },
 
   content: {
-    width: Screen.isTablet ? 450 : '100%',
+    width: Screen.isTablet ? moderateScale(450) : '100%',
     alignSelf: 'center',
   },
 
   logoContainer: {
     alignItems: "center",
-    marginBottom: Spacing['3xl'],
+    marginBottom: moderateVerticalScale(Spacing['3xl']),
   },
 
   logoCircle: {
@@ -496,27 +624,27 @@ const styles = StyleSheet.create({
   },
 
   logoImage: {
-    width: 100,
-    height: 70,
+    width: moderateScale(100),
+    height: moderateScale(70),
   },
 
   appName: {
-    fontSize: Typography.fontSize['3xl'],
+    fontSize: moderateScale(Typography.fontSize['3xl']),
     fontWeight: Typography.fontWeight.bold,
     color: Colors.dark.main,
-    marginBottom: Spacing.xs,
+    marginBottom: moderateVerticalScale(Spacing.xs),
   },
 
   tagline: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: Colors.text.secondary,
   },
 
   loginCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    paddingBottom: Spacing['2xl'],
+    borderRadius: moderateScale(BorderRadius.lg),
+    padding: moderateScale(Spacing.xl),
+    paddingBottom: moderateVerticalScale(Spacing['2xl']),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -526,38 +654,38 @@ const styles = StyleSheet.create({
 
   badgeContainer: {
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: moderateVerticalScale(Spacing.lg),
   },
 
   badge: {
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    minWidth: 200,
+    borderRadius: moderateScale(BorderRadius.xl),
+    paddingVertical: moderateVerticalScale(Spacing.md),
+    paddingHorizontal: moderateScale(Spacing.xl),
+    minWidth: moderateScale(200),
     alignItems: 'center',
   },
 
   badgeText: {
     color: Colors.text.inverse,
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: Typography.fontWeight.bold,
   },
 
   shopName: {
     textAlign: 'center',
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: '600',
     color: Colors.primary.main,
-    marginBottom: Spacing.md,
+    marginBottom: moderateVerticalScale(Spacing.md),
   },
 
   input: {
-    marginBottom: Spacing.base,
+    marginBottom: moderateVerticalScale(Spacing.base),
   },
 
   loginButton: {
-    marginTop: Spacing.base,
-    marginBottom: Spacing.lg,
+    marginTop: moderateVerticalScale(Spacing.base),
+    marginBottom: moderateVerticalScale(Spacing.lg),
   },
 
   actionRow: {
@@ -574,7 +702,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: Colors.primary.main,
     fontWeight: '600',
-    fontSize: Typography.fontSize.md,
+    fontSize: moderateScale(Typography.fontSize.md),
   },
 
   divider: {
@@ -587,8 +715,8 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: 'center',
     color: Colors.text.tertiary,
-    fontSize: Typography.fontSize.xs,
-    marginTop: Spacing.xl,
+    fontSize: moderateScale(Typography.fontSize.xs),
+    marginTop: moderateVerticalScale(Spacing.xl),
   },
 
   // Modal Styles
@@ -600,9 +728,9 @@ const styles = StyleSheet.create({
 
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: Spacing.xl,
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
+    padding: moderateScale(Spacing.xl),
     maxHeight: '70%',
   },
 
@@ -617,14 +745,14 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: moderateScale(Typography.fontSize.xl),
     fontWeight: 'bold',
     color: Colors.dark.main,
   },
 
   closeButton: {
     color: Colors.primary.main,
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: '600',
   },
 
@@ -632,13 +760,36 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
 
+  shopItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: moderateVerticalScale(Spacing.sm),
+  },
+
   shopItem: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    flex: 1,
+    padding: moderateScale(Spacing.md),
+    backgroundColor: Colors.background.primary,
+    borderRadius: moderateScale(BorderRadius.md),
+    borderWidth: 1,
+    borderColor: Colors.border.light,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+
+  removeModeShopItem: {
+    borderColor: Colors.error.light + '40',
+  },
+
+  removeButton: {
+    width: moderateScale(45),
+    height: moderateScale(45),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: moderateScale(Spacing.xs),
+    backgroundColor: Colors.error.light + '20',
+    borderRadius: moderateScale(BorderRadius.md),
   },
 
   activeShopItem: {
@@ -647,7 +798,7 @@ const styles = StyleSheet.create({
   },
 
   shopItemName: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: '600',
     color: Colors.dark.main,
   },
@@ -657,9 +808,9 @@ const styles = StyleSheet.create({
   },
 
   shopItemSub: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: moderateVerticalScale(2),
   },
 
   activeIndicator: {
@@ -669,19 +820,82 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.main,
   },
 
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: moderateScale(BorderRadius.md),
+    padding: 4,
+    marginBottom: moderateVerticalScale(Spacing.lg),
+  },
+
+  tab: {
+    flex: 1,
+    paddingVertical: moderateVerticalScale(8),
+    alignItems: 'center',
+    borderRadius: moderateScale(BorderRadius.sm),
+  },
+
+  activeTab: {
+    backgroundColor: Colors.background.primary,
+    ...Shadows.small,
+  },
+
+  tabText: {
+    fontSize: moderateScale(Typography.fontSize.sm),
+    color: Colors.text.tertiary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+
+  activeTabText: {
+    color: Colors.primary.main,
+    fontWeight: Typography.fontWeight.bold,
+  },
+
+  addTabContent: {
+    alignItems: 'center',
+    padding: moderateScale(Spacing.xl),
+  },
+
+  addIconCircle: {
+    width: moderateScale(100),
+    height: moderateScale(100),
+    borderRadius: moderateScale(50),
+    backgroundColor: Colors.primary.lightest,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: moderateVerticalScale(Spacing.lg),
+  },
+
+  addTitle: {
+    fontSize: moderateScale(Typography.fontSize.xl),
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.dark.main,
+    marginBottom: moderateVerticalScale(Spacing.sm),
+  },
+
+  addSubtitle: {
+    fontSize: moderateScale(Typography.fontSize.base),
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: moderateScale(22),
+  },
+
   emptyState: {
     alignItems: 'center',
-    padding: Spacing.xl,
+    padding: moderateScale(Spacing['3xl']),
   },
 
   emptyStateText: {
     color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    fontSize: moderateScale(Typography.fontSize.base),
+    marginTop: moderateVerticalScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.xs),
   },
 
   addShopLink: {
     color: Colors.primary.main,
     fontWeight: 'bold',
+    fontSize: moderateScale(Typography.fontSize.base),
   },
 });
 

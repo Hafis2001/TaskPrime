@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Animated, Image, StyleSheet } from "react-native";
 import LicenseActivationScreen from "../src/screens/LicenseActivationScreen";
 import LoginScreen from "../src/screens/LoginScreen";
+import { moderateScale } from "../src/utils/Responsive";
 
 SplashScreen.preventAutoHideAsync(); // Keep splash visible
 
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: moderateScale(200),
+    height: moderateScale(200),
   },
 });

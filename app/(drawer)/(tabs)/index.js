@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../../components/ui/ModernCard";
 import { Colors, Shadows } from "../../../constants/modernTheme";
-import { Screen } from "../../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../../src/utils/Responsive";
 import { useLicenseModules } from "../../../src/utils/useLicenseModules";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -53,11 +53,11 @@ const GraphBar = ({ height, color, label }) => {
 
 // ── Compact chart ─────────────────────────────────────────────────────────────
 const PerfectGraph = ({ data, color, loading, salesType }) => {
-    if (loading) return <ActivityIndicator size="small" color={color} style={{ height: 100 }} />;
+    if (loading) return <ActivityIndicator size="small" color={color} style={{ height: verticalScale(100) }} />;
     if (!data || data.length === 0) {
         return (
             <View style={[styles.chartContainer, styles.centered]}>
-                <Ionicons name="stats-chart-outline" size={26} color={Colors.text.disabled} />
+                <Ionicons name="stats-chart-outline" size={moderateScale(26)} color={Colors.text.disabled} />
                 <Text style={styles.emptyChartText}>No Data</Text>
             </View>
         );
@@ -68,7 +68,7 @@ const PerfectGraph = ({ data, color, loading, salesType }) => {
     const chartData = sortedData.slice(-10);
     const getValue = (d) => parseFloat(d.total_amount || 0);
     const maxVal = Math.max(...chartData.map(getValue), 1);
-    const chartHeight = 100;
+    const chartHeight = verticalScale(160);
 
     return (
         <View style={styles.chartContainer}>
@@ -221,7 +221,7 @@ export default function DashboardScreen() {
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={styles.menuBtn}>
-                        <Ionicons name="grid" size={18} color={Colors.primary.main} />
+                        <Ionicons name="grid" size={moderateScale(18)} color={Colors.primary.main} />
                     </TouchableOpacity>
                     <View>
                         <Text style={styles.headerTitle}>Overview</Text>
@@ -229,13 +229,13 @@ export default function DashboardScreen() {
                     </View>
                 </View>
                 <TouchableOpacity style={styles.notifBtn}>
-                    <Ionicons name="notifications-outline" size={20} color={Colors.text.primary} />
+                    <Ionicons name="notifications-outline" size={moderateScale(20)} color={Colors.text.primary} />
                     <View style={styles.notifDot} />
                 </TouchableOpacity>
             </View>
 
             {/* ── Flex body: fills ALL remaining space ── */}
-            <View style={[styles.body, { paddingBottom: insets.bottom + 8 }]}>
+            <View style={[styles.body, { paddingBottom: insets.bottom + moderateVerticalScale(8) }]}>
 
                 {/* ── Sales card + chart: biggest section ── */}
                 <ModernCard style={styles.salesCard} elevated>
@@ -245,7 +245,7 @@ export default function DashboardScreen() {
                                 {salesType === "DayWise" ? "Day-wise Sales" : "Month-wise Sales"}
                             </Text>
                             {(salesType === "DayWise" ? todayLoading : loading)
-                                ? <ActivityIndicator size="small" color={Colors.primary.main} style={{ marginTop: 4 }} />
+                                ? <ActivityIndicator size="small" color={Colors.primary.main} style={{ marginTop: moderateVerticalScale(4) }} />
                                 : <>
                                     <Text style={styles.salesTotal}>
                                         {salesType === "MonthWise"
@@ -263,7 +263,7 @@ export default function DashboardScreen() {
                             style={styles.toggleBtn}
                             onPress={() => setSalesType(salesType === "DayWise" ? "MonthWise" : "DayWise")}
                         >
-                            <Ionicons name="swap-horizontal" size={14} color={Colors.primary.main} />
+                            <Ionicons name="swap-horizontal" size={moderateScale(14)} color={Colors.primary.main} />
                             <Text style={styles.toggleText}>
                                 {salesType === "DayWise" ? "Monthly" : "Daily"}
                             </Text>
@@ -285,7 +285,7 @@ export default function DashboardScreen() {
                 </View>
 
                 <ModernCard style={styles.breakdownCard} elevated={false}>
-                    <ScrollView style={{ maxHeight: 310 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+                    <ScrollView style={{ maxHeight: verticalScale(310) }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
                         {breakdownItems.length === 0 && !loading ? (
                             <Text style={styles.emptyBreakdown}>No data available</Text>
                         ) : (
@@ -325,8 +325,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: moderateScale(16),
+        paddingVertical: moderateVerticalScale(10),
         backgroundColor: "#ffffff",
         borderBottomWidth: 1,
         borderBottomColor: "#F1F5F9",
@@ -334,42 +334,42 @@ const styles = StyleSheet.create({
     headerLeft: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: moderateScale(10),
     },
     menuBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: moderateScale(36),
+        height: moderateScale(36),
+        borderRadius: moderateScale(10),
         backgroundColor: Colors.primary.main + "15",
         justifyContent: "center",
         alignItems: "center",
     },
     headerTitle: {
-        fontSize: 17,
+        fontSize: moderateScale(17),
         fontWeight: "900",
         color: Colors.dark.main,
-        lineHeight: 20,
+        lineHeight: moderateVerticalScale(20),
     },
     headerSubtitle: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         color: Colors.text.tertiary,
-        lineHeight: 14,
+        lineHeight: moderateVerticalScale(14),
     },
     notifBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: moderateScale(36),
+        height: moderateScale(36),
+        borderRadius: moderateScale(10),
         backgroundColor: "#F0F4F8",
         justifyContent: "center",
         alignItems: "center",
     },
     notifDot: {
         position: "absolute",
-        top: 8,
-        right: 8,
-        width: 7,
-        height: 7,
-        borderRadius: 4,
+        top: moderateVerticalScale(8),
+        right: moderateScale(8),
+        width: moderateScale(7),
+        height: moderateScale(7),
+        borderRadius: moderateScale(4),
         backgroundColor: Colors.error.main,
         borderWidth: 1.5,
         borderColor: "#fff",
@@ -378,15 +378,15 @@ const styles = StyleSheet.create({
     // Flex body — replaces ScrollView
     body: {
         flex: 1,
-        padding: 12,
-        gap: 10,
+        padding: moderateScale(12),
+        gap: moderateVerticalScale(10),
     },
 
     // Sales card — grows to fill available vertical space
     salesCard: {
-        height: 260,
-        padding: 15,
-        borderRadius: 20,
+        minHeight: verticalScale(300),
+        padding: moderateScale(15),
+        borderRadius: moderateScale(20),
     },
 
     // Chart stretches inside the card
@@ -397,38 +397,38 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        marginBottom: 6,
+        marginBottom: moderateVerticalScale(6),
     },
     salesLabel: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontWeight: "700",
         color: Colors.text.secondary,
         textTransform: "uppercase",
         letterSpacing: 0.5,
     },
     salesTotal: {
-        fontSize: 30,
+        fontSize: moderateScale(30),
         fontWeight: "900",
         color: Colors.dark.main,
-        marginTop: 2,
+        marginTop: moderateVerticalScale(2),
     },
     salesCount: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontWeight: "600",
         color: Colors.text.secondary,
-        marginTop: 1,
+        marginTop: moderateVerticalScale(1),
     },
     toggleBtn: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
+        gap: moderateScale(4),
         backgroundColor: Colors.primary.main + "12",
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
+        paddingHorizontal: moderateScale(10),
+        paddingVertical: moderateVerticalScale(5),
+        borderRadius: moderateScale(8),
     },
     toggleText: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontWeight: "700",
         color: Colors.primary.main,
     },
@@ -457,13 +457,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     animatedBar: {
-        width: Screen.isTablet ? 18 : 10,
-        borderRadius: 5,
-        marginBottom: 6,
+        width: Screen.isTablet ? moderateScale(18) : moderateScale(10),
+        borderRadius: moderateScale(5),
+        marginBottom: moderateVerticalScale(6),
         overflow: "hidden",
     },
     barTop: {
-        height: 3,
+        height: verticalScale(3),
         width: "100%",
     },
     barGradient: {
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     axisLabel: {
-        fontSize: 9,
+        fontSize: moderateScale(9),
         color: Colors.text.tertiary,
         fontWeight: "700",
     },
@@ -480,9 +480,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     emptyChartText: {
-        marginTop: 4,
+        marginTop: moderateVerticalScale(4),
         color: Colors.text.disabled,
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontWeight: "700",
     },
 
@@ -490,24 +490,24 @@ const styles = StyleSheet.create({
     quickRow: {
         flexDirection: "row",
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 10,
+        borderRadius: moderateScale(16),
+        padding: moderateScale(10),
         justifyContent: "space-around",
         ...Shadows.sm,
     },
     quickItem: {
         alignItems: "center",
-        gap: 5,
+        gap: moderateVerticalScale(5),
     },
     quickIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 14,
+        width: moderateScale(56),
+        height: moderateScale(56),
+        borderRadius: moderateScale(14),
         justifyContent: "center",
         alignItems: "center",
     },
     quickLabel: {
-        fontSize: 12,
+        fontSize: moderateScale(12),
         fontWeight: "700",
         color: Colors.text.secondary,
     },
@@ -517,25 +517,25 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 2,
+        paddingHorizontal: moderateScale(2),
     },
     sectionHeader: {
-        fontSize: 10,
+        fontSize: moderateScale(10),
         fontWeight: "900",
         color: "#94A3B8",
         letterSpacing: 1.5,
     },
     seeAll: {
-        fontSize: 11,
+        fontSize: moderateScale(11),
         fontWeight: "700",
         color: Colors.primary.main,
     },
 
     // Breakdown card — grows to fill leftover space
     breakdownCard: {
-        height: 300,
+        height: verticalScale(260),
         padding: 0,
-        borderRadius: 16,
+        borderRadius: moderateScale(16),
         overflow: "hidden",
         backgroundColor: "#ffffff",
         ...Shadows.sm,
@@ -543,28 +543,28 @@ const styles = StyleSheet.create({
     breakdownRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        gap: 10,
+        paddingHorizontal: moderateScale(14),
+        paddingVertical: moderateVerticalScale(14),
+        gap: moderateScale(10),
     },
     breakdownBorder: {
         borderTopWidth: 1,
         borderTopColor: "#F1F5F9",
     },
     breakdownDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 4,
+        width: moderateScale(7),
+        height: moderateScale(7),
+        borderRadius: moderateScale(4),
         backgroundColor: Colors.primary.main + "80",
     },
     breakdownLabel: {
         flex: 1,
-        fontSize: 14,
+        fontSize: moderateScale(14),
         color: "#475569",
         fontWeight: "600",
     },
     breakdownValue: {
-        fontSize: 13,
+        fontSize: moderateScale(13),
         fontWeight: "800",
         color: Colors.primary.main,
     },

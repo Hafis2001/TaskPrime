@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable } from "react-native";
-import { Colors, Typography } from "../../../constants/modernTheme";
+import { Colors, Typography, BorderRadius } from "../../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale } from "../../../src/utils/Responsive";
 
 const TabButton = (props) => {
     const { onPress, accessibilityState, children } = props;
@@ -27,9 +28,9 @@ const TabButton = (props) => {
                 transform: [{ scale }],
                 alignItems: 'center',
                 justifyContent: 'center',
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 16,
+                paddingVertical: moderateVerticalScale(6),
+                paddingHorizontal: moderateScale(12),
+                borderRadius: moderateScale(16),
                 backgroundColor: focused ? Colors.primary.main + '10' : 'transparent'
             }}>
                 {children}
@@ -49,12 +50,12 @@ export default function TabLayout() {
                 tabBarStyle: {
                     borderTopWidth: 0,
                     backgroundColor: "#feeadcff", // Soft pale orange tint
-                    height: 80,
-                    paddingBottom: 25,
-                    paddingTop: 18,
-                    marginBottom: 45,
-                    marginHorizontal: 16,
-                    borderRadius: 30,
+                    height: verticalScale(70),
+                    paddingBottom: moderateVerticalScale(12),
+                    paddingTop: moderateVerticalScale(10),
+                    marginBottom: moderateVerticalScale(30),
+                    marginHorizontal: moderateScale(16),
+                    borderRadius: moderateScale(25),
                     shadowColor: Colors.primary.main,
                     shadowOffset: { width: 0, height: 10 },
                     shadowOpacity: 0.15,
@@ -63,8 +64,8 @@ export default function TabLayout() {
                     position: 'absolute',
                 },
                 tabBarLabelStyle: {
-                    fontSize: 10,
-                    marginTop: 2,
+                    fontSize: moderateScale(10),
+                    marginTop: moderateVerticalScale(2),
                     fontWeight: Typography.fontWeight.bold,
                 },
             }}

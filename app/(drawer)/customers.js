@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import ModernInput from "../../components/ui/ModernInput";
 import { Colors, Spacing, Typography } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URL = "https://taskprime.app/api/debtors/get-debtors/";
@@ -189,11 +190,11 @@ export default function DebtorsScreen() {
               {item.name}
             </Text>
             <View style={styles.detailRow}>
-              <Ionicons name="call-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
+              <Ionicons name="call-outline" size={moderateScale(12)} color={Colors.text.secondary} style={{ marginRight: moderateScale(4) }} />
               <Text style={styles.subText}>{item.phone}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Ionicons name="location-outline" size={12} color={Colors.text.secondary} style={{ marginRight: 4 }} />
+              <Ionicons name="location-outline" size={moderateScale(12)} color={Colors.text.secondary} style={{ marginRight: moderateScale(4) }} />
               <Text style={styles.subText}>{item.place}</Text>
             </View>
           </View>
@@ -222,7 +223,7 @@ export default function DebtorsScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Customers Statement"
-        leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
+        leftIcon={<Ionicons name="arrow-back" size={moderateScale(24)} color={Colors.primary.main} />}
         onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
@@ -246,7 +247,7 @@ export default function DebtorsScreen() {
             placeholder="Search by Name, Place or Phone"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
+            leftIcon={<Ionicons name="search" size={moderateScale(20)} color={Colors.text.tertiary} />}
             containerStyle={styles.searchBox}
           />
         </View>
@@ -260,7 +261,7 @@ export default function DebtorsScreen() {
           ListEmptyComponent={
             searchQuery.trim() !== "" ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color={Colors.text.disabled} />
+                <Ionicons name="search-outline" size={moderateScale(48)} color={Colors.text.disabled} />
                 <Text style={styles.emptyText}>
                   No results found for "{searchQuery}"
                 </Text>
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: Spacing.base,
+    padding: moderateScale(Spacing.base),
   },
   loadingContainer: {
     flex: 1,
@@ -310,19 +311,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   divider: {
-    width: 1,
-    height: 40,
+    width: moderateScale(1),
+    height: moderateVerticalScale(40),
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   summaryLabel: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     color: 'rgba(255, 255, 255, 0.8)',
     textTransform: 'uppercase',
     fontWeight: Typography.fontWeight.semibold,
-    marginBottom: 4,
+    marginBottom: moderateVerticalScale(4),
   },
   summaryValue: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: moderateScale(Typography.fontSize.xl),
     fontWeight: Typography.fontWeight.bold,
     color: '#FFFFFF',
   },
@@ -344,16 +345,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
     backgroundColor: Colors.primary.lightest,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: moderateScale(Spacing.md),
   },
   avatarText: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary.dark,
   },
@@ -362,15 +363,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardValue: {
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: moderateVerticalScale(4),
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: moderateVerticalScale(2),
   },
   subText: {
     fontSize: Typography.fontSize.xs,
@@ -382,18 +383,18 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   balanceLabel: {
-    fontSize: 10,
+    fontSize: moderateScale(10),
     color: Colors.text.tertiary,
     textTransform: 'uppercase',
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: moderateVerticalScale(2),
   },
   balanceText: {
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: Typography.fontWeight.bold,
   },
   drCr: {
-    fontSize: 10,
+    fontSize: moderateScale(10),
     fontWeight: Typography.fontWeight.bold,
   },
   emptyContainer: {

@@ -1,8 +1,8 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { useCallback, useLayoutEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
-import { Screen } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 if (
@@ -56,6 +56,14 @@ export default function SalesReportScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { checkModule } = useLicenseModules();
+  const { type } = useLocalSearchParams();
+
+  // Update selectedSummary if 'type' param changes
+  useEffect(() => {
+    if (type && type !== selectedSummary) {
+      setSelectedSummary(type);
+    }
+  }, [type]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -226,7 +234,7 @@ export default function SalesReportScreen() {
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="person-outline" size={20} color={Colors.primary.main} />
+            <Ionicons name="person-outline" size={moderateScale(20)} color={Colors.primary.main} />
           </View>
           <View style={styles.nameContainer}>
             <Text style={styles.name} numberOfLines={1}>{item.customername?.trim() || "Customer"}</Text>
@@ -280,37 +288,37 @@ export default function SalesReportScreen() {
           <ModernCard style={[styles.monthCard, isExpanded && { borderColor: Colors.primary.main, borderWidth: 1 }]} elevated={!isExpanded}>
             <View style={styles.monthHeader}>
               <View style={styles.monthTitleRow}>
-                <View style={[styles.iconCircle, { width: 44, height: 44, marginRight: 12 }]}>
-                  <Ionicons name="calendar-sharp" size={22} color={Colors.primary.main} />
+                <View style={[styles.iconCircle, { width: moderateScale(44), height: moderateScale(44), marginRight: moderateScale(12) }]}>
+                  <Ionicons name="calendar-sharp" size={moderateScale(22)} color={Colors.primary.main} />
                 </View>
                 <View>
                   <Text style={styles.monthTitle}>{item.month_name}</Text>
-                  <Text style={[styles.monthSubtitle, { marginLeft: 0, marginTop: 2 }]}>
+                  <Text style={[styles.monthSubtitle, { marginLeft: 0, marginTop: moderateVerticalScale(2) }]}>
                     {item.total_bills} Transactions
                   </Text>
                 </View>
               </View>
-              <View style={[styles.iconCircle, { width: 32, height: 32, backgroundColor: isExpanded ? Colors.primary.main : '#F8FAFC' }]}>
+              <View style={[styles.iconCircle, { width: moderateScale(32), height: moderateScale(32), backgroundColor: isExpanded ? Colors.primary.main : '#F8FAFC' }]}>
                 <Ionicons
                   name={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={18}
+                  size={moderateScale(18)}
                   color={isExpanded ? "#fff" : Colors.text.secondary}
                 />
               </View>
             </View>
 
             {isExpanded && (
-              <View style={[styles.expandedContainer, { marginTop: 20 }]}>
+              <View style={[styles.expandedContainer, { marginTop: moderateVerticalScale(20) }]}>
                 <LinearGradient
                   colors={['#4F46E5', '#6366F1']}
-                  style={[styles.expandedBox, { borderRadius: 16 }]}
+                  style={[styles.expandedBox, { borderRadius: moderateScale(16) }]}
                 >
                   <Text style={styles.expandedLabel}>Total Bills</Text>
                   <Text style={styles.expandedValue}>{item.total_bills}</Text>
                 </LinearGradient>
                 <LinearGradient
                   colors={['#10B981', '#34D399']}
-                  style={[styles.expandedBox, { borderRadius: 16 }]}
+                  style={[styles.expandedBox, { borderRadius: moderateScale(16) }]}
                 >
                   <Text style={styles.expandedLabel}>Total Amount</Text>
                   <Text style={styles.expandedValue}>
@@ -337,20 +345,20 @@ export default function SalesReportScreen() {
   const renderTypeWise = ({ item, index }) => {
     const color = TYPE_COLORS[index % TYPE_COLORS.length];
     return (
-      <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg, backgroundColor: '#fff', padding: Spacing.lg }]} elevated={false}>
+      <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg, backgroundColor: '#fff', padding: moderateScale(Spacing.lg) }]} elevated={false}>
         <View style={styles.typeCardInner}>
-          <View style={[styles.typeBadge, { backgroundColor: color.light, shadowColor: color.bg, shadowOpacity: 0.1, shadowRadius: 10, elevation: 2 }]}>
-            <Text style={[styles.typeBadgeText, { color: color.bg, fontSize: 18 }]}>{item.type}</Text>
+          <View style={[styles.typeBadge, { backgroundColor: color.light, shadowColor: color.bg, shadowOpacity: 0.1, shadowRadius: moderateScale(10), elevation: 2 }]}>
+            <Text style={[styles.typeBadgeText, { color: color.bg, fontSize: moderateScale(18) }]}>{item.type}</Text>
           </View>
           <View style={styles.typeInfo}>
-            <Text style={[styles.typeName, { fontSize: 16 }]}>{item.type_name || item.name}</Text>
+            <Text style={[styles.typeName, { fontSize: moderateScale(16) }]}>{item.type_name || item.name}</Text>
             <View style={styles.typeMetaRow}>
-              <Ionicons name="stats-chart" size={13} color={Colors.text.secondary} />
+              <Ionicons name="stats-chart" size={moderateScale(13)} color={Colors.text.secondary} />
               <Text style={[styles.typeMeta, { fontWeight: '700' }]}>{item.bill_count || item.billcount} Bills</Text>
             </View>
           </View>
           <View style={styles.typeAmountBox}>
-            <Text style={[styles.typeAmount, { color: color.bg, fontSize: 20 }]}>
+            <Text style={[styles.typeAmount, { color: color.bg, fontSize: moderateScale(20) }]}>
               {Math.floor(parseFloat(item.total_amount || item.nettotal || 0)).toFixed(3)}
             </Text>
             <Text style={styles.typeAmountLabel}>Grand Total</Text>
@@ -366,12 +374,12 @@ export default function SalesReportScreen() {
       <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg }]} elevated={false}>
         <View style={styles.typeCardInner}>
           <View style={[styles.typeBadge, { backgroundColor: color.light }]}>
-            <Ionicons name="person" size={14} color={color.bg} />
+            <Ionicons name="person" size={moderateScale(14)} color={color.bg} />
           </View>
           <View style={styles.typeInfo}>
             <Text style={styles.typeName}>{item.userid}</Text>
             <View style={styles.typeMetaRow}>
-              <Ionicons name="receipt-outline" size={13} color={Colors.text.secondary} />
+              <Ionicons name="receipt-outline" size={moderateScale(13)} color={Colors.text.secondary} />
               <Text style={styles.typeMeta}>{item.bill_count} Bills</Text>
             </View>
           </View>
@@ -390,7 +398,7 @@ export default function SalesReportScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Sales Report"
-        leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+        leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
         onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
@@ -429,7 +437,7 @@ export default function SalesReportScreen() {
           </View>
         ) : salesData.length === 0 ? (
           <View style={styles.centered}>
-            <Ionicons name="documents-outline" size={48} color={Colors.text.disabled} style={{ marginBottom: Spacing.md }} />
+            <Ionicons name="documents-outline" size={moderateScale(48)} color={Colors.text.disabled} style={{ marginBottom: moderateVerticalScale(Spacing.md) }} />
             <Text style={styles.emptyText}>No sales data available.</Text>
           </View>
         ) : selectedSummary === "DayWise" ? (
@@ -508,10 +516,10 @@ export default function SalesReportScreen() {
                   <Text style={styles.totalValue}>{totalBills}</Text>
                 </View>
               </View>
-              <View style={[styles.summarySeparator, { marginVertical: 12 }]} />
+              <View style={[styles.summarySeparator, { marginVertical: moderateVerticalScale(12) }]} />
               <View style={{ alignItems: 'center' }}>
                 <Text style={styles.summaryTitle}>Today Grand Total</Text>
-                <Text style={[styles.totalValue, { fontSize: 24 }]}>
+                <Text style={[styles.totalValue, { fontSize: moderateScale(24) }]}>
                   {Math.floor(todayGrandTotal || totalSales).toFixed(3)}
                 </Text>
               </View>
@@ -528,21 +536,21 @@ export default function SalesReportScreen() {
           </>
         ) : (
           <>
-            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+            <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
               <Text style={styles.summaryTitle}>Total Sales Today</Text>
-              <Text style={[styles.totalValue, { fontSize: 32, marginTop: 10 }]}>
+              <Text style={[styles.totalValue, { fontSize: moderateScale(32), marginTop: moderateVerticalScale(10) }]}>
                 {Math.floor(todayGrandTotal ?? totalSales).toFixed(3)}
               </Text>
-              <View style={[styles.summarySeparator, { marginVertical: 15, opacity: 0.3 }]} />
+              <View style={[styles.summarySeparator, { marginVertical: moderateVerticalScale(15), opacity: 0.3 }]} />
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryTitle, { fontSize: 10 }]}>Transactions</Text>
-                  <Text style={[styles.totalValue, { fontSize: 20 }]}>{salesData.length}</Text>
+                  <Text style={[styles.summaryTitle, { fontSize: moderateScale(10) }]}>Transactions</Text>
+                  <Text style={[styles.totalValue, { fontSize: moderateScale(20) }]}>{salesData.length}</Text>
                 </View>
-                <View style={[styles.summarySeparator, { width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+                <View style={[styles.summarySeparator, { width: moderateScale(1), height: moderateVerticalScale(20), backgroundColor: 'rgba(255,255,255,0.3)' }]} />
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryTitle, { fontSize: 10 }]}>Status</Text>
-                  <Text style={[styles.totalValue, { fontSize: 14, textTransform: 'uppercase' }]}>Live</Text>
+                  <Text style={[styles.summaryTitle, { fontSize: moderateScale(10) }]}>Status</Text>
+                  <Text style={[styles.totalValue, { fontSize: moderateScale(14), textTransform: 'uppercase' }]}>Live</Text>
                 </View>
               </View>
             </ModernCard>
@@ -598,9 +606,9 @@ const styles = StyleSheet.create({
     ...Shadows.md,
   },
   inputGradient: {
-    fontSize: Typography.fontSize.base,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    fontSize: moderateScale(Typography.fontSize.base),
+    paddingVertical: moderateVerticalScale(14),
+    paddingHorizontal: moderateScale(16),
     color: "#fff",
     fontWeight: "600",
     backgroundColor: "transparent",
@@ -619,25 +627,25 @@ const styles = StyleSheet.create({
   },
   summaryBox: {
     flex: 1,
-    padding: Spacing.md,
+    padding: moderateScale(Spacing.md),
     alignItems: "center",
   },
   summaryLabel: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     color: Colors.text.secondary,
     fontWeight: "600",
     textTransform: 'uppercase',
   },
   summaryNumber: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: moderateScale(Typography.fontSize.xl),
     fontWeight: "700",
     color: Colors.dark.main,
-    marginTop: 4
+    marginTop: moderateVerticalScale(4)
   },
   dayCard: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderRadius: 20,
+    padding: moderateScale(Spacing.lg),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    borderRadius: moderateScale(20),
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#FFE4D1',
@@ -657,29 +665,29 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   dayDate: {
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: "800",
     color: Colors.dark.main,
     letterSpacing: 0.3,
   },
   dayBills: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: Colors.text.secondary,
     fontWeight: '600',
-    marginTop: 4
+    marginTop: moderateVerticalScale(4)
   },
   dayAmount: {
-    fontSize: 22,
+    fontSize: moderateScale(22),
     fontWeight: "900",
     color: Colors.primary.main
   },
   monthCard: {
-    padding: Spacing.lg,
-    borderRadius: 20,
+    padding: moderateScale(Spacing.lg),
+    borderRadius: moderateScale(20),
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#FFE4D1',
-    minHeight: 80,
+    minHeight: verticalScale(80),
     ...Shadows.sm,
   },
   monthCardExpanded: {
@@ -695,15 +703,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   monthTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: "700",
     color: Colors.dark.main
   },
   monthSubtitle: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: Colors.text.secondary,
-    marginTop: 4,
-    marginLeft: 28,
+    marginTop: moderateVerticalScale(4),
+    marginLeft: moderateScale(28),
   },
   expandedContainer: {
     flexDirection: "row",
@@ -719,15 +727,15 @@ const styles = StyleSheet.create({
   },
   expandedLabel: {
     color: "#fff",
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     fontWeight: "600",
     textTransform: 'uppercase',
   },
   expandedValue: {
     color: "#fff",
-    fontSize: Typography.fontSize.xl,
+    fontSize: moderateScale(Typography.fontSize.xl),
     fontWeight: "700",
-    marginTop: 4
+    marginTop: moderateVerticalScale(4)
   },
   summaryCard: {
     marginBottom: Spacing.xl,
@@ -750,32 +758,32 @@ const styles = StyleSheet.create({
     width: '80%',
   },
   summaryTitle: {
-    fontSize: 11,
+    fontSize: moderateScale(11),
     color: 'rgba(255,255,255,0.85)',
     fontWeight: "800",
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 4,
+    marginBottom: moderateVerticalScale(4),
   },
   totalValue: {
-    fontSize: 28,
+    fontSize: moderateScale(28),
     fontWeight: "900",
     color: "#fff",
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: "900",
-    marginBottom: Spacing.md,
+    marginBottom: moderateVerticalScale(Spacing.md),
     color: Colors.primary.dark,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginLeft: 8,
+    marginLeft: moderateScale(8),
   },
   transactionCard: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: moderateScale(Spacing.lg),
+    marginBottom: moderateVerticalScale(Spacing.md),
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     borderWidth: 1,
     borderColor: '#FFE4D1',
     ...Shadows.sm,
@@ -808,10 +816,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
+    width: moderateScale(48),
+    height: moderateScale(48),
     backgroundColor: '#FFF5ED',
-    borderRadius: 24,
+    borderRadius: moderateScale(24),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -820,19 +828,19 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "800",
     color: Colors.dark.main,
-    fontSize: 16,
+    fontSize: moderateScale(16),
     letterSpacing: 0.2,
   },
   time: {
     color: Colors.text.secondary,
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: moderateVerticalScale(4),
   },
   amount: {
     color: Colors.primary.main,
     fontWeight: "900",
-    fontSize: 18,
+    fontSize: moderateScale(18),
     textAlign: "right",
   },
   emptyText: {
@@ -859,7 +867,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   typeBadgeText: {
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     fontWeight: "800",
     letterSpacing: 0.5,
   },
@@ -886,14 +894,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   typeAmount: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: moderateScale(Typography.fontSize.lg),
     fontWeight: "800",
   },
   typeAmountLabel: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     color: Colors.text.secondary,
     fontWeight: "500",
-    marginTop: 2,
+    marginTop: moderateVerticalScale(2),
   },
 });
 

@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URLS = {
@@ -124,7 +125,7 @@ export default function PurchaseReportScreen() {
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="cart-outline" size={20} color={Colors.primary.main} />
+            <Ionicons name="cart-outline" size={moderateScale(20)} color={Colors.primary.main} />
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.name} numberOfLines={1}>{item.suppliername}</Text>
@@ -144,7 +145,7 @@ export default function PurchaseReportScreen() {
     <View style={styles.container}>
       <ModernHeader
         title="Purchase Report"
-        leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
+        leftIcon={<Ionicons name="arrow-back" size={moderateScale(26)} color={Colors.primary.main} />}
         onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
@@ -171,7 +172,7 @@ export default function PurchaseReportScreen() {
               iconContainer: { top: 18, right: 15 },
             }}
             useNativeAndroidPickerStyle={false}
-            Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
+            Icon={() => <Ionicons name="chevron-down" size={moderateScale(20)} color="#fff" />}
           />
         </LinearGradient>
 
@@ -182,13 +183,13 @@ export default function PurchaseReportScreen() {
           </View>
         ) : purchaseData.length === 0 ? (
           <View style={styles.centered}>
-            <Ionicons name="cart-outline" size={48} color={Colors.text.disabled} style={{ marginBottom: Spacing.md }} />
+            <Ionicons name="cart-outline" size={moderateScale(48)} color={Colors.text.disabled} style={{ marginBottom: moderateVerticalScale(Spacing.md) }} />
             <Text style={styles.emptyText}>No purchase data available.</Text>
           </View>
         ) : (
           <>
             {/* Top Summary Card */}
-            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+            <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
               <Text style={styles.summaryTitle}>Total Purchase</Text>
               <Text style={styles.totalValue}>â‚¹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
             </ModernCard>
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: Spacing.base,
+    padding: moderateScale(Spacing.base),
   },
   pickerWrapper: {
     marginBottom: Spacing.md,
@@ -225,14 +226,14 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   gradientBox: {
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    borderRadius: moderateScale(BorderRadius.lg),
+    marginBottom: moderateVerticalScale(Spacing.md),
     ...Shadows.sm,
   },
   inputGradient: {
-    fontSize: Typography.fontSize.base,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    fontSize: moderateScale(Typography.fontSize.base),
+    paddingVertical: moderateVerticalScale(14),
+    paddingHorizontal: moderateScale(16),
     color: "#fff",
     fontWeight: "600",
     backgroundColor: "transparent",
@@ -248,30 +249,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   summaryTitle: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: moderateScale(Typography.fontSize.sm),
     color: 'rgba(255,255,255,0.9)',
     fontWeight: "600",
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   totalValue: {
-    fontSize: Typography.fontSize['3xl'],
+    fontSize: moderateScale(Typography.fontSize['3xl']),
     fontWeight: "bold",
     color: "#fff",
-    marginTop: Spacing.xs,
+    marginTop: moderateVerticalScale(Spacing.xs),
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xs,
+    fontSize: moderateScale(Typography.fontSize.xs),
     fontWeight: "800",
-    marginBottom: Spacing.sm,
+    marginBottom: moderateVerticalScale(Spacing.sm),
     color: Colors.text.tertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginLeft: 4,
+    marginLeft: moderateScale(4),
   },
   transactionCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: moderateScale(Spacing.md),
+    marginBottom: moderateVerticalScale(Spacing.sm),
     backgroundColor: Colors.background.primary,
     borderColor: Colors.border.light,
     borderWidth: 1,
@@ -285,13 +286,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    gap: Spacing.md,
+    gap: moderateScale(Spacing.md),
   },
   iconCircle: {
-    width: 40,
-    height: 40,
+    width: moderateScale(40),
+    height: moderateScale(40),
     backgroundColor: Colors.primary.lightest,
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -301,22 +302,22 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "700",
     color: Colors.text.primary,
-    fontSize: Typography.fontSize.base
+    fontSize: moderateScale(Typography.fontSize.base)
   },
   time: {
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.xs,
-    marginTop: 2,
+    fontSize: moderateScale(Typography.fontSize.xs),
+    marginTop: moderateVerticalScale(2),
   },
   amountContainer: {
     alignItems: 'flex-end',
-    minWidth: 90,
-    marginLeft: Spacing.sm,
+    minWidth: moderateScale(90),
+    marginLeft: moderateScale(Spacing.sm),
   },
   amount: {
     color: Colors.primary.main,
     fontWeight: "700",
-    fontSize: Typography.fontSize.base,
+    fontSize: moderateScale(Typography.fontSize.base),
     textAlign: "right",
   },
   emptyText: {
