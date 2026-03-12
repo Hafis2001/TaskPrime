@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -45,9 +45,9 @@ export default function StockReportScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            const runCheck = async () => {
+            const runCheck = async () => { setIsLicensed(null);
                 const allowed = await checkModule("MOD037", "Stock Report", () => {
-                    router.replace("/(drawer)/(tabs)");
+                    router.push("/(drawer)/(tabs)");
                 });
 
                 if (!allowed) {
@@ -60,7 +60,7 @@ export default function StockReportScreen() {
             runCheck();
 
             const backAction = () => {
-                router.replace("/(drawer)/(tabs)");
+                router.push("/(drawer)/(tabs)");
                 return true;
             };
             const backHandler = BackHandler.addEventListener(
@@ -83,19 +83,7 @@ export default function StockReportScreen() {
         fetchStockReport(parsedUser);
     };
 
-    useEffect(() => {
-        init();
 
-        const backAction = () => {
-            router.replace("/(drawer)/(tabs)");
-            return true;
-        };
-        const backHandler = BackHandler.addEventListener(
-            "hardwareBackPress",
-            backAction
-        );
-        return () => backHandler.remove();
-    }, []);
 
     const fetchStockReport = async (parsedUser) => {
         try {
@@ -131,7 +119,7 @@ export default function StockReportScreen() {
                 setFilteredData([]);
             }
         } catch (error) {
-            console.error("❌ Stock Fetch error:", error);
+            console.error("âŒ Stock Fetch error:", error);
             setStockData([]);
             setFilteredData([]);
         } finally {
@@ -215,11 +203,11 @@ export default function StockReportScreen() {
                 <View style={styles.priceRow}>
                     <View style={styles.priceItem}>
                         <Text style={styles.priceLabel}>BMRP</Text>
-                        <Text style={styles.bmrpValue}>₹{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
+                        <Text style={styles.bmrpValue}>â‚¹{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
                     </View>
                     <View style={styles.priceItem}>
                         <Text style={styles.priceLabel}>Sales Price</Text>
-                        <Text style={styles.salesPriceValue}>₹{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
+                        <Text style={styles.salesPriceValue}>â‚¹{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
                     </View>
                     <View style={[styles.priceItem, styles.stockItem]}>
                         <Text style={styles.stockLabel}>Stock</Text>
@@ -237,7 +225,7 @@ export default function StockReportScreen() {
             <ModernHeader
                 title="Stock Report"
                 leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-                onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+                onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             <View style={styles.content}>
@@ -528,3 +516,4 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
     },
 });
+

@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -22,7 +22,7 @@ import { Colors, Shadows, Spacing, Typography } from "../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/get-bank-book-data/";
 
-// ✅ Format currency with optional "-" sign
+// âœ… Format currency with optional "-" sign
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   const isNegative = n < 0;
@@ -44,9 +44,9 @@ export default function BankBookScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD020", "Bank Book", () => {
-          router.replace("/(drawer)/bank-cash");
+          router.push("/(drawer)/bank-cash");
         });
 
         if (!allowed) {
@@ -54,10 +54,10 @@ export default function BankBookScreen() {
           return;
         }
         setIsLicensed(true);
-        if (data.length === 0) fetchBankBook();
+        fetchBankBook();
       };
       runCheck();
-    }, [data.length])
+    }, [])
   );
 
   const fetchBankBook = useCallback(async () => {
@@ -80,7 +80,7 @@ export default function BankBookScreen() {
       const json = await res.json();
       const list = Array.isArray(json) ? json : json.data ?? [];
 
-      // ✅ Calculate balance as debit - credit
+      // âœ… Calculate balance as debit - credit
       const mapped = list
         .map((it, i) => {
           const debit = Number(it.debit ?? it.total_debit ?? 0);
@@ -92,7 +92,7 @@ export default function BankBookScreen() {
             balance,
           };
         })
-        .filter((item) => item.balance !== 0); // ✅ remove only zero balances
+        .filter((item) => item.balance !== 0); // âœ… remove only zero balances
 
       setData(mapped);
     } catch (err) {
@@ -104,6 +104,12 @@ export default function BankBookScreen() {
     }
   }, []);
 
+
+  const filtered = useMemo(() => {
+    if (!query) return data;
+    const q = query.trim().toLowerCase();
+    return data.filter((r) => r.name.toLowerCase().includes(q));
+  }, [data, query]);
 
   if (isLicensed === null) {
     return (
@@ -127,12 +133,6 @@ export default function BankBookScreen() {
     fetchBankBook();
   };
 
-  const filtered = useMemo(() => {
-    if (!query) return data;
-    const q = query.trim().toLowerCase();
-    return data.filter((r) => r.name.toLowerCase().includes(q));
-  }, [data, query]);
-
   const renderRow = ({ item }) => {
     const isPositive = item.balance >= 0;
     return (
@@ -144,7 +144,7 @@ export default function BankBookScreen() {
             params: {
               account_code: item.id,
               account_name: item.name,
-              previous_balance: item.balance.toString(), // ✅ sending balance
+              previous_balance: item.balance.toString(), // âœ… sending balance
             },
           });
         }}
@@ -169,7 +169,7 @@ export default function BankBookScreen() {
                 ]}
                 numberOfLines={1}
               >
-                ₹{Math.abs(item.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                {Math.abs(item.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
               <Text
                 style={[
@@ -328,3 +328,4 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
 });
+

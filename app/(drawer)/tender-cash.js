@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -21,14 +21,14 @@ import { useLicenseModules } from "../../src/utils/useLicenseModules";
 const BY_USER_API = "https://taskprime.app/api/tender-cash-by-user/";
 const BY_TYPE_API = "https://taskprime.app/api/tender-cash-bytype/";
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const fmt = (val) =>
     parseFloat(val || 0).toLocaleString("en-IN", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
 
-// ─── Code colour map ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Code colour map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CODE_COLORS = {
     CC: { bg: "#EEF2FF", text: "#4F46E5", dot: "#6366F1" },
     S: { bg: "#F0FDF4", text: "#16A34A", dot: "#22C55E" },
@@ -52,19 +52,20 @@ export default function TenderCashScreen() {
     const [userLoading, setUserLoading] = useState(true);
     const [userError, setUserError] = useState(null);
     const [userTotal, setUserTotal] = useState(0);
-    const [userItems, setUserItems] = useState([]);
+    const [userData, setUserData] = useState([]);
 
     // Cash By Type state
     const [typeLoading, setTypeLoading] = useState(true);
     const [typeError, setTypeError] = useState(null);
     const [typeData, setTypeData] = useState([]);
 
-    // ── Init ────────────────────────────────────────────────────────────────────
+    // â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     useFocusEffect(
         useCallback(() => {
             const runCheck = async () => {
+                setIsLicensed(null);
                 const allowed = await checkModule("MOD036", "Tender Cash", () => {
-                    router.replace("/(drawer)/(tabs)");
+                    router.push("/(drawer)/(tabs)");
                 });
 
                 if (!allowed) {
@@ -78,8 +79,8 @@ export default function TenderCashScreen() {
                     if (raw) {
                         const parsed = JSON.parse(raw);
                         setUser(parsed);
-                        if (userItems.length === 0) fetchByUser(parsed);
-                        if (typeData.length === 0) fetchByType(parsed);
+                        fetchByUser(parsed);
+                        fetchByType(parsed);
                     }
                 } catch (e) {
                     console.error(e);
@@ -87,13 +88,13 @@ export default function TenderCashScreen() {
             };
             runCheck();
 
-            const backAction = () => { router.replace("/(drawer)/(tabs)"); return true; };
+            const backAction = () => { router.push("/(drawer)/(tabs)"); return true; };
             const sub = BackHandler.addEventListener("hardwareBackPress", backAction);
             return () => sub.remove();
-        }, [userItems.length, typeData.length])
+        }, [])
     );
 
-    // ── Fetchers ────────────────────────────────────────────────────────────────
+    // â”€â”€ Fetchers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const fetchByUser = async (u) => {
         setUserLoading(true);
         setUserError(null);
@@ -102,9 +103,9 @@ export default function TenderCashScreen() {
                 headers: { Accept: "application/json", Authorization: `Bearer ${u.token}` },
             });
             const json = await res.json();
-            if (json.success && json.data) {
-                setUserTotal(json.data.grand_total || 0);
-                setUserItems(json.data.items || []);
+            if (json.success && (json.users || json.data)) {
+                setUserTotal(json.grand_total !== undefined ? json.grand_total : (json.data?.grand_total || 0));
+                setUserData(json.users || json.data?.items || json.data || []);
             } else {
                 setUserError("No data returned.");
             }
@@ -123,8 +124,9 @@ export default function TenderCashScreen() {
                 headers: { Accept: "application/json", Authorization: `Bearer ${u.token}` },
             });
             const json = await res.json();
-            if (json.success && Array.isArray(json.data)) {
-                setTypeData(json.data);
+            if (json.success) {
+                const dataArray = Array.isArray(json.data) ? json.data : [];
+                setTypeData(dataArray);
             } else {
                 setTypeError("No data returned.");
             }
@@ -142,7 +144,7 @@ export default function TenderCashScreen() {
         }
     };
 
-    // ── Sub-components ──────────────────────────────────────────────────────────
+    // â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const Tab = ({ id, label, icon }) => (
         <TouchableOpacity
             style={[styles.tab, activeTab === id && styles.tabActive]}
@@ -167,12 +169,12 @@ export default function TenderCashScreen() {
             <View style={[styles.chip, { backgroundColor: c.bg }]}>
                 <View style={[styles.chipDot, { backgroundColor: c.dot }]} />
                 <Text style={[styles.chipCode, { color: c.text }]}>{code}</Text>
-                <Text style={[styles.chipAmt, { color: c.text }]}>₹{fmt(amount)}</Text>
+                <Text style={[styles.chipAmt, { color: c.text }]}>{fmt(amount)}</Text>
             </View>
         );
     };
 
-    // ── By User content ─────────────────────────────────────────────────────────
+    // â”€â”€ By User content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const ByUserContent = () => {
         if (userLoading) return <LoadingView />;
         if (userError) return <ErrorView msg={userError} onRetry={() => fetchByUser(user)} />;
@@ -192,65 +194,76 @@ export default function TenderCashScreen() {
                         </View>
                         <View>
                             <Text style={styles.totalLabel}>Total by User</Text>
-                            <Text style={styles.totalValue}>₹{fmt(userTotal)}</Text>
+                            <Text style={styles.totalValue}>{fmt(userTotal)}</Text>
                         </View>
                     </View>
                     <View style={styles.bannerDecor} />
                 </LinearGradient>
 
-                {/* Items breakdown */}
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionCardTitle}>Tender Breakdown</Text>
-                    <View style={styles.chipsRow}>
-                        {userItems.map((item, i) => (
-                            <CodeChip key={i} code={item.code} amount={item.total_amount} />
-                        ))}
-                    </View>
+                {/* Each user group */}
+                {userData.map((group, gi) => (
+                    <View key={gi} style={styles.sectionCard}>
+                        {/* Group header */}
+                        <View style={styles.groupHeader}>
+                            <View style={[styles.groupBadge, { backgroundColor: '#EEF2FF' }]}>
+                                <Text style={[styles.groupBadgeText, { color: '#4F46E5', textTransform: 'uppercase' }]}>{group.userid || group.user_id || "User"}</Text>
+                            </View>
+                            <Text style={[styles.groupTotal, { color: '#4F46E5' }]}>{fmt(group.total)}</Text>
+                        </View>
 
-                    {/* Table rows */}
-                    <View style={styles.tableHeader}>
-                        <Text style={[styles.tableCell, styles.tableHeaderText, { flex: 2 }]}>Code / Name</Text>
-                        <Text style={[styles.tableCell, styles.tableHeaderText, { textAlign: "right", flex: 1 }]}>Amount</Text>
-                    </View>
-                    {userItems.map((item, i) => {
-                        const c = getCodeColor(item.code);
-                        return (
-                            <View
-                                key={i}
-                                style={[
-                                    styles.tableRow,
-                                    { backgroundColor: i % 2 === 0 ? "#FAFBFF" : "#fff" },
-                                ]}
-                            >
-                                <View style={[styles.codeCell, { flex: 2 }]}>
-                                    <View style={[styles.codeBadge, { backgroundColor: c.bg }]}>
-                                        <Text style={[styles.codeBadgeText, { color: c.text }]}>
-                                            {item.code}
+                        {/* Table */}
+                        <View style={styles.tableHeader}>
+                            <Text style={[styles.tableCell, styles.tableHeaderText, { flex: 2 }]}>Code / Name</Text>
+                            <Text style={[styles.tableCell, styles.tableHeaderText, { textAlign: "right", flex: 1 }]}>Amount</Text>
+                        </View>
+                        {(group.tenders || group.items || []).map((item, i) => {
+                            const c = getCodeColor(item.code);
+                            const amt = item.amount !== undefined ? item.amount : item.total_amount;
+                            return (
+                                <View
+                                    key={i}
+                                    style={[
+                                        styles.tableRow,
+                                        { backgroundColor: i % 2 === 0 ? "#FAFBFF" : "#fff" },
+                                    ]}
+                                >
+                                    <View style={{ flex: 2 }}>
+                                        <View style={styles.codeCell}>
+                                            <View style={[styles.codeBadge, { backgroundColor: c.bg }]}>
+                                                <Text style={[styles.codeBadgeText, { color: c.text }]}>
+                                                    {item.code}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.userText}>
+                                                {item.currency_name || ""}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: "flex-end" }}>
+                                        <Text style={[styles.amountText, { color: "#4F46E5" }]}>
+                                            {fmt(amt)}
+                                        </Text>
+                                        <Text style={styles.percentText}>
+                                            {group.total ? ((amt / group.total) * 100).toFixed(1) : 0}%
                                         </Text>
                                     </View>
-                                    <Text style={styles.userText}>{item.currency_name || "—"}</Text>
                                 </View>
-                                <View style={{ flex: 1, alignItems: "flex-end" }}>
-                                    <Text style={styles.amountText}>₹{fmt(item.total_amount)}</Text>
-                                    <Text style={styles.percentText}>
-                                        {userTotal ? ((item.total_amount / userTotal) * 100).toFixed(1) : 0}%
-                                    </Text>
-                                </View>
-                            </View>
-                        );
-                    })}
+                            );
+                        })}
 
-                    {/* Divider + Total */}
-                    <View style={styles.tableTotalRow}>
-                        <Text style={styles.tableTotalLabel}>Grand Total</Text>
-                        <Text style={styles.tableTotalValue}>₹{fmt(userTotal)}</Text>
+                        <View style={styles.tableTotalRow}>
+                            <Text style={styles.tableTotalLabel}>User Total</Text>
+                            <Text style={[styles.tableTotalValue, { color: "#4F46E5" }]}>
+                                {fmt(group.total)}
+                            </Text>
+                        </View>
                     </View>
-                </View>
+                ))}
             </View>
         );
     };
 
-    // ── By Type content ─────────────────────────────────────────────────────────
+    // â”€â”€ By Type content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const ByTypeContent = () => {
         if (typeLoading) return <LoadingView />;
         if (typeError) return <ErrorView msg={typeError} onRetry={() => fetchByType(user)} />;
@@ -272,7 +285,7 @@ export default function TenderCashScreen() {
                         </View>
                         <View>
                             <Text style={styles.totalLabel}>Total by Type</Text>
-                            <Text style={styles.totalValue}>₹{fmt(grandTotal)}</Text>
+                            <Text style={styles.totalValue}>{fmt(grandTotal)}</Text>
                         </View>
                     </View>
                     <View style={styles.bannerDecor} />
@@ -283,17 +296,10 @@ export default function TenderCashScreen() {
                     <View key={gi} style={styles.sectionCard}>
                         {/* Group header */}
                         <View style={styles.groupHeader}>
-                            <View style={styles.groupBadge}>
-                                <Text style={styles.groupBadgeText}>{group.type}</Text>
+                            <View style={[styles.groupBadge, { backgroundColor: '#F0FDF4' }]}>
+                                <Text style={[styles.groupBadgeText, { color: '#059669', textTransform: 'uppercase' }]}>{group.type_name || group.type}</Text>
                             </View>
-                            <Text style={styles.groupTotal}>₹{fmt(group.total)}</Text>
-                        </View>
-
-                        {/* Chips */}
-                        <View style={styles.chipsRow}>
-                            {(group.items || []).map((item, i) => (
-                                <CodeChip key={i} code={item.code} amount={item.total_amount} />
-                            ))}
+                            <Text style={[styles.groupTotal, { color: '#059669' }]}>{fmt(group.total)}</Text>
                         </View>
 
                         {/* Table */}
@@ -301,8 +307,9 @@ export default function TenderCashScreen() {
                             <Text style={[styles.tableCell, styles.tableHeaderText, { flex: 2 }]}>Code / Name</Text>
                             <Text style={[styles.tableCell, styles.tableHeaderText, { textAlign: "right", flex: 1 }]}>Amount</Text>
                         </View>
-                        {(group.items || []).map((item, i) => {
+                        {(group.split || group.items || group.tenders || []).map((item, i) => {
                             const c = getCodeColor(item.code);
+                            const amt = item.amount !== undefined ? item.amount : item.total_amount;
                             return (
                                 <View
                                     key={i}
@@ -319,16 +326,16 @@ export default function TenderCashScreen() {
                                                 </Text>
                                             </View>
                                             <Text style={styles.userText}>
-                                                {item.currency_name || "—"}
+                                                {item.currency_name || ""}
                                             </Text>
                                         </View>
                                     </View>
                                     <View style={{ flex: 1, alignItems: "flex-end" }}>
                                         <Text style={[styles.amountText, { color: "#059669" }]}>
-                                            ₹{fmt(item.total_amount)}
+                                            {fmt(amt)}
                                         </Text>
                                         <Text style={styles.percentText}>
-                                            {group.total ? ((item.total_amount / group.total) * 100).toFixed(1) : 0}%
+                                            {group.total ? ((amt / group.total) * 100).toFixed(1) : 0}%
                                         </Text>
                                     </View>
                                 </View>
@@ -338,7 +345,7 @@ export default function TenderCashScreen() {
                         <View style={styles.tableTotalRow}>
                             <Text style={styles.tableTotalLabel}>Group Total</Text>
                             <Text style={[styles.tableTotalValue, { color: "#059669" }]}>
-                                ₹{fmt(group.total)}
+                                {fmt(group.total)}
                             </Text>
                         </View>
                     </View>
@@ -347,11 +354,11 @@ export default function TenderCashScreen() {
         );
     };
 
-    // ── Shared states ───────────────────────────────────────────────────────────
+    // â”€â”€ Shared states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const LoadingView = () => (
         <View style={styles.centered}>
             <ActivityIndicator size="large" color={Colors.primary.main} />
-            <Text style={styles.loadingText}>Fetching data…</Text>
+            <Text style={styles.loadingText}>Fetching dataâ€¦</Text>
         </View>
     );
 
@@ -380,13 +387,13 @@ export default function TenderCashScreen() {
             <ModernHeader
                 title="Tender Cash"
                 leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-                onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+                onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             {/* Tab Bar */}
             <View style={styles.tabBar}>
-                <Tab id="user" label="Cash By User" icon="person-outline" />
-                <Tab id="type" label="Cash By Type" icon="layers-outline" />
+                <Tab id="user" label="Tender By User" icon="person-outline" />
+                <Tab id="type" label="Tender By Counter" icon="layers-outline" />
             </View>
 
             <ScrollView
@@ -399,7 +406,7 @@ export default function TenderCashScreen() {
     );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -661,3 +668,4 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.sm,
     },
 });
+

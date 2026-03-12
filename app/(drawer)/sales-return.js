@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -32,9 +32,9 @@ export default function SalesReturnScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD018", "Sales Return", () => {
-          router.replace("/(drawer)/(tabs)");
+          router.push("/(drawer)/(tabs)");
         });
 
         if (!allowed) {
@@ -42,12 +42,12 @@ export default function SalesReturnScreen() {
           return;
         }
         setIsLicensed(true);
-        if (salesData.length === 0) getClientIdAndFetch();
+        getClientIdAndFetch();
       };
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -55,7 +55,7 @@ export default function SalesReturnScreen() {
         backAction
       );
       return () => backHandler.remove();
-    }, [salesData.length])
+    }, [])
   );
 
   const getClientIdAndFetch = async () => {
@@ -143,13 +143,13 @@ export default function SalesReturnScreen() {
           <View style={styles.nameContainer}>
             <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
             <Text style={styles.time}>
-              {formatDate(item.date)} • #{item.invno}
+              {formatDate(item.date)} {item.invno}
             </Text>
           </View>
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.amount} numberOfLines={1}>
-            ₹{parseFloat(item.net).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            {parseFloat(item.net).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </Text>
         </View>
       </View>
@@ -161,13 +161,13 @@ export default function SalesReturnScreen() {
       <ModernHeader
         title="Sales Return"
         leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
         <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
           <Text style={styles.summaryTitle}>Total Returns</Text>
-          <Text style={styles.totalValue}>₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+          <Text style={styles.totalValue}>{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{salesData.length} Invoices</Text>
           </View>
@@ -308,3 +308,4 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
 });
+

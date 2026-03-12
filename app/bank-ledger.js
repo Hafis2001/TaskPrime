@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -47,7 +47,7 @@ export default function BankLedgerScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD020", "Bank Book", () => {
           router.back();
         });
@@ -113,7 +113,7 @@ export default function BankLedgerScreen() {
           })
           .sort((a, b) => a.rawDate - b.rawDate || a.voucher_no - b.voucher_no);
 
-        // 🗂️ Group by date
+        // ðŸ—‚ï¸ Group by date
         const grouped = {};
         processed.forEach((item) => {
           if (!grouped[item.dateOnly]) {
@@ -124,14 +124,14 @@ export default function BankLedgerScreen() {
           grouped[item.dateOnly].entries.push(item);
         });
 
-        // 🧮 Correct reverse-opening logic
-        const dates = Object.keys(grouped).sort(); // ascending (oldest → latest)
+        // ðŸ§® Correct reverse-opening logic
+        const dates = Object.keys(grouped).sort(); // ascending (oldest â†’ latest)
         const balanceMap = {};
 
         // Start from known current closing balance
         let runningClosing = parseFloat(previous_balance) || 0;
 
-        // Traverse backward (latest → oldest)
+        // Traverse backward (latest â†’ oldest)
         for (let i = dates.length - 1; i >= 0; i--) {
           const d = dates[i];
           const { debit, credit } = grouped[d];
@@ -162,7 +162,7 @@ export default function BankLedgerScreen() {
         setFilteredData([]);
       }
     } catch (err) {
-      console.error("🔥 Ledger fetch error:", err);
+      console.error("ðŸ”¥ Ledger fetch error:", err);
       Alert.alert("Network Error", "Could not fetch ledger.");
       setData([]);
       setFilteredData([]);
@@ -171,14 +171,14 @@ export default function BankLedgerScreen() {
     }
   };
 
-  // ✅ Update balances when dailyBalances or selectedDate changes
+  // âœ… Update balances when dailyBalances or selectedDate changes
   useEffect(() => {
     if (!loading && dailyBalances && Object.keys(dailyBalances).length > 0) {
       if (dailyBalances[selectedDate]) {
         setOpeningBalance(dailyBalances[selectedDate].opening);
         setClosingBalance(dailyBalances[selectedDate].closing);
       } else {
-        // ✅ Correct fallback: if date has no entries, today's opening = current closing
+        // âœ… Correct fallback: if date has no entries, today's opening = current closing
         setOpeningBalance(parseFloat(previous_balance) || 0);
         setClosingBalance(parseFloat(previous_balance) || 0);
       }
@@ -256,7 +256,7 @@ export default function BankLedgerScreen() {
 
           <View style={styles.amountWrap}>
             <Text style={[styles.amount, { color }]} numberOfLines={1}>
-              ₹{amount}
+              {amount}
             </Text>
           </View>
         </View>
@@ -291,13 +291,13 @@ export default function BankLedgerScreen() {
             <View style={styles.balanceItem}>
               <Text style={styles.balanceLabel}>Closing Balance</Text>
               <Text style={styles.balanceValue}>
-                ₹{Math.abs(closingBalance).toLocaleString("en-IN")}
+                {Math.abs(closingBalance).toLocaleString("en-IN")}
               </Text>
             </View>
             <View style={[styles.balanceItem, { alignItems: 'flex-end' }]}>
               <Text style={styles.balanceLabel}>Opening</Text>
               <Text style={[styles.balanceValue, { fontSize: Typography.fontSize.lg }]}>
-                ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
+                {Math.abs(openingBalance).toLocaleString("en-IN")}
               </Text>
             </View>
           </View>
@@ -332,14 +332,14 @@ export default function BankLedgerScreen() {
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.summaryLabel}>Total Credit</Text>
               <Text style={[styles.summaryValue, { color: Colors.success.main }]}>
-                ₹{totals.credit.toLocaleString("en-IN")}
+                {totals.credit.toLocaleString("en-IN")}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.summaryLabel}>Total Debit</Text>
               <Text style={[styles.summaryValue, { color: Colors.error.main }]}>
-                ₹{totals.debit.toLocaleString("en-IN")}
+                {totals.debit.toLocaleString("en-IN")}
               </Text>
             </View>
           </View>
@@ -507,3 +507,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+

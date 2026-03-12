@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
@@ -34,10 +34,11 @@ if (
 }
 
 const API_URLS = {
-  today: "https://taskprime.app/api/salestoday/",
+  today: "https://taskprime.app/api/salestoday-details/",
   DayWise: "https://taskprime.app/api/salesdaywise/",
   item: "https://taskprime.app/api/salesmonthwise/",
-  typeWise: "https://taskprime.app/api/type-wise-sales-today/",
+  typeWise: "https://taskprime.app/api/salestoday-typewise/",
+  userSummary: "https://taskprime.app/api/get_sales_today_usersummary",
 };
 
 export default function SalesReportScreen() {
@@ -48,6 +49,9 @@ export default function SalesReportScreen() {
   const [expandedId, setExpandedId] = useState(null);
   const [user, setUser] = useState(null);
   const [isLicensed, setIsLicensed] = useState(null);
+  const [todayGrandTotal, setTodayGrandTotal] = useState(null);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalBills, setTotalBills] = useState(0);
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -63,8 +67,11 @@ export default function SalesReportScreen() {
   useFocusEffect(
     useCallback(() => {
       const runCheck = async () => {
+        console.log("👉 Sales Report Focused - running runCheck");
+        setIsLicensed(null);
+        await new Promise(r => setTimeout(r, 50)); // Force React to paint spinner
         const allowed = await checkModule("MOD017", "Sales Report", () => {
-          router.replace("/(drawer)/(tabs)");
+          router.push("/(drawer)/(tabs)"); // use push instead of replace to avoid breaking drawer
         });
 
         if (!allowed) {
@@ -86,7 +93,7 @@ export default function SalesReportScreen() {
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -94,7 +101,7 @@ export default function SalesReportScreen() {
         backAction
       );
       return () => backHandler.remove();
-    }, [selectedSummary, salesData.length])
+    }, [selectedSummary])
   );
 
   const fetchReport = async (parsedUser, type, isRefreshing = false) => {
@@ -114,21 +121,62 @@ export default function SalesReportScreen() {
 
       const text = await response.text();
       if (!text.startsWith("{") && !text.startsWith("[")) {
-        console.log("❌ Server did not return JSON:", text);
+        console.log("âŒ Server did not return JSON:", text);
         setSalesData([]);
         return;
       }
 
       const json = JSON.parse(text);
       if (json.success && Array.isArray(json.data)) {
-        setSalesData(json.data);
+        let processedData = [...json.data];
+
+        // Sort month-wise data by latest month first
+        if (type === "item") {
+          processedData.sort((a, b) => {
+            const valA = new Date(a.date || a.mdate || a.month_name).getTime();
+            const valB = new Date(b.date || b.mdate || b.month_name).getTime();
+            if (isNaN(valA) || isNaN(valB)) return 0;
+            return valB - valA;
+          });
+
+          // Fallback: If sorting didn't change the order (likely due to unparseable dates),
+          // reverse it assuming the API returns chronological order (oldest first).
+          if (JSON.stringify(processedData) === JSON.stringify(json.data)) {
+            processedData.reverse();
+          }
+        }
+
+        setSalesData(processedData);
+        if (type === "today" && json.grand_total !== undefined) {
+          setTodayGrandTotal(json.grand_total);
+        } else if (type === "userSummary") {
+          setTodayGrandTotal(json.grand_total ?? 0);
+          setTotalUsers(json.total_users ?? 0);
+          setTotalBills(json.total_bills ?? 0);
+        } else {
+          setTodayGrandTotal(null);
+          setTotalUsers(0);
+          setTotalBills(0);
+        }
       } else if (json.data) {
-        setSalesData(Array.isArray(json.data) ? json.data : [json.data]);
+        let processedData = Array.isArray(json.data) ? [...json.data] : [json.data];
+        if (type === "item" && processedData.length > 1) {
+          processedData.sort((a, b) => {
+            const valA = new Date(a.date || a.mdate || a.month_name).getTime();
+            const valB = new Date(b.date || b.mdate || b.month_name).getTime();
+            if (isNaN(valA) || isNaN(valB)) return 0;
+            return valB - valA;
+          });
+          if (JSON.stringify(processedData) === JSON.stringify(Array.isArray(json.data) ? json.data : [json.data])) {
+            processedData.reverse();
+          }
+        }
+        setSalesData(processedData);
       } else {
         setSalesData([]);
       }
     } catch (error) {
-      console.error("❌ Fetch error:", error);
+      console.error("âŒ Fetch error:", error);
       setSalesData([]);
     } finally {
       setLoading(false);
@@ -178,16 +226,16 @@ export default function SalesReportScreen() {
       <View style={styles.row}>
         <View style={styles.rowLeft}>
           <View style={styles.iconCircle}>
-            <Ionicons name="receipt-outline" size={20} color={Colors.primary.main} />
+            <Ionicons name="person-outline" size={20} color={Colors.primary.main} />
           </View>
           <View style={styles.nameContainer}>
-            <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
-            <Text style={styles.time}>Bill No: {item.billno}</Text>
+            <Text style={styles.name} numberOfLines={1}>{item.customername?.trim() || "Customer"}</Text>
+            <Text style={styles.time}>Bill #{item.billno}  •  {item.userid}</Text>
           </View>
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.amount} numberOfLines={1}>
-            ₹{Math.floor(parseFloat(item.nettotal || 0)).toFixed(3)}
+            {parseFloat(item.nettotal || 0).toFixed(3)}
           </Text>
         </View>
       </View>
@@ -209,7 +257,7 @@ export default function SalesReportScreen() {
         </View>
         <View style={styles.dayAmountContainer}>
           <Text style={styles.dayAmount} numberOfLines={1}>
-            ₹{Math.floor(parseFloat(item.total_amount)).toFixed(3)}
+            {Math.floor(parseFloat(item.total_amount)).toFixed(3)}
           </Text>
         </View>
       </View>
@@ -221,40 +269,54 @@ export default function SalesReportScreen() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const renderMonthWise = ({ item }) => {
-    const isExpanded = expandedId === item.id;
+  const renderMonthWise = ({ item, index }) => {
+    const isExpanded = expandedId === (item.id || item.month_name || index);
     return (
-      <View style={{ marginBottom: Spacing.md }}>
+      <View style={{ marginBottom: Spacing.lg }}>
         <TouchableOpacity
-          onPress={() => toggleExpand(item.id)}
+          onPress={() => toggleExpand(item.id || item.month_name || index)}
           activeOpacity={0.9}
         >
-          <ModernCard style={[styles.monthCard, isExpanded && styles.monthCardExpanded]} elevated={!isExpanded}>
+          <ModernCard style={[styles.monthCard, isExpanded && { borderColor: Colors.primary.main, borderWidth: 1 }]} elevated={!isExpanded}>
             <View style={styles.monthHeader}>
               <View style={styles.monthTitleRow}>
-                <Ionicons name="calendar-outline" size={20} color={Colors.primary.main} style={{ marginRight: 8 }} />
-                <Text style={styles.monthTitle}>{item.month_name}</Text>
-              </View>
-              <Ionicons
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={Colors.text.secondary}
-              />
-            </View>
-            {!isExpanded && <Text style={styles.monthSubtitle}>Tap to see details</Text>}
-
-            {isExpanded && (
-              <View style={styles.expandedContainer}>
-                <View style={[styles.expandedBox, { backgroundColor: Colors.primary.main }]}>
-                  <Text style={styles.expandedLabel}>Total Bills</Text>
-                  <Text style={styles.expandedValue}>{item.total_bills}</Text>
+                <View style={[styles.iconCircle, { width: 44, height: 44, marginRight: 12 }]}>
+                  <Ionicons name="calendar-sharp" size={22} color={Colors.primary.main} />
                 </View>
-                <View style={[styles.expandedBox, { backgroundColor: Colors.success.main }]}>
-                  <Text style={styles.expandedLabel}>Total Amount</Text>
-                  <Text style={styles.expandedValue}>
-                    ₹{Math.floor(parseFloat(item.total_amount)).toFixed(3)}
+                <View>
+                  <Text style={styles.monthTitle}>{item.month_name}</Text>
+                  <Text style={[styles.monthSubtitle, { marginLeft: 0, marginTop: 2 }]}>
+                    {item.total_bills} Transactions
                   </Text>
                 </View>
+              </View>
+              <View style={[styles.iconCircle, { width: 32, height: 32, backgroundColor: isExpanded ? Colors.primary.main : '#F8FAFC' }]}>
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={isExpanded ? "#fff" : Colors.text.secondary}
+                />
+              </View>
+            </View>
+
+            {isExpanded && (
+              <View style={[styles.expandedContainer, { marginTop: 20 }]}>
+                <LinearGradient
+                  colors={['#4F46E5', '#6366F1']}
+                  style={[styles.expandedBox, { borderRadius: 16 }]}
+                >
+                  <Text style={styles.expandedLabel}>Total Bills</Text>
+                  <Text style={styles.expandedValue}>{item.total_bills}</Text>
+                </LinearGradient>
+                <LinearGradient
+                  colors={['#10B981', '#34D399']}
+                  style={[styles.expandedBox, { borderRadius: 16 }]}
+                >
+                  <Text style={styles.expandedLabel}>Total Amount</Text>
+                  <Text style={styles.expandedValue}>
+                    {Math.floor(parseFloat(item.total_amount)).toFixed(3)}
+                  </Text>
+                </LinearGradient>
               </View>
             )}
           </ModernCard>
@@ -275,23 +337,49 @@ export default function SalesReportScreen() {
   const renderTypeWise = ({ item, index }) => {
     const color = TYPE_COLORS[index % TYPE_COLORS.length];
     return (
+      <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg, backgroundColor: '#fff', padding: Spacing.lg }]} elevated={false}>
+        <View style={styles.typeCardInner}>
+          <View style={[styles.typeBadge, { backgroundColor: color.light, shadowColor: color.bg, shadowOpacity: 0.1, shadowRadius: 10, elevation: 2 }]}>
+            <Text style={[styles.typeBadgeText, { color: color.bg, fontSize: 18 }]}>{item.type}</Text>
+          </View>
+          <View style={styles.typeInfo}>
+            <Text style={[styles.typeName, { fontSize: 16 }]}>{item.type_name || item.name}</Text>
+            <View style={styles.typeMetaRow}>
+              <Ionicons name="stats-chart" size={13} color={Colors.text.secondary} />
+              <Text style={[styles.typeMeta, { fontWeight: '700' }]}>{item.bill_count || item.billcount} Bills</Text>
+            </View>
+          </View>
+          <View style={styles.typeAmountBox}>
+            <Text style={[styles.typeAmount, { color: color.bg, fontSize: 20 }]}>
+              {Math.floor(parseFloat(item.total_amount || item.nettotal || 0)).toFixed(3)}
+            </Text>
+            <Text style={styles.typeAmountLabel}>Grand Total</Text>
+          </View>
+        </View>
+      </ModernCard>
+    );
+  };
+
+  const renderUserSummary = ({ item, index }) => {
+    const color = TYPE_COLORS[index % TYPE_COLORS.length];
+    return (
       <ModernCard style={[styles.typeCard, { borderLeftColor: color.bg }]} elevated={false}>
         <View style={styles.typeCardInner}>
           <View style={[styles.typeBadge, { backgroundColor: color.light }]}>
-            <Text style={[styles.typeBadgeText, { color: color.bg }]}>{item.payment_type}</Text>
+            <Ionicons name="person" size={14} color={color.bg} />
           </View>
           <View style={styles.typeInfo}>
-            <Text style={styles.typeName}>{item.name}</Text>
+            <Text style={styles.typeName}>{item.userid}</Text>
             <View style={styles.typeMetaRow}>
               <Ionicons name="receipt-outline" size={13} color={Colors.text.secondary} />
-              <Text style={styles.typeMeta}>{item.billcount} Bills</Text>
+              <Text style={styles.typeMeta}>{item.bill_count} Bills</Text>
             </View>
           </View>
           <View style={styles.typeAmountBox}>
             <Text style={[styles.typeAmount, { color: color.bg }]}>
-              ₹{Math.floor(parseFloat(item.nettotal || 0)).toFixed(3)}
+              {Math.floor(parseFloat(item.total_amount || 0)).toFixed(3)}
             </Text>
-            <Text style={styles.typeAmountLabel}>Net Total</Text>
+            <Text style={styles.typeAmountLabel}>User Total</Text>
           </View>
         </View>
       </ModernCard>
@@ -303,13 +391,13 @@ export default function SalesReportScreen() {
       <ModernHeader
         title="Sales Report"
         leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
-        {/* ✅ Gradient Dropdown Section */}
+        {/* âœ… Gradient Dropdown Section */}
         <LinearGradient
-          colors={[Colors.primary.main, Colors.primary.light]}
+          colors={[Colors.primary.main, Colors.primary.dark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradientBox}
@@ -323,14 +411,15 @@ export default function SalesReportScreen() {
               { label: "Day Wise Sales", value: "DayWise" },
               { label: "Month Wise Sales", value: "item" },
               { label: "Type Wise Sales", value: "typeWise" },
+              { label: "Today's User Summary", value: "userSummary" },
             ]}
             style={{
               inputIOS: styles.inputGradient,
               inputAndroid: styles.inputGradient,
-              iconContainer: { top: 18, right: 15 },
+              iconContainer: { top: 12, right: 15 },
             }}
             useNativeAndroidPickerStyle={false}
-            Icon={() => <Ionicons name="chevron-down" size={20} color="#fff" />}
+            Icon={() => <Ionicons name="filter" size={18} color="#fff" />}
           />
         </LinearGradient>
 
@@ -355,7 +444,7 @@ export default function SalesReportScreen() {
               <ModernCard style={styles.summaryBox} elevated={false}>
                 <Text style={styles.summaryLabel}>Total Amount</Text>
                 <Text style={[styles.summaryNumber, { color: Colors.primary.main }]}>
-                  ₹{Math.floor(salesData
+                  {Math.floor(salesData
                     .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)).toFixed(3)}
                 </Text>
               </ModernCard>
@@ -390,10 +479,10 @@ export default function SalesReportScreen() {
             <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
               <Text style={styles.summaryTitle}>Total Type-Wise Sales</Text>
               <Text style={styles.totalValue}>
-                ₹{Math.floor(totalSales).toFixed(3)}
+                {Math.floor(totalSales).toFixed(3)}
               </Text>
               <Text style={[styles.summaryTitle, { marginTop: 4 }]}>
-                {salesData.reduce((sum, i) => sum + (i.billcount || 0), 0)} Total Bills
+                {salesData.reduce((sum, i) => sum + parseInt(i.bill_count || i.billcount || 0), 0)} Total Bills
               </Text>
             </ModernCard>
             <Text style={styles.sectionTitle}>Payment Type Breakdown</Text>
@@ -406,14 +495,59 @@ export default function SalesReportScreen() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
           </>
+        ) : selectedSummary === "userSummary" ? (
+          <>
+            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryTitle}>Total Users</Text>
+                  <Text style={styles.totalValue}>{totalUsers}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryTitle}>Total Bills</Text>
+                  <Text style={styles.totalValue}>{totalBills}</Text>
+                </View>
+              </View>
+              <View style={[styles.summarySeparator, { marginVertical: 12 }]} />
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.summaryTitle}>Today Grand Total</Text>
+                <Text style={[styles.totalValue, { fontSize: 24 }]}>
+                  {Math.floor(todayGrandTotal || totalSales).toFixed(3)}
+                </Text>
+              </View>
+            </ModernCard>
+            <Text style={styles.sectionTitle}>User-wise Breakdown</Text>
+            <FlatList
+              data={salesData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderUserSummary}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
+            />
+          </>
         ) : (
           <>
             <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
               <Text style={styles.summaryTitle}>Total Sales Today</Text>
-              <Text style={styles.totalValue}>₹{Math.floor(totalSales).toFixed(3)}</Text>
+              <Text style={[styles.totalValue, { fontSize: 32, marginTop: 10 }]}>
+                {Math.floor(todayGrandTotal ?? totalSales).toFixed(3)}
+              </Text>
+              <View style={[styles.summarySeparator, { marginVertical: 15, opacity: 0.3 }]} />
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryTitle, { fontSize: 10 }]}>Transactions</Text>
+                  <Text style={[styles.totalValue, { fontSize: 20 }]}>{salesData.length}</Text>
+                </View>
+                <View style={[styles.summarySeparator, { width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryTitle, { fontSize: 10 }]}>Status</Text>
+                  <Text style={[styles.totalValue, { fontSize: 14, textTransform: 'uppercase' }]}>Live</Text>
+                </View>
+              </View>
             </ModernCard>
 
-            <Text style={styles.sectionTitle}>All Transactions</Text>
+            <Text style={styles.sectionTitle}>Transaction Feed</Text>
             <FlatList
               data={salesData}
               keyExtractor={(item, index) => index.toString()}
@@ -432,11 +566,13 @@ export default function SalesReportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary
+    backgroundColor: "#FFF9F5", // Soft modern peach/orange tint
   },
   content: {
     flex: 1,
-    padding: Spacing.base,
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.base,
+    paddingTop: 8,
   },
   headerBar: {
     flexDirection: "row",
@@ -456,9 +592,10 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   gradientBox: {
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
+    borderRadius: 24, // More rounded for modern feel
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+    ...Shadows.md,
   },
   inputGradient: {
     fontSize: Typography.fontSize.base,
@@ -498,8 +635,13 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   dayCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#FFE4D1',
+    ...Shadows.sm,
   },
   dayRow: {
     flexDirection: "row",
@@ -516,22 +658,29 @@ const styles = StyleSheet.create({
   },
   dayDate: {
     fontSize: Typography.fontSize.base,
-    fontWeight: "700",
-    color: Colors.dark.main
+    fontWeight: "800",
+    color: Colors.dark.main,
+    letterSpacing: 0.3,
   },
   dayBills: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    marginTop: 2
+    fontWeight: '600',
+    marginTop: 4
   },
   dayAmount: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "900",
     color: Colors.primary.main
   },
   monthCard: {
     padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#FFE4D1',
+    minHeight: 80,
+    ...Shadows.sm,
   },
   monthCardExpanded: {
     backgroundColor: '#fff',
@@ -581,37 +730,55 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   summaryCard: {
-    marginBottom: Spacing.lg,
-    alignItems: "center",
+    marginBottom: Spacing.xl,
+    borderRadius: 28,
+    ...Shadows.lg,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  summaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summarySeparator: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: '80%',
   },
   summaryTitle: {
-    fontSize: Typography.fontSize.sm,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: "600",
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: "800",
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+    marginBottom: 4,
   },
   totalValue: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "900",
     color: "#fff",
-    marginTop: Spacing.xs
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: "800",
-    marginBottom: Spacing.sm,
-    color: Colors.text.tertiary,
+    fontSize: 12,
+    fontWeight: "900",
+    marginBottom: Spacing.md,
+    color: Colors.primary.dark,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginLeft: 4,
+    letterSpacing: 1.5,
+    marginLeft: 8,
   },
   transactionCard: {
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.background.primary,
-    borderColor: Colors.border.light,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    backgroundColor: "#fff",
+    borderRadius: 20,
     borderWidth: 1,
+    borderColor: '#FFE4D1',
+    ...Shadows.sm,
   },
   salesCard: {
     marginBottom: Spacing.md,
@@ -641,27 +808,31 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.primary.lightest,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    backgroundColor: '#FFF5ED',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE4D1',
   },
   name: {
-    fontWeight: "700",
-    color: Colors.text.primary,
-    fontSize: Typography.fontSize.base
+    fontWeight: "800",
+    color: Colors.dark.main,
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
   time: {
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.xs,
-    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
   amount: {
     color: Colors.primary.main,
-    fontWeight: "700",
-    fontSize: Typography.fontSize.base,
+    fontWeight: "900",
+    fontSize: 18,
     textAlign: "right",
   },
   emptyText: {
@@ -725,3 +896,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+

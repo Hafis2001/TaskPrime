@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -31,7 +31,7 @@ export default function BankCashScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const hasBank = await hasModule("MOD020");
         const hasCash = await hasModule("MOD019");
 
@@ -42,7 +42,7 @@ export default function BankCashScreen() {
             Alert.alert(
               "Module Not Purchased",
               'You have not purchased the "Bank & Cash" module. Please contact your administrator to activate it.',
-              [{ text: "OK", onPress: () => router.replace("/(drawer)/(tabs)") }]
+              [{ text: "OK", onPress: () => router.push("/(drawer)/(tabs)") }]
             );
           }, 300);
           return;
@@ -52,7 +52,7 @@ export default function BankCashScreen() {
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
 
@@ -113,7 +113,7 @@ export default function BankCashScreen() {
       <ModernHeader
         title="Accounts"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <ScrollView
@@ -205,3 +205,4 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
 });
+

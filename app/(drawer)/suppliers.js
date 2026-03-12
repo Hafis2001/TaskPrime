@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -35,9 +35,9 @@ export default function SuppliersScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD034", "Suppliers", () => {
-          router.replace("/(drawer)/(tabs)");
+          router.push("/(drawer)/(tabs)");
         });
 
         if (!allowed) {
@@ -50,7 +50,7 @@ export default function SuppliersScreen() {
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
       const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
@@ -118,7 +118,7 @@ export default function SuppliersScreen() {
       setTotalSuppliers(formatted.length);
       setTotalBalance(formatted.reduce((sum, c) => sum + c.balance, 0));
     } catch (error) {
-      console.error("🔥 Error fetching suppliers:", error);
+      console.error("ðŸ”¥ Error fetching suppliers:", error);
     } finally {
       setLoading(false);
     }
@@ -184,7 +184,7 @@ export default function SuppliersScreen() {
             ]}
             numberOfLines={1}
           >
-            ₹{Math.abs(item.balance).toLocaleString("en-IN")}
+            {Math.abs(item.balance).toLocaleString("en-IN")}
           </Text>
           <Text style={[styles.drCr, { color: item.balance < 0 ? Colors.error.main : Colors.success.dark }]}>
             {/* {item.balance < 0 ? "DR" : "CR"} */}
@@ -201,7 +201,7 @@ export default function SuppliersScreen() {
       <ModernHeader
         title="Suppliers Statement"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
@@ -215,7 +215,7 @@ export default function SuppliersScreen() {
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Total Balance</Text>
               <Text style={styles.summaryValue}>
-                ₹{Math.abs(totalBalance).toLocaleString('en-IN')}
+                {Math.abs(totalBalance).toLocaleString('en-IN')}
                 {/* <Text style={styles.miniDrCr}>{totalBalance < 0 ? " DR" : " CR"}</Text> */}
               </Text>
             </View>
@@ -410,3 +410,4 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
 });
+

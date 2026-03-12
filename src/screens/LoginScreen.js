@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -203,6 +204,17 @@ export default function LoginScreen({ onAddLicense }) {
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         await AsyncStorage.setItem("authToken", userData.token);
         await AsyncStorage.setItem("loginTimestamp", Date.now().toString());
+
+        // Save credentials securely for specific shop auto re-auth
+        try {
+          const safeId = String(userData.clientId).trim().toUpperCase();
+          console.log(`🔒 SAVING CREDS TO SECURE STORE FOR ID: [${safeId}]`);
+          await SecureStore.setItemAsync(`savedUsername_${safeId}`, username.trim());
+          await SecureStore.setItemAsync(`savedPassword_${safeId}`, password);
+          console.log(`🔒 SAVED SUCCESSFULLY FOR: [${safeId}]`);
+        } catch (e) {
+          console.warn("SecureStore save failed:", e);
+        }
 
         // Refresh license data immediately on login
         try {

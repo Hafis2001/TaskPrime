@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -35,7 +35,7 @@ export default function CustomerLedgerScreen() {
   const [totalDebit, setTotalDebit] = useState(0);
   const [totalCredit, setTotalCredit] = useState(0);
 
-  // 🗓️ New State for Date Range
+  // ðŸ—“ï¸ New State for Date Range
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -47,7 +47,7 @@ export default function CustomerLedgerScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD033", "Customers", () => {
           router.back();
         });
@@ -172,7 +172,7 @@ export default function CustomerLedgerScreen() {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  // 🗓️ Filter ledger between two dates
+  // ðŸ—“ï¸ Filter ledger between two dates
   const filterByDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return;
     const from = new Date(startDate);
@@ -245,14 +245,14 @@ export default function CustomerLedgerScreen() {
               {item.particulars}
             </Text>
             <Text style={styles.subText}>
-              {formatDate(item.entry_date)} {item.narration ? `• ${item.narration}` : ""}
+              {formatDate(item.entry_date)} {item.narration ? `â€¢ ${item.narration}` : ""}
             </Text>
             <Text style={styles.voucherText}>Ref: {item.voucher_no || "-"}</Text>
           </View>
         </View>
         <View style={styles.amountContainer}>
           <Text style={[styles.amountText, { color }]}>
-            ₹{Math.abs(amount || 0).toLocaleString("en-IN")}
+            â‚¹{Math.abs(amount || 0).toLocaleString("en-IN")}
           </Text>
           {/* <Text style={[styles.drCrText, { color }]}>{isCredit ? "DR" : "CR"}</Text> */}
         </View>
@@ -273,7 +273,7 @@ export default function CustomerLedgerScreen() {
     <View style={styles.container}>
       <ModernHeader
         title={name || "Customer Ledger"}
-        subtitle={fromDate && toDate ? `${formatDate(fromDate)} → ${formatDate(toDate)}` : "All Transactions"}
+        subtitle={fromDate && toDate ? `${formatDate(fromDate)} â†’ ${formatDate(toDate)}` : "All Transactions"}
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
         onLeftPress={() => router.back()}
         rightIcon={<Ionicons name="refresh" size={22} color={Colors.primary.main} />}
@@ -317,13 +317,13 @@ export default function CustomerLedgerScreen() {
             <View>
               <Text style={styles.balanceLabelLight}>Current Balance</Text>
               <Text style={styles.balanceValueLight}>
-                ₹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                â‚¹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.balanceLabelLight}>Opening</Text>
               <Text style={styles.balanceValueLightSmall}>
-                ₹{openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                â‚¹{openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
             </View>
           </View>
@@ -333,13 +333,13 @@ export default function CustomerLedgerScreen() {
           <ModernCard style={[styles.totalCard, { marginRight: Spacing.sm }]} elevated={false}>
             <Text style={styles.totalLabel}>Total Credit</Text>
             <Text style={[styles.totalValue, { color: Colors.error.main }]}>
-              ₹{totalCredit.toLocaleString("en-IN")}
+              â‚¹{totalCredit.toLocaleString("en-IN")}
             </Text>
           </ModernCard>
           <ModernCard style={[styles.totalCard, { marginLeft: Spacing.sm }]} elevated={false}>
             <Text style={styles.totalLabel}>Total Debit</Text>
             <Text style={[styles.totalValue, { color: Colors.success.main }]}>
-              ₹{totalDebit.toLocaleString("en-IN")}
+              â‚¹{totalDebit.toLocaleString("en-IN")}
             </Text>
           </ModernCard>
         </View>
@@ -520,3 +520,4 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
 });
+

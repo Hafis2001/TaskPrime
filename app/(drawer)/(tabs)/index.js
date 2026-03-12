@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
     Dimensions,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -21,9 +22,10 @@ import { useLicenseModules } from "../../../src/utils/useLicenseModules";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const API_URLS = {
-    Today: "https://taskprime.app/api/salestoday/",
+    DayWise: "https://taskprime.app/api/salesdaywise/",
     MonthWise: "https://taskprime.app/api/salesmonthwise/",
 };
+const TODAY_API = "https://taskprime.app/api/salestoday-details/";
 
 // ── Animated bar (compact height) ────────────────────────────────────────────
 const GraphBar = ({ height, color, label }) => {
@@ -60,11 +62,13 @@ const PerfectGraph = ({ data, color, loading, salesType }) => {
             </View>
         );
     }
-    const isToday = salesType === "Today";
-    const chartData = data.slice(-10);
-    const getValue = (d) => parseFloat((isToday ? d.nettotal : d.total_amount) || 0);
+    const isDayWise = salesType === "DayWise";
+    // For day-wise, data often comes newest-first. Reverse so newest is on the right.
+    const sortedData = isDayWise ? [...data].reverse() : data;
+    const chartData = sortedData.slice(-10);
+    const getValue = (d) => parseFloat(d.total_amount || 0);
     const maxVal = Math.max(...chartData.map(getValue), 1);
-    const chartHeight = 130;
+    const chartHeight = 100;
 
     return (
         <View style={styles.chartContainer}>
@@ -75,8 +79,8 @@ const PerfectGraph = ({ data, color, loading, salesType }) => {
                         height={(getValue(item) / maxVal) * chartHeight}
                         color={color}
                         label={
-                            isToday
-                                ? `#${String(item.billno).slice(-3)}`
+                            isDayWise
+                                ? `${item.total_bills}`
                                 : item.month_name?.substring(0, 3)
                         }
                     />
@@ -94,23 +98,26 @@ export default function DashboardScreen() {
     const [user, setUser] = useState(null);
     const { checkModule, hasModule } = useLicenseModules();
 
-    // Graph state — switches between Today and MonthWise
+    // Graph state — switches between DayWise and MonthWise
     const [loading, setLoading] = useState(true);
-    const [salesType, setSalesType] = useState("Today");
+    const [salesType, setSalesType] = useState("DayWise");
     const [salesData, setSalesData] = useState([]);
 
-    // Breakdown state — always DayWise, independent
+    // Breakdown state — synced with graph toggle
     const [breakdownLoading, setBreakdownLoading] = useState(true);
     const [breakdownData, setBreakdownData] = useState([]);
 
+    // Today's grand total
+    const [todayTotal, setTodayTotal] = useState(null);
+    const [todayBills, setTodayBills] = useState(null);
+    const [todayLoading, setTodayLoading] = useState(true);
+
     const summary = useMemo(() => {
-        const isToday = salesType === "Today";
-        const total = salesData.reduce(
-            (sum, item) => sum + parseFloat((isToday ? item.nettotal : item.total_amount) || 0),
-            0
-        );
-        const count = isToday ? salesData.length : null;
-        return { total, count };
+        const isDayWise = salesType === "DayWise";
+        const monthTotal = !isDayWise
+            ? salesData.reduce((sum, item) => sum + parseFloat(item.total_amount || 0), 0)
+            : null;
+        return { monthTotal };
     }, [salesData, salesType]);
 
     const fetchGraphData = async (parsedUser, type) => {
@@ -122,7 +129,10 @@ export default function DashboardScreen() {
                     Authorization: `Bearer ${parsedUser.token}`,
                 },
             });
-            const json = await response.json();
+            if (!response.ok) { console.warn("Graph API error:", response.status); setSalesData([]); return; }
+            const text = await response.text();
+            if (!text.startsWith("{") && !text.startsWith("[")) { setSalesData([]); return; }
+            const json = JSON.parse(text);
             if (json.success && Array.isArray(json.data)) setSalesData(json.data);
             else setSalesData([]);
         } catch (error) {
@@ -133,20 +143,43 @@ export default function DashboardScreen() {
         }
     };
 
-    const fetchBreakdownData = async (parsedUser) => {
+    const fetchTodayData = async (parsedUser) => {
+        try {
+            setTodayLoading(true);
+            const response = await fetch(`${TODAY_API}?client_id=${parsedUser.clientId}`, {
+                headers: { Accept: "application/json", Authorization: `Bearer ${parsedUser.token}` },
+            });
+            if (!response.ok) { console.warn("Today API error:", response.status); return; }
+            const text = await response.text();
+            if (!text.startsWith("{") && !text.startsWith("[")) { return; }
+            const json = JSON.parse(text);
+            if (json.success) {
+                setTodayTotal(json.grand_total ?? null);
+                if (Array.isArray(json.data)) {
+                    setTodayBills(json.data.length);
+                }
+            }
+        } catch (error) {
+            console.error("Today fetch error:", error);
+        } finally {
+            setTodayLoading(false);
+        }
+    };
+
+    const fetchBreakdownData = async (parsedUser, type = "DayWise") => {
         try {
             setBreakdownLoading(true);
-            const response = await fetch(
-                `https://taskprime.app/api/salesdaywise/?client_id=${parsedUser.clientId}`,
-                {
-                    headers: {
-                        Accept: "application/json",
-                        Authorization: `Bearer ${parsedUser.token}`,
-                    },
-                }
-            );
-            const json = await response.json();
-            if (json.success && Array.isArray(json.data)) setBreakdownData(json.data.slice(0, 5));
+            const url = type === "MonthWise"
+                ? `https://taskprime.app/api/salesmonthwise/?client_id=${parsedUser.clientId}`
+                : `https://taskprime.app/api/salesdaywise/?client_id=${parsedUser.clientId}`;
+            const response = await fetch(url, {
+                headers: { Accept: "application/json", Authorization: `Bearer ${parsedUser.token}` },
+            });
+            if (!response.ok) { console.warn("Breakdown API error:", response.status); setBreakdownData([]); return; }
+            const text = await response.text();
+            if (!text.startsWith("{") && !text.startsWith("[")) { setBreakdownData([]); return; }
+            const json = JSON.parse(text);
+            if (json.success && Array.isArray(json.data)) setBreakdownData(json.data);
             else setBreakdownData([]);
         } catch (error) {
             console.error("Breakdown fetch error:", error);
@@ -156,32 +189,29 @@ export default function DashboardScreen() {
         }
     };
 
-    // On mount: load user and fetch breakdown data (never changes)
-    useEffect(() => {
-        const loadInitial = async () => {
-            const storedUser = await AsyncStorage.getItem("user");
-            if (storedUser) {
-                const parsed = JSON.parse(storedUser);
-                setUser(parsed);
-                fetchBreakdownData(parsed);
-            }
-        };
-        loadInitial();
-    }, []);
+    // On focus: load user, fetch today total and initial breakdown
+    useFocusEffect(
+        useCallback(() => {
+            const loadInitial = async () => {
+                const storedUser = await AsyncStorage.getItem("user");
+                if (storedUser) {
+                    const parsed = JSON.parse(storedUser);
+                    setUser(parsed);
+                    fetchTodayData(parsed);
+                    fetchBreakdownData(parsed, "DayWise");
+                }
+            };
+            loadInitial();
+        }, [])
+    );
 
-    // Whenever user loads or toggle changes, fetch graph data
+    // Whenever user loads or toggle changes, fetch graph data + breakdown
     useEffect(() => {
         if (user) {
             fetchGraphData(user, salesType);
+            fetchBreakdownData(user, salesType);
         }
     }, [user, salesType]);
-
-    const QUICK_ACTIONS = [
-        { title: "Stock", icon: "cube-outline", color: "#4A90E2", route: "/(drawer)/stock-report", moduleCode: "MOD030", moduleName: "Stock Report" },
-        { title: "Events", icon: "list-outline", color: "#A569BD", route: "/(drawer)/event-log", moduleCode: "MOD031", moduleName: "Event Log" },
-        { title: "PDC", icon: "document-text-outline", color: "#52BE80", route: "/(drawer)/pdc-report", moduleCode: "MOD032", moduleName: "PDC" },
-        { title: "Cash", icon: "cash-outline", color: "#F39C12", route: "/(drawer)/bank-cash" },
-    ];
 
     const breakdownItems = breakdownData;
 
@@ -212,27 +242,30 @@ export default function DashboardScreen() {
                     <View style={styles.salesTop}>
                         <View>
                             <Text style={styles.salesLabel}>
-                                {salesType === "Today" ? "Today's Sales" : "Month-wise Sales"}
+                                {salesType === "DayWise" ? "Day-wise Sales" : "Month-wise Sales"}
                             </Text>
-                            {loading
+                            {(salesType === "DayWise" ? todayLoading : loading)
                                 ? <ActivityIndicator size="small" color={Colors.primary.main} style={{ marginTop: 4 }} />
                                 : <>
                                     <Text style={styles.salesTotal}>
-                                        ₹{Math.floor(summary.total).toFixed(3)}
+                                        {salesType === "MonthWise"
+                                            ? Math.floor(summary.monthTotal ?? 0).toFixed(3)
+                                            : Math.floor(todayTotal ?? 0).toFixed(3)
+                                        }
                                     </Text>
-                                    {salesType === "Today" && summary.count !== null && (
-                                        <Text style={styles.salesCount}>{summary.count} Bills</Text>
+                                    {salesType === "DayWise" && todayBills !== null && (
+                                        <Text style={styles.salesCount}>{todayBills} Bills</Text>
                                     )}
                                 </>
                             }
                         </View>
                         <TouchableOpacity
                             style={styles.toggleBtn}
-                            onPress={() => setSalesType(salesType === "Today" ? "MonthWise" : "Today")}
+                            onPress={() => setSalesType(salesType === "DayWise" ? "MonthWise" : "DayWise")}
                         >
                             <Ionicons name="swap-horizontal" size={14} color={Colors.primary.main} />
                             <Text style={styles.toggleText}>
-                                {salesType === "Today" ? "Monthly" : "Today"}
+                                {salesType === "DayWise" ? "Monthly" : "Daily"}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -243,35 +276,6 @@ export default function DashboardScreen() {
                     </View>
                 </ModernCard>
 
-                {/* ── Quick Actions horizontal strip ── */}
-                <View style={styles.quickRow}>
-                    {QUICK_ACTIONS.map((a) => (
-                        <TouchableOpacity
-                            key={a.title}
-                            style={styles.quickItem}
-                            activeOpacity={0.75}
-                            onPress={async () => {
-                                if (a.title === "Cash") {
-                                    const hasBank = await hasModule("MOD020");
-                                    const hasCash = await hasModule("MOD019");
-                                    if (!hasBank && !hasCash) {
-                                        await checkModule("MOD019", "Bank & Cash"); // Re-use checkModule for consistent UI
-                                        return;
-                                    }
-                                } else if (a.moduleCode && !(await checkModule(a.moduleCode, a.moduleName))) {
-                                    return;
-                                }
-                                router.push(a.route);
-                            }}
-                        >
-                            <View style={[styles.quickIcon, { backgroundColor: a.color + "18" }]}>
-                                <Ionicons name={a.icon} size={26} color={a.color} />
-                            </View>
-                            <Text style={styles.quickLabel}>{a.title}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
                 {/* ── Sales Breakdown: grows to fill whatever is left ── */}
                 <View style={styles.sectionRow}>
                     <Text style={styles.sectionHeader}>SALES BREAKDOWN</Text>
@@ -281,26 +285,28 @@ export default function DashboardScreen() {
                 </View>
 
                 <ModernCard style={styles.breakdownCard} elevated={false}>
-                    {breakdownItems.length === 0 && !loading ? (
-                        <Text style={styles.emptyBreakdown}>No data available</Text>
-                    ) : (
-                        breakdownItems.map((item, index) => (
-                            <View
-                                key={index}
-                                style={[styles.breakdownRow, index > 0 && styles.breakdownBorder]}
-                            >
-                                <View style={styles.breakdownDot} />
-                                <Text style={styles.breakdownLabel} numberOfLines={1}>
-                                    {item.date
-                                        ? new Date(item.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-                                        : item.month_name}
-                                </Text>
-                                <Text style={styles.breakdownValue}>
-                                    ₹{Math.floor(parseFloat(item.total_amount || 0)).toFixed(3)}
-                                </Text>
-                            </View>
-                        ))
-                    )}
+                    <ScrollView style={{ maxHeight: 310 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+                        {breakdownItems.length === 0 && !loading ? (
+                            <Text style={styles.emptyBreakdown}>No data available</Text>
+                        ) : (
+                            breakdownItems.map((item, index) => (
+                                <View
+                                    key={index}
+                                    style={[styles.breakdownRow, index > 0 && styles.breakdownBorder]}
+                                >
+                                    <View style={styles.breakdownDot} />
+                                    <Text style={styles.breakdownLabel} numberOfLines={1}>
+                                        {item.date
+                                            ? new Date(item.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+                                            : item.month_name}
+                                    </Text>
+                                    <Text style={styles.breakdownValue}>
+                                        {Math.floor(parseFloat(item.total_amount || 0)).toFixed(3)}
+                                    </Text>
+                                </View>
+                            ))
+                        )}
+                    </ScrollView>
                 </ModernCard>
             </View>
         </View>
@@ -378,15 +384,14 @@ const styles = StyleSheet.create({
 
     // Sales card — grows to fill available vertical space
     salesCard: {
-        flex: 1,
-        padding: 18,
+        height: 260,
+        padding: 15,
         borderRadius: 20,
     },
 
     // Chart stretches inside the card
     chartFlex: {
         flex: 1,
-        minHeight: 100,
     },
     salesTop: {
         flexDirection: "row",
@@ -433,6 +438,7 @@ const styles = StyleSheet.create({
         flex: 1,
         width: "100%",
         justifyContent: "flex-end",
+        // height:50,
     },
     pointsRow: {
         flex: 1,
@@ -527,7 +533,7 @@ const styles = StyleSheet.create({
 
     // Breakdown card — grows to fill leftover space
     breakdownCard: {
-        flex: 1,
+        height: 300,
         padding: 0,
         borderRadius: 16,
         overflow: "hidden",

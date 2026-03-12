@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     BackHandler,
@@ -46,8 +46,9 @@ export default function PDCReportScreen() {
     useFocusEffect(
         useCallback(() => {
             const runCheck = async () => {
+                setIsLicensed(null);
                 const allowed = await checkModule("MOD032", "PDC", () => {
-                    router.replace("/(drawer)/(tabs)");
+                    router.push("/(drawer)/(tabs)");
                 });
 
                 if (!allowed) {
@@ -60,7 +61,7 @@ export default function PDCReportScreen() {
             runCheck();
 
             const backAction = () => {
-                router.replace("/(drawer)/(tabs)");
+                router.push("/(drawer)/(tabs)");
                 return true;
             };
             const backHandler = BackHandler.addEventListener(
@@ -73,7 +74,7 @@ export default function PDCReportScreen() {
 
     const init = async () => {
         if (!(await checkModule("MOD032", "PDC"))) {
-            router.replace("/(drawer)/(tabs)");
+            router.push("/(drawer)/(tabs)");
             return;
         }
         const storedUser = await AsyncStorage.getItem("user");
@@ -86,19 +87,18 @@ export default function PDCReportScreen() {
         fetchPDCReport(parsedUser);
     };
 
-    useEffect(() => {
-        init();
 
-        const backAction = () => {
-            router.replace("/(drawer)/(tabs)");
-            return true;
-        };
-        const backHandler = BackHandler.addEventListener(
-            "hardwareBackPress",
-            backAction
-        );
-        return () => backHandler.remove();
-    }, []);
+
+    const applyFilters = (data, status, search) => {
+        let filtered = data.filter((item) => item.status === status);
+        if (search) {
+            filtered = filtered.filter((item) =>
+                item.party.toLowerCase().includes(search.toLowerCase()) ||
+                item.chequeno.toLowerCase().includes(search.toLowerCase())
+            );
+        }
+        setFilteredData(filtered);
+    };
 
     const fetchPDCReport = async (parsedUser) => {
         try {
@@ -122,7 +122,7 @@ export default function PDCReportScreen() {
                 setFilteredData([]);
             }
         } catch (error) {
-            console.error("❌ PDC Fetch error:", error);
+            console.error("âŒ PDC Fetch error:", error);
             setPdcData([]);
             setFilteredData([]);
         } finally {
@@ -140,16 +140,6 @@ export default function PDCReportScreen() {
     }
     if (!isLicensed) return null;
 
-    const applyFilters = (data, status, search) => {
-        let filtered = data.filter((item) => item.status === status);
-        if (search) {
-            filtered = filtered.filter((item) =>
-                item.party.toLowerCase().includes(search.toLowerCase()) ||
-                item.chequeno.toLowerCase().includes(search.toLowerCase())
-            );
-        }
-        setFilteredData(filtered);
-    };
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -191,7 +181,7 @@ export default function PDCReportScreen() {
                 </View>
                 <View style={styles.amountBox}>
                     <Text style={styles.amountLabel}>Amount</Text>
-                    <Text style={styles.amountValue}>₹{parseFloat(item.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+                    <Text style={styles.amountValue}>{parseFloat(item.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
                 </View>
             </View>
 
@@ -234,7 +224,7 @@ export default function PDCReportScreen() {
             <ModernHeader
                 title="PDC Report"
                 leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-                onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+                onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             <View style={styles.content}>
@@ -492,3 +482,4 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
     },
 });
+

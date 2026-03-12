@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import { useNavigation, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
     Alert,
@@ -23,6 +24,7 @@ export default function LicenseInfoScreen() {
     const [licenseKey, setLicenseKey] = useState("");
     const [deviceId, setDeviceId] = useState("");
     const [customerName, setCustomerName] = useState("");
+    const [clientId, setClientId] = useState("");
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const insets = useSafeAreaInsets();
@@ -37,10 +39,12 @@ export default function LicenseInfoScreen() {
             const storedLicenseKey = await AsyncStorage.getItem("licenseKey");
             const storedDeviceId = await AsyncStorage.getItem("deviceId");
             const storedCustomerName = await AsyncStorage.getItem("customerName");
-
+            const storedClientId = await AsyncStorage.getItem("clientId");
+ 
             setLicenseKey(storedLicenseKey || "Not Available");
             setDeviceId(storedDeviceId || "Not Available");
             setCustomerName(storedCustomerName || "Valued Customer");
+            setClientId(storedClientId || "");
         } catch (error) {
             console.error(error);
         }
@@ -83,7 +87,14 @@ export default function LicenseInfoScreen() {
                 console.warn("Logout API failed, continuing local cleanup", e);
             }
 
-            // Local cleanup
+            // SecureStore cleanup for current shop
+            if (clientId) {
+                const safeId = String(clientId).trim().toUpperCase();
+                await SecureStore.deleteItemAsync(`savedUsername_${safeId}`).catch(() => { });
+                await SecureStore.deleteItemAsync(`savedPassword_${safeId}`).catch(() => { });
+            }
+
+            // Local cleanup - CLEAR EVERYTHING related to license and sessions
             await AsyncStorage.multiRemove([
                 "licenseActivated",
                 "licenseKey",
@@ -91,20 +102,20 @@ export default function LicenseInfoScreen() {
                 "customerName",
                 "clientId",
                 "user",
-                "authToken"
+                "authToken",
+                "loginTimestamp",
+                "knownLicenses"
             ]);
 
-            Alert.alert("Success", "License removed.", [
+            Alert.alert("License Removed", "License has been removed successfully.", [
                 {
                     text: "OK",
                     onPress: () => {
-                        setTimeout(() => {
-                            console.log("🔄 Resetting navigation after license removal...");
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'index' }],
-                            });
-                        }, 200);
+                        // Forceful reset to root to ensure app state reloads
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'index' }],
+                        });
                     }
                 }
             ]);

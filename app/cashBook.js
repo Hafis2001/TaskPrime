@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,7 +24,7 @@ const API_URL = "https://taskprime.app/api/get-cash-book-data/";
 
 function formatCurrency(v) {
   const n = Number(v ?? 0);
-  if (isNaN(n)) return "₹0";
+  if (isNaN(n)) return "";
   const isNegative = n < 0;
   const absValue = Math.abs(Math.round(n));
   const formatted = "" + absValue.toLocaleString("en-IN");
@@ -44,9 +44,9 @@ export default function CashBookScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD019", "Cash Book", () => {
-          router.replace("/(drawer)/bank-cash");
+          router.push("/(drawer)/bank-cash");
         });
 
         if (!allowed) {
@@ -54,10 +54,10 @@ export default function CashBookScreen() {
           return;
         }
         setIsLicensed(true);
-        if (data.length === 0) fetchCashBook();
+        fetchCashBook();
       };
       runCheck();
-    }, [data.length])
+    }, [])
   );
 
   const fetchCashBook = useCallback(async () => {
@@ -118,6 +118,12 @@ export default function CashBookScreen() {
   }, []);
 
 
+  const filtered = React.useMemo(() => {
+    if (!query) return data;
+    const q = query.trim().toLowerCase();
+    return data.filter((r) => r.name.toLowerCase().includes(q));
+  }, [data, query]);
+
   if (isLicensed === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.secondary }}>
@@ -135,6 +141,11 @@ export default function CashBookScreen() {
     );
   }
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchCashBook();
+  };
+
   const renderRow = ({ item }) => {
     const isPositive = item.balance >= 0;
 
@@ -147,7 +158,7 @@ export default function CashBookScreen() {
             params: {
               account_code: item.code,
               account_name: item.name,
-              previous_balance: item.balance, // ✅ Pass previous balance directly
+              previous_balance: item.balance, // âœ… Pass previous balance directly
             },
           });
         }}
@@ -172,7 +183,7 @@ export default function CashBookScreen() {
                 ]}
                 numberOfLines={1}
               >
-                ₹{Math.abs(item.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                {Math.abs(item.balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
               <Text
                 style={[
@@ -321,3 +332,4 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
 });
+

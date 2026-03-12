@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -49,7 +49,7 @@ export default function CashLedgerScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD019", "Cash Book", () => {
           router.back();
         });
@@ -141,7 +141,7 @@ export default function CashLedgerScreen() {
           dailyMap[item.dateOnly].entries.push(item);
         });
 
-        // 🧮 Reverse calculation (Opening = Closing + Debit - Credit)
+        // ðŸ§® Reverse calculation (Opening = Closing + Debit - Credit)
         const dates = Object.keys(dailyMap).sort();
         let runningClosing = parseFloat(previous_balance) || 0;
         const balances = {};
@@ -175,7 +175,7 @@ export default function CashLedgerScreen() {
         setFilteredData([]);
       }
     } catch (err) {
-      console.error("🔥 Ledger fetch error:", err);
+      console.error("ðŸ”¥ Ledger fetch error:", err);
       Alert.alert("Network Error", "Could not fetch ledger.");
       setData([]);
       setFilteredData([]);
@@ -290,7 +290,7 @@ export default function CashLedgerScreen() {
 
           <View style={styles.amountWrap}>
             <Text style={[styles.amount, { color }]} numberOfLines={1}>
-              ₹{amount}
+              {amount}
             </Text>
             <Text style={[styles.drCrText, { color }]}>
               {isDebit ? "DR" : "CR"}
@@ -333,7 +333,7 @@ export default function CashLedgerScreen() {
                 { color: openingBalance >= 0 ? Colors.success.main : Colors.error.main },
               ]}
             >
-              ₹{Math.abs(openingBalance).toLocaleString("en-IN")}
+              {Math.abs(openingBalance).toLocaleString("en-IN")}
             </Text>
           </ModernCard>
 
@@ -341,7 +341,7 @@ export default function CashLedgerScreen() {
           <ModernCard style={styles.balanceBox} elevated={false}>
             <Text style={styles.label}>Closing Balance</Text>
             <Text style={[styles.balanceValue, { color: Colors.primary.main }]}>
-              ₹{Math.abs(dailyBalances[selectedDate]?.closing || closingBalance).toLocaleString("en-IN")}
+              {Math.abs(dailyBalances[selectedDate]?.closing || closingBalance).toLocaleString("en-IN")}
             </Text>
           </ModernCard>
         </View>
@@ -378,14 +378,14 @@ export default function CashLedgerScreen() {
           <View style={styles.totalItem}>
             <Text style={styles.label}>Total Debit</Text>
             <Text style={[styles.balanceValue, { color: Colors.success.main }]}>
-              ₹{totalDebit.toLocaleString("en-IN")}
+              {totalDebit.toLocaleString("en-IN")}
             </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.totalItem}>
             <Text style={styles.label}>Total Credit</Text>
             <Text style={[styles.balanceValue, { color: Colors.error.main }]}>
-              ₹{totalCredit.toLocaleString("en-IN")}
+              {totalCredit.toLocaleString("en-IN")}
             </Text>
           </View>
         </ModernCard>
@@ -554,3 +554,4 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
 });
+

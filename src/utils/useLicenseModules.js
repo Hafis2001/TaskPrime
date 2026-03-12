@@ -24,7 +24,6 @@ let globalModuleCodes = null;
 let globalDemoInfo = null;
 let isFetching = false;
 let fetchPromise = null;
-const activeAlerts = new Set();
 
 // Listeners for global state updates
 const stateListeners = new Set();
@@ -245,42 +244,28 @@ export function useLicenseModules() {
         return hasFinal;
     };
 
-    /**
-     * Checks access and shows an alert if not purchased.
-     * Returns true if access is allowed, false otherwise.
-     * @param {string} code - Module code
-     * @param {string} moduleName - Name for display
-     * @param {function} onDenied - Optional callback for when access is denied (after alert OK)
-     */
     const checkModule = async (code, moduleName, onDenied) => {
         const allowed = await hasModule(code);
         if (allowed) return true;
 
-        // Prevent multiple alerts for the same module
-        if (activeAlerts.has(code)) {
-            console.log(`⌛ Alert already pending/active for ${moduleName}`);
-            return false;
+        console.log(`🚫 Access Denied for ${moduleName} (${code}).`);
+
+        // IMPORTANT: Navigate away FIRST so the Drawer properly unfocuses this screen.
+        // This ensures useFocusEffect fires correctly on the next press.
+        // Then show the alert on top of the destination screen.
+        if (onDenied) {
+            onDenied();
         }
 
-        console.log(`🚫 Access Denied for ${moduleName} (${code}). Triggering alert with safety delay.`);
-        activeAlerts.add(code);
-
-        // Add a safety delay for UI readiness (Android transitions)
+        // Show alert after a short delay to let the navigation animation complete
         setTimeout(() => {
             Alert.alert(
                 "Module Not Purchased",
                 `You have not purchased the "${moduleName}" module yet. Please contact your administrator to activate it.`,
-                [{
-                    text: "OK",
-                    onPress: () => {
-                        console.log(`👋 Redirection triggered for ${moduleName}`);
-                        activeAlerts.delete(code);
-                        if (onDenied) onDenied();
-                    }
-                }],
-                { onDismiss: () => activeAlerts.delete(code) }
+                [{ text: "OK" }],
+                { cancelable: false }
             );
-        }, 500);
+        }, 400);
 
         return false;
     };

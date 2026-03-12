@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -41,9 +41,9 @@ export default function RefreshTagScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            const runCheck = async () => {
+            const runCheck = async () => { setIsLicensed(null);
                 const allowed = await checkModule("MOD035", "Refresh Tag", () => {
-                    router.replace("/(drawer)/(tabs)");
+                    router.push("/(drawer)/(tabs)");
                 });
 
                 if (!allowed) {
@@ -56,7 +56,7 @@ export default function RefreshTagScreen() {
             runCheck();
 
             const backAction = () => {
-                router.replace("/(drawer)/(tabs)");
+                router.push("/(drawer)/(tabs)");
                 return true;
             };
             const backHandler = BackHandler.addEventListener(
@@ -103,7 +103,7 @@ export default function RefreshTagScreen() {
                 setLogs([]);
             }
         } catch (error) {
-            console.error("❌ Refresh Tag Fetch error:", error);
+            console.error("âŒ Refresh Tag Fetch error:", error);
             setLogs([]);
         } finally {
             setLoading(false);
@@ -181,7 +181,7 @@ export default function RefreshTagScreen() {
             <ModernHeader
                 title="Refresh Tags"
                 leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-                onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+                onLeftPress={() => router.push("/(drawer)/(tabs)")}
                 rightIcon={<Ionicons name="refresh-outline" size={22} color={Colors.primary.main} />}
                 onRightPress={onRefresh}
             />
@@ -309,3 +309,4 @@ const styles = StyleSheet.create({
         fontWeight: Typography.fontWeight.medium,
     },
 });
+

@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -42,9 +42,9 @@ export default function EventLogScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            const runCheck = async () => {
+            const runCheck = async () => { setIsLicensed(null);
                 const allowed = await checkModule("MOD031", "Event Log", () => {
-                    router.replace("/(drawer)/(tabs)");
+                    router.push("/(drawer)/(tabs)");
                 });
 
                 if (!allowed) {
@@ -57,7 +57,7 @@ export default function EventLogScreen() {
             runCheck();
 
             const backAction = () => {
-                router.replace("/(drawer)/(tabs)");
+                router.push("/(drawer)/(tabs)");
                 return true;
             };
             const backHandler = BackHandler.addEventListener(
@@ -101,7 +101,7 @@ export default function EventLogScreen() {
                 setFilteredData([]);
             }
         } catch (error) {
-            console.error("❌ Event Log Fetch error:", error);
+            console.error("âŒ Event Log Fetch error:", error);
             setEventData([]);
             setFilteredData([]);
         } finally {
@@ -181,7 +181,7 @@ export default function EventLogScreen() {
             <ModernHeader
                 title="Event Log"
                 leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-                onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+                onLeftPress={() => router.push("/(drawer)/(tabs)")}
             />
 
             <View style={styles.content}>
@@ -351,3 +351,4 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
     },
 });
+

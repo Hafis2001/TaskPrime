@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -43,9 +43,9 @@ export default function PurchaseReportScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD038", "Purchase Report", () => {
-          router.replace("/(drawer)/(tabs)");
+          router.push("/(drawer)/(tabs)");
         });
 
         if (!allowed) {
@@ -53,12 +53,19 @@ export default function PurchaseReportScreen() {
           return;
         }
         setIsLicensed(true);
-        init();
+        const storedUser = await AsyncStorage.getItem("user");
+        if (!storedUser) {
+          router.replace("/");
+          return;
+        }
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        fetchReport(parsedUser, selectedSummary);
       };
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -91,7 +98,7 @@ export default function PurchaseReportScreen() {
         setPurchaseData([]);
       }
     } catch (error) {
-      console.error("❌ Fetch error:", error);
+      console.error("âŒ Fetch error:", error);
       setPurchaseData([]);
     } finally {
       setLoading(false);
@@ -126,7 +133,7 @@ export default function PurchaseReportScreen() {
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.amount} numberOfLines={1}>
-            ₹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            â‚¹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </Text>
         </View>
       </View>
@@ -138,7 +145,7 @@ export default function PurchaseReportScreen() {
       <ModernHeader
         title="Purchase Report"
         leftIcon={<Ionicons name="arrow-back" size={26} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
@@ -183,7 +190,7 @@ export default function PurchaseReportScreen() {
             {/* Top Summary Card */}
             <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
               <Text style={styles.summaryTitle}>Total Purchase</Text>
-              <Text style={styles.totalValue}>₹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+              <Text style={styles.totalValue}>â‚¹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
             </ModernCard>
 
             {/* All Transactions */}
@@ -317,3 +324,4 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
 });
+

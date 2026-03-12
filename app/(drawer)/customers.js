@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -36,9 +36,9 @@ export default function DebtorsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => {
+      const runCheck = async () => { setIsLicensed(null);
         const allowed = await checkModule("MOD033", "Customers", () => {
-          router.replace("/(drawer)/(tabs)");
+          router.push("/(drawer)/(tabs)");
         });
 
         if (!allowed) {
@@ -51,7 +51,7 @@ export default function DebtorsScreen() {
       runCheck();
 
       const backAction = () => {
-        router.replace("/(drawer)/(tabs)");
+        router.push("/(drawer)/(tabs)");
         return true;
       };
       const backHandler = BackHandler.addEventListener(
@@ -119,7 +119,7 @@ export default function DebtorsScreen() {
       const totalBal = formatted.reduce((sum, c) => sum + c.balance, 0);
       setTotalBalance(totalBal);
     } catch (error) {
-      console.error("🔥 Error fetching customers:", error);
+      console.error("ðŸ”¥ Error fetching customers:", error);
       Alert.alert("Network Error", "Could not connect to server.");
     } finally {
       setLoading(false);
@@ -207,7 +207,7 @@ export default function DebtorsScreen() {
               ]}
               numberOfLines={1}
             >
-              ₹{Math.abs(item.balance).toLocaleString("en-IN")}
+              {Math.abs(item.balance).toLocaleString("en-IN")}
             </Text>
             <Text style={[styles.drCr, { color: item.balance < 0 ? Colors.error.main : Colors.success.dark }]}>
               {/* {item.balance < 0 ? "DR" : "CR"} */}
@@ -223,7 +223,7 @@ export default function DebtorsScreen() {
       <ModernHeader
         title="Customers Statement"
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
-        onLeftPress={() => router.replace("/(drawer)/(tabs)")}
+        onLeftPress={() => router.push("/(drawer)/(tabs)")}
       />
 
       <View style={styles.content}>
@@ -236,7 +236,7 @@ export default function DebtorsScreen() {
             <View style={styles.divider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Total Balance</Text>
-              <Text style={styles.summaryValue}>₹{Math.round(totalBalance).toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>{Math.round(totalBalance).toLocaleString('en-IN')}</Text>
             </View>
           </View>
         </ModernCard>
@@ -268,7 +268,7 @@ export default function DebtorsScreen() {
             ) : (
               <ScrollView style={{ padding: 20 }}>
                 <Text style={{ fontWeight: "bold", color: "red" }}>
-                  ⚠️ No data displayed. API Raw Output:
+                  âš ï¸ No data displayed. API Raw Output:
                 </Text>
                 <Text selectable style={{ fontFamily: "monospace", fontSize: 12 }}>
                   {JSON.stringify(rawJson, null, 2)}
@@ -407,3 +407,4 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
 });
+
