@@ -67,7 +67,7 @@ export default function SalesReportScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: true,
+      headerShown: false,
       headerTitle: "Sales Report",
     });
   }, [navigation]);
@@ -442,30 +442,38 @@ export default function SalesReportScreen() {
           </View>
         ) : selectedSummary === "DayWise" ? (
           <>
-            <View style={styles.summaryRow}>
-              <ModernCard style={styles.summaryBox} elevated={false}>
-                <Text style={styles.summaryLabel}>Total Bills</Text>
-                <Text style={styles.summaryNumber}>
-                  {salesData.reduce((sum, i) => sum + (i.total_bills || 0), 0)}
-                </Text>
-              </ModernCard>
-              <ModernCard style={styles.summaryBox} elevated={false}>
-                <Text style={styles.summaryLabel}>Total Amount</Text>
-                <Text style={[styles.summaryNumber, { color: Colors.primary.main }]}>
-                  {Math.floor(salesData
-                    .reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)).toFixed(3)}
-                </Text>
-              </ModernCard>
-            </View>
-
+            <Text style={styles.sectionTitle}>Day-wise Sales Breakdown</Text>
             <FlatList
               data={salesData}
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderDayWise}
-              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl + 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
+
+            <View style={[styles.bottomCardWrapper, { paddingBottom: insets.bottom + moderateVerticalScale(16) }]}>
+              <LinearGradient
+                colors={[Colors.primary.main, Colors.primary.dark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bottomCard}
+              >
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Total Amount</Text>
+                  <Text style={styles.bottomValue}>
+                    {Math.floor(salesData.reduce((sum, i) => sum + parseFloat(i.total_amount || 0), 0)).toFixed(3)}
+                  </Text>
+                </View>
+                <View style={styles.bottomSeparator} />
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Bills</Text>
+                  <Text style={[styles.bottomValue, { fontSize: moderateScale(18) }]}>
+                    {salesData.reduce((sum, i) => sum + (i.total_bills || 0), 0)}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
           </>
         ) : selectedSummary === "item" ? (
           <FlatList
@@ -484,86 +492,106 @@ export default function SalesReportScreen() {
           />
         ) : selectedSummary === "typeWise" ? (
           <>
-            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
-              <Text style={styles.summaryTitle}>Total Type-Wise Sales</Text>
-              <Text style={styles.totalValue}>
-                {Math.floor(totalSales).toFixed(3)}
-              </Text>
-              <Text style={[styles.summaryTitle, { marginTop: 4 }]}>
-                {salesData.reduce((sum, i) => sum + parseInt(i.bill_count || i.billcount || 0), 0)} Total Bills
-              </Text>
-            </ModernCard>
             <Text style={styles.sectionTitle}>Payment Type Breakdown</Text>
             <FlatList
               data={salesData}
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderTypeWise}
-              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl + 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
+
+            <View style={[styles.bottomCardWrapper, { paddingBottom: insets.bottom + moderateVerticalScale(16) }]}>
+              <LinearGradient
+                colors={["#4F46E5", "#6366F1"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bottomCard}
+              >
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Total Sales</Text>
+                  <Text style={styles.bottomValue}>{Math.floor(totalSales).toFixed(3)}</Text>
+                </View>
+                <View style={styles.bottomSeparator} />
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Bills</Text>
+                  <Text style={[styles.bottomValue, { fontSize: moderateScale(18) }]}>
+                    {salesData.reduce((sum, i) => sum + parseInt(i.bill_count || i.billcount || 0), 0)}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
           </>
         ) : selectedSummary === "userSummary" ? (
           <>
-            <ModernCard style={styles.summaryCard} gradient padding={Spacing.xl}>
-              <View style={styles.summaryGrid}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryTitle}>Total Users</Text>
-                  <Text style={styles.totalValue}>{totalUsers}</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryTitle}>Total Bills</Text>
-                  <Text style={styles.totalValue}>{totalBills}</Text>
-                </View>
-              </View>
-              <View style={[styles.summarySeparator, { marginVertical: moderateVerticalScale(12) }]} />
-              <View style={{ alignItems: 'center' }}>
-                <Text style={styles.summaryTitle}>Today Grand Total</Text>
-                <Text style={[styles.totalValue, { fontSize: moderateScale(24) }]}>
-                  {Math.floor(todayGrandTotal || totalSales).toFixed(3)}
-                </Text>
-              </View>
-            </ModernCard>
             <Text style={styles.sectionTitle}>User-wise Breakdown</Text>
             <FlatList
               data={salesData}
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderUserSummary}
-              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl + 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
+
+            <View style={[styles.bottomCardWrapper, { paddingBottom: insets.bottom + moderateVerticalScale(16) }]}>
+              <LinearGradient
+                colors={["#10B981", "#059669"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bottomCard}
+              >
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Grand Total Today</Text>
+                  <Text style={styles.bottomValue}>
+                    {Math.floor(todayGrandTotal || totalSales).toFixed(3)}
+                  </Text>
+                </View>
+                <View style={styles.bottomSeparator} />
+                <View style={[styles.bottomItem, { flex: 0.6 }]}>
+                  <Text style={styles.bottomLabel}>U / B</Text>
+                  <Text style={[styles.bottomValue, { fontSize: moderateScale(16) }]}>
+                    {totalUsers} / {totalBills}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
           </>
         ) : (
           <>
-            <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
-              <Text style={styles.summaryTitle}>Total Sales Today</Text>
-              <Text style={[styles.totalValue, { fontSize: moderateScale(32), marginTop: moderateVerticalScale(10) }]}>
-                {Math.floor(todayGrandTotal ?? totalSales).toFixed(3)}
-              </Text>
-              <View style={[styles.summarySeparator, { marginVertical: moderateVerticalScale(15), opacity: 0.3 }]} />
-              <View style={styles.summaryGrid}>
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryTitle, { fontSize: moderateScale(10) }]}>Transactions</Text>
-                  <Text style={[styles.totalValue, { fontSize: moderateScale(20) }]}>{salesData.length}</Text>
-                </View>
-                <View style={[styles.summarySeparator, { width: moderateScale(1), height: moderateVerticalScale(20), backgroundColor: 'rgba(255,255,255,0.3)' }]} />
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryTitle, { fontSize: moderateScale(10) }]}>Status</Text>
-                  <Text style={[styles.totalValue, { fontSize: moderateScale(14), textTransform: 'uppercase' }]}>Live</Text>
-                </View>
-              </View>
-            </ModernCard>
-
-            <Text style={styles.sectionTitle}>Transaction Feed</Text>
+            <Text style={styles.sectionTitle}>Transaction Feed Today</Text>
             <FlatList
               data={salesData}
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderItem}
-              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+              contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl + 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
             />
+
+            <View style={[styles.bottomCardWrapper, { paddingBottom: insets.bottom + moderateVerticalScale(16) }]}>
+              <LinearGradient
+                colors={[Colors.primary.main, Colors.primary.dark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bottomCard}
+              >
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Total Sales Today</Text>
+                  <Text style={styles.bottomValue}>
+                    {Math.floor(todayGrandTotal ?? totalSales).toFixed(3)}
+                  </Text>
+                </View>
+                <View style={styles.bottomSeparator} />
+                <View style={styles.bottomItem}>
+                  <Text style={styles.bottomLabel}>Transactions</Text>
+                  <Text style={[styles.bottomValue, { fontSize: moderateScale(18) }]}>
+                    {salesData.length}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
           </>
         )}
       </View>
@@ -580,7 +608,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.base,
     paddingBottom: Spacing.base,
-    paddingTop: 8,
+    paddingTop: 0,
   },
   headerBar: {
     flexDirection: "row",
@@ -607,11 +635,55 @@ const styles = StyleSheet.create({
   },
   inputGradient: {
     fontSize: moderateScale(Typography.fontSize.base),
-    paddingVertical: moderateVerticalScale(14),
+    paddingVertical: moderateVerticalScale(12),
     paddingHorizontal: moderateScale(16),
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
     backgroundColor: "transparent",
+  },
+  bottomCardWrapper: {
+    paddingHorizontal: Spacing.base,
+    backgroundColor: 'transparent',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  bottomCard: {
+    borderRadius: 24,
+    paddingVertical: moderateVerticalScale(14),
+    paddingHorizontal: moderateScale(20),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  bottomItem: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  bottomSeparator: {
+    width: 1,
+    height: moderateVerticalScale(24),
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: moderateScale(15),
+  },
+  bottomLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: moderateScale(9),
+    fontWeight: "800",
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  bottomValue: {
+    color: '#fff',
+    fontSize: moderateScale(22),
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
   centered: {
     alignItems: "center",

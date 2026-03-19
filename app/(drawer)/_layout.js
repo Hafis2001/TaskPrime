@@ -284,13 +284,7 @@ export default function DrawerLayout() {
               </View>
 
               {/* Default DrawerItemList for the rest */}
-              <DrawerItemList 
-                {...props} 
-                state={{
-                  ...props.state,
-                  routes: props.state.routes.filter(r => !["(tabs)", "customers", "suppliers", "sales-report"].includes(r.name))
-                }}
-              />
+              <DrawerItemList {...props} />
             </DrawerContentScrollView>
 
             <View style={[styles.footer, { paddingBottom: insets.bottom + moderateVerticalScale(10) }]}>
@@ -403,10 +397,10 @@ export default function DrawerLayout() {
           </View>
         )}
       >
-        <Drawer.Screen name="(tabs)" options={{ title: "Dashboard", drawerIcon: ({ color }) => <Ionicons name="grid-outline" size={20} color={color} /> }} />
-        <Drawer.Screen name="customers" options={{ title: "Customers", drawerIcon: ({ color }) => <Ionicons name="people-outline" size={20} color={color} /> }} />
-        <Drawer.Screen name="suppliers" options={{ title: "Suppliers", drawerIcon: ({ color }) => <Ionicons name="trail-sign-outline" size={20} color={color} /> }} />
-        <Drawer.Screen name="sales-report" options={{ title: "Sales Report", drawerIcon: ({ color }) => <Ionicons name="analytics-outline" size={20} color={color} /> }} />
+        <Drawer.Screen name="(tabs)" options={{ drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="customers" options={{ drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="suppliers" options={{ drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="sales-report" options={{ drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="sales-return" options={{ title: "Sales Return", drawerIcon: ({ color }) => <Ionicons name="return-up-back-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="purchase-report" options={{ title: "Purchase Report", drawerIcon: ({ color }) => <Ionicons name="cart-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="bank-cash" options={{ title: "Bank & Cash", drawerIcon: ({ color }) => <Ionicons name="wallet-outline" size={20} color={color} /> }} />

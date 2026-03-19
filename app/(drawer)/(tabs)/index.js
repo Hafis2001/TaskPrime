@@ -53,7 +53,7 @@ const GraphBar = ({ height, color, label }) => {
 
 // ── Compact chart ─────────────────────────────────────────────────────────────
 const PerfectGraph = ({ data, color, loading, salesType }) => {
-    if (loading) return <ActivityIndicator size="small" color={color} style={{ height: verticalScale(100) }} />;
+    if (loading) return <ActivityIndicator size="small" color={color} style={{ height: verticalScale(160) }} />;
     if (!data || data.length === 0) {
         return (
             <View style={[styles.chartContainer, styles.centered]}>

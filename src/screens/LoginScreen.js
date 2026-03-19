@@ -123,6 +123,33 @@ export default function LoginScreen({ onAddLicense }) {
 
       if (!matched) return { ok: false, reason: "not_found" };
 
+      // Regular License Expiry Check (via license_validity)
+      if (matched.license_validity) {
+          if (matched.license_validity.is_expired || (matched.license_validity.remaining_days !== undefined && matched.license_validity.remaining_days <= 0)) {
+              return { ok: false, reason: "expired_license", expiresAt: matched.license_validity.expiry_date };
+          }
+          // Double check with date comparison if remaining_days is missing
+          if (matched.license_validity.expiry_date) {
+              const expiry = new Date(matched.license_validity.expiry_date);
+              if (new Date() > expiry) {
+                  return { ok: false, reason: "expired_license", expiresAt: matched.license_validity.expiry_date };
+              }
+          }
+      }
+
+      // Demo Expiry Check
+      const isDemoMatch = data.demo_licenses?.some(d => d.demo_license === matched.license_key || d.demo_license === matched.demo_license);
+      if (isDemoMatch) {
+          const demo = data.demo_licenses.find(d => d.demo_license === matched.license_key || d.demo_license === matched.demo_license);
+          if (demo && demo.expires_at) {
+              const expiry = new Date(demo.expires_at);
+              const now = new Date();
+              if (now > expiry) {
+                  return { ok: false, reason: "expired_demo", expiresAt: demo.expires_at };
+              }
+          }
+      }
+
       return { ok: true, customer: matched };
     } catch {
       return { ok: false, reason: "network" };
@@ -155,6 +182,14 @@ export default function LoginScreen({ onAddLicense }) {
           break;
         case "not_found":
           Alert.alert("Invalid License", "Client ID not registered.");
+          break;
+        case "expired_demo":
+        case "expired_license":
+          Alert.alert(
+            "License Expired", 
+            `Your license expired on ${licenseResult.expiresAt || 'a past date'}. Please contact support to renew your license.`,
+            [{ text: "OK" }]
+          );
           break;
         default:
           Alert.alert("License Error", "Unable to validate license.");

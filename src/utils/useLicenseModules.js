@@ -22,6 +22,7 @@ const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 // Global memory cache to prevent storage/network delays after first load
 let globalModuleCodes = null;
 let globalDemoInfo = null;
+let globalLicenseValidity = null; // Storing regular license validity
 let isFetching = false;
 let fetchPromise = null;
 
@@ -31,7 +32,8 @@ const notifyListeners = () => {
     stateListeners.forEach((listener) => {
         listener({
             moduleCodes: globalModuleCodes || [],
-            demoInfo: globalDemoInfo
+            demoInfo: globalDemoInfo,
+            licenseValidity: globalLicenseValidity
         });
     });
 };
@@ -39,7 +41,8 @@ const notifyListeners = () => {
 export function useLicenseModules() {
     const [state, setState] = useState({
         moduleCodes: globalModuleCodes || [],
-        demoInfo: globalDemoInfo
+        demoInfo: globalDemoInfo,
+        licenseValidity: globalLicenseValidity
     });
     const intervalRef = useRef(null);
 
@@ -109,6 +112,19 @@ export function useLicenseModules() {
                 const actualModules = modules || [];
                 const codes = actualModules.map((m) => String(m.module_code).toUpperCase());
 
+                // --- Regular License Validity Parsing ---
+                let foundValidity = null;
+                if (json.customers && Array.isArray(json.customers)) {
+                  const clientIdForValidity = await AsyncStorage.getItem("clientId");
+                  const normalizedClientIdForValidity = (clientIdForValidity || "").trim().toUpperCase();
+                  const matchedCustomerForValidity = json.customers.find(
+                      (c) => (c?.client_id ?? "").toString().trim().toUpperCase() === normalizedClientIdForValidity
+                  );
+                  if (matchedCustomerForValidity?.license_validity) {
+                    foundValidity = matchedCustomerForValidity.license_validity;
+                  }
+                }
+
                 // --- Demo License Parsing ---
                 let foundDemo = null;
                 const clientId = await AsyncStorage.getItem("clientId");
@@ -128,6 +144,7 @@ export function useLicenseModules() {
 
                 globalModuleCodes = codes;
                 globalDemoInfo = foundDemo;
+                globalLicenseValidity = foundValidity;
                 notifyListeners();
 
                 await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(codes));
@@ -186,6 +203,7 @@ export function useLicenseModules() {
                 if (cachedDemo) {
                     globalDemoInfo = JSON.parse(cachedDemo);
                 }
+                // (Optional: cache licenseValidity if needed, for now we rely on re-fetch or login check)
                 notifyListeners();
             } catch (_) { }
 
@@ -209,11 +227,14 @@ export function useLicenseModules() {
         if (globalDemoInfo) {
             const expiry = new Date(globalDemoInfo.expires_at);
             const now = new Date();
+            // Set now to start of day for accurate comparison if needed, 
+            // but the API's expires_at is usually a YYYY-MM-DD string
             if (now <= expiry) {
                 console.log(`🧪 [hasModule] Demo Active & Valid: Allowing access to ${normalizedCode}`);
                 return true;
             } else {
                 console.log(`🧪 [hasModule] Demo EXPIRED: Restricting access to ${normalizedCode}`);
+                return false; // STICKY: Strictly block if demo is expired even if they have cached module codes
             }
         }
 
@@ -275,6 +296,9 @@ export function useLicenseModules() {
         checkModule,
         refreshModules: () => fetchModules(true),
         moduleCodes: state.moduleCodes,
-        demoInfo: state.demoInfo
+        demoInfo: state.demoInfo,
+        licenseValidity: state.licenseValidity,
+        isDemoExpired: !!(state.demoInfo && new Date() > new Date(state.demoInfo.expires_at)),
+        isRegularExpired: !!(state.licenseValidity && (state.licenseValidity.is_expired || (state.licenseValidity.expiry_date && new Date() > new Date(state.licenseValidity.expiry_date))))
     };
 }

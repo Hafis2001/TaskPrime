@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
 import {
@@ -46,7 +47,7 @@ export default function StockReportScreen() {
     useFocusEffect(
         useCallback(() => {
             const runCheck = async () => { setIsLicensed(null);
-                const allowed = await checkModule("MOD037", "Stock Report", () => {
+                const allowed = await checkModule("MOD030", "Stock Report", () => {
                     router.push("/(drawer)/(tabs)");
                 });
 
@@ -171,54 +172,54 @@ export default function StockReportScreen() {
         handleSearch(newValue); // Pass the new boolean value to handleSearch
     };
 
-    const renderStockItem = ({ item }) => (
-        <ModernCard style={styles.stockCard} elevated={true}>
-            <View style={styles.cardHeader}>
-                <View style={styles.iconCircle}>
-                    <Ionicons name="cube-outline" size={moderateScale(20)} color={Colors.primary.main} />
-                </View>
-                <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{item.name}</Text>
-                    <Text style={styles.productCode}>Code: {item.code}</Text>
-                </View>
-                <View style={[styles.badge, item.quantity > 0 ? styles.badgeInStock : styles.badgeOutStock]}>
-                    <Text style={styles.badgeText}>{item.quantity > 0 ? 'IN STOCK' : 'OUT'}</Text>
-                </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.cardContent}>
-                <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Barcode</Text>
-                        <Text style={styles.detailValue}>{item.barcode}</Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Product Code</Text>
-                        <Text style={styles.detailValue}>{item.productcode}</Text>
+    const renderStockItem = ({ item }) => {
+        const isInStock = parseFloat(item.quantity || 0) > 0;
+        return (
+            <ModernCard style={styles.stockCard} elevated={false}>
+                <View style={styles.cardHeader}>
+                    <LinearGradient
+                        colors={isInStock ? [Colors.primary.lightest, '#FFF9F5'] : ['#FEE2E2', '#FFF9F5']}
+                        style={styles.iconCircle}
+                    >
+                        <Ionicons 
+                            name={isInStock ? "cube" : "cube-outline"} 
+                            size={moderateScale(22)} 
+                            color={isInStock ? Colors.primary.main : Colors.error.main} 
+                        />
+                    </LinearGradient>
+                    <View style={styles.productInfo}>
+                        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+                        <View style={styles.codeRow}>
+                            <Text style={styles.productCode}>#{item.code}</Text>
+                            <View style={styles.dot} />
+                            <Text style={styles.productCode}>{item.barcode}</Text>
+                        </View>
                     </View>
                 </View>
 
-                <View style={styles.priceRow}>
-                    <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>BMRP</Text>
-                        <Text style={styles.bmrpValue}>â‚¹{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.priceItem}>
-                        <Text style={styles.priceLabel}>Sales Price</Text>
-                        <Text style={styles.salesPriceValue}>â‚¹{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
-                    </View>
-                    <View style={[styles.priceItem, styles.stockItem]}>
-                        <Text style={styles.stockLabel}>Stock</Text>
-                        <Text style={[styles.stockValue, { color: item.quantity > 0 ? Colors.success.main : Colors.error?.main || '#ff4444' }]}>
-                            {parseFloat(item.quantity || 0)}
-                        </Text>
+                <View style={styles.cardBody}>
+                    <View style={styles.infoGrid}>
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>BMRP</Text>
+                            <Text style={styles.bmrpValue}>{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>Price</Text>
+                            <Text style={styles.salesPriceValue}>{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
+                        </View>
+                        <View style={[styles.infoItem, { alignItems: 'flex-end' }]}>
+                            <Text style={[styles.infoLabel, { textAlign: 'right' }]}>Quantity</Text>
+                            <View style={[styles.qtyBadge, { backgroundColor: isInStock ? Colors.success.bg : Colors.error.bg }]}>
+                                <Text style={[styles.qtyText, { color: isInStock ? Colors.success.dark : Colors.error.dark }]}>
+                                    {parseFloat(item.quantity || 0)}
+                                </Text>
+                            </View>
+                        </View>
                     </View>
                 </View>
-            </View>
-        </ModernCard>
-    );
+            </ModernCard>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -230,79 +231,78 @@ export default function StockReportScreen() {
 
             <View style={styles.content}>
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
+                    <Ionicons name="search" size={moderateScale(20)} color={Colors.primary.main} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search products..."
-                        placeholderTextColor={Colors.text.disabled}
+                        placeholder="Search products by name or code..."
+                        placeholderTextColor={Colors.text.tertiary}
                         value={searchQuery}
                         onChangeText={(text) => {
                             setSearchQuery(text);
                             handleSearch(text);
                         }}
                     />
-                    {searchQuery !== "" && (
-                        <Ionicons
-                            name="close-circle"
-                            size={moderateScale(18)}
-                            color={Colors.text.disabled}
-                            onPress={() => {
-                                setSearchQuery("");
-                                handleSearch("");
-                            }}
-                            style={{ marginRight: 10 }}
-                        />
-                    )}
                     <TouchableOpacity
                         style={[styles.filterBtn, showStockOnly && styles.filterBtnActive]}
                         onPress={toggleStockFilter}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="funnel-outline" size={moderateScale(16)} color={showStockOnly ? "#fff" : Colors.primary.main} />
-                        <Text style={[styles.filterBtnText, showStockOnly && styles.filterBtnTextActive]}>Stock Only</Text>
+                        <Ionicons name="layers" size={moderateScale(16)} color={showStockOnly ? "#fff" : Colors.primary.main} />
+                        <Text style={[styles.filterBtnText, showStockOnly && styles.filterBtnTextActive]}>Stock</Text>
                     </TouchableOpacity>
-                </View>
-
-                <View style={styles.statsRow}>
-                    <View style={styles.statsBox}>
-                        <Text style={styles.statsLabel}>TOTAL PRODUCTS</Text>
-                        <Text style={styles.statsValue}>{stockData.length}</Text>
-                    </View>
-                    <View style={styles.statsBox}>
-                        <Text style={styles.statsLabel}>IN STOCK</Text>
-                        <Text style={[styles.statsValue, { color: Colors.success.main }]}>
-                            {stockData.filter(i => i.quantity > 0).length}
-                        </Text>
-                    </View>
                 </View>
 
                 {loading && !refreshing ? (
                     <View style={styles.centered}>
                         <ActivityIndicator size="large" color={Colors.primary.main} />
-                        <Text style={styles.loadingText}>Fetching Stock Data...</Text>
+                        <Text style={styles.loadingText}>Loading inventory...</Text>
                     </View>
                 ) : filteredData.length === 0 ? (
                     <View style={styles.centered}>
-                        <Ionicons name="cube-outline" size={moderateScale(64)} color={Colors.text.disabled} />
-                        <Text style={styles.emptyText}>No products found.</Text>
+                        <Ionicons name="search-outline" size={moderateScale(64)} color={Colors.text.disabled} />
+                        <Text style={styles.emptyText}>No matching products</Text>
                     </View>
                 ) : (
-                    <FlatList
-                        data={filteredData}
-                        numColumns={Screen.isTablet ? 2 : 1}
-                        key={Screen.isTablet ? 'tablet' : 'phone'}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={renderStockItem}
-                        contentContainerStyle={[
-                            styles.listContent,
-                            { paddingBottom: insets.bottom + Spacing.xl }
-                        ]}
-                        columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />
-                        }
-                    />
+                    <>
+                        <FlatList
+                            data={filteredData}
+                            numColumns={Screen.isTablet ? 2 : 1}
+                            key={Screen.isTablet ? 'tablet' : 'phone'}
+                            keyExtractor={(item, index) => index.toString()}
+                            renderItem={renderStockItem}
+                            contentContainerStyle={[
+                                styles.listContent,
+                                { paddingBottom: insets.bottom + Spacing.xl + 100 }
+                            ]}
+                            columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
+                            showsVerticalScrollIndicator={false}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />
+                            }
+                        />
+
+                        {/* Floating Stats Card */}
+                        <View style={[styles.bottomCardWrapper, { paddingBottom: insets.bottom + moderateVerticalScale(16) }]}>
+                            <LinearGradient
+                                colors={[Colors.primary.main, Colors.primary.dark]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.bottomCard}
+                            >
+                                <View style={styles.bottomItem}>
+                                    <Text style={styles.bottomLabel}>TOTAL PRODUCTS</Text>
+                                    <Text style={styles.bottomValue}>{stockData.length}</Text>
+                                </View>
+                                <View style={styles.bottomSeparator} />
+                                <View style={styles.bottomItem}>
+                                    <Text style={styles.bottomLabel}>IN STOCK</Text>
+                                    <Text style={styles.bottomValue}>
+                                        {stockData.filter(i => i.quantity > 0).length}
+                                    </Text>
+                                </View>
+                            </LinearGradient>
+                        </View>
+                    </>
                 )}
             </View>
         </View>
@@ -312,82 +312,66 @@ export default function StockReportScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background.secondary,
+        backgroundColor: "#FFF9F5", // Soft modern peach tint
     },
     content: {
-    flex: 1,
-    padding: moderateScale(Spacing.base),
-  },
+        flex: 1,
+        padding: moderateScale(Spacing.base),
+    },
     searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.primary,
-    borderRadius: moderateScale(BorderRadius.md),
-    paddingHorizontal: moderateScale(Spacing.md),
-    marginBottom: moderateVerticalScale(Spacing.md),
-    height: verticalScale(50),
-    borderWidth: 1,
-    borderColor: Colors.border.light,
-    ...Shadows.xs,
-  },
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        marginBottom: 20,
+        height: 54,
+        ...Shadows.md,
+        borderWidth: 1,
+        borderColor: '#FFE4D1',
+    },
+    searchIcon: {
+        marginRight: 10,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: moderateScale(15),
+        color: Colors.dark.main,
+        fontWeight: '600',
+    },
     filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary.lightest,
-    paddingHorizontal: moderateScale(8),
-    paddingVertical: moderateVerticalScale(6),
-    borderRadius: moderateScale(BorderRadius.sm),
-    gap: moderateScale(4),
-  },
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF5ED',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 14,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: '#FFE4D1',
+    },
     filterBtnActive: {
         backgroundColor: Colors.primary.main,
+        borderColor: Colors.primary.main,
     },
     filterBtnText: {
-        fontSize: 10,
-        fontWeight: '700',
+        fontSize: 11,
+        fontWeight: '800',
         color: Colors.primary.main,
+        textTransform: 'uppercase',
     },
     filterBtnTextActive: {
         color: '#fff',
     },
-    searchIcon: {
-        marginRight: Spacing.sm,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: Typography.fontSize.base,
-        color: Colors.text.primary,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        gap: Spacing.md,
-        marginBottom: Spacing.md,
-    },
-    statsBox: {
-        flex: 1,
-        backgroundColor: Colors.background.primary,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.md,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.border.light,
-        ...Shadows.xs,
-    },
-    statsLabel: {
-    fontSize: moderateScale(Typography.fontSize.xs),
-    color: Colors.text.secondary,
-    fontWeight: '700',
-    marginBottom: moderateVerticalScale(4),
-  },
-  statsValue: {
-    fontSize: moderateScale(Typography.fontSize.xl),
-    fontWeight: '800',
-    color: Colors.dark.main,
-  },
     stockCard: {
-        marginBottom: Spacing.md,
-        padding: Spacing.md,
-        backgroundColor: Colors.background.primary,
+        marginBottom: 16,
+        padding: 0,
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#FFE4D1',
+        ...Shadows.sm,
         flex: Screen.isTablet ? 0.485 : 1,
     },
     columnWrapper: {
@@ -396,124 +380,149 @@ const styles = StyleSheet.create({
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
+        padding: 16,
+        paddingBottom: 12,
     },
     iconCircle: {
-    width: moderateScale(44),
-    height: moderateScale(44),
-    borderRadius: moderateScale(22),
-    backgroundColor: Colors.primary.lightest,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: moderateScale(Spacing.md),
-  },
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+    },
     productInfo: {
         flex: 1,
     },
     productName: {
-    fontSize: moderateScale(Typography.fontSize.base),
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  productCode: {
-    fontSize: moderateScale(Typography.fontSize.xs),
-    color: Colors.text.secondary,
-    marginTop: moderateVerticalScale(2),
-  },
-    badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-    },
-    badgeInStock: {
-        backgroundColor: Colors.success.lightest || '#e6fffa',
-    },
-    badgeOutStock: {
-        backgroundColor: '#fff5f5',
-    },
-    badgeText: {
-        fontSize: 10,
+        fontSize: moderateScale(16),
         fontWeight: '800',
-        color: Colors.success.main,
+        color: Colors.dark.main,
+        lineHeight: 22,
     },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.border.light,
-        marginVertical: Spacing.md,
+    codeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
     },
-    cardContent: {
-        gap: Spacing.md,
+    productCode: {
+        fontSize: 11,
+        color: Colors.text.secondary,
+        fontWeight: '700',
     },
-    detailRow: {
+    dot: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5,
+        backgroundColor: Colors.text.disabled,
+        marginHorizontal: 8,
+    },
+    cardBody: {
+        padding: 16,
+        paddingTop: 0,
+    },
+    infoGrid: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        backgroundColor: '#FDFCFB',
+        padding: 12,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: '#F5F0ED',
     },
-    detailItem: {
+    infoItem: {
         flex: 1,
     },
-    detailLabel: {
-        fontSize: 10,
+    infoLabel: {
+        fontSize: 9,
         color: Colors.text.tertiary,
+        fontWeight: '800',
         textTransform: 'uppercase',
-        fontWeight: '600',
-        marginBottom: 2,
+        letterSpacing: 0.5,
+        marginBottom: 4,
     },
-    detailValue: {
-        fontSize: Typography.fontSize.sm,
-        color: Colors.text.primary,
+    bmrpValue: {
+        fontSize: 13,
+        color: Colors.text.secondary,
         fontWeight: '600',
+        textDecorationLine: 'line-through',
+        opacity: 0.7,
     },
-    priceRow: {
+    salesPriceValue: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: Colors.primary.main,
+    },
+    qtyBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    qtyText: {
+        fontSize: 15,
+        fontWeight: '900',
+    },
+    bottomCardWrapper: {
+        paddingHorizontal: 16,
+        backgroundColor: 'transparent',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+    },
+    bottomCard: {
+        borderRadius: 24,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: Colors.background.secondary,
-        padding: Spacing.sm,
-        borderRadius: BorderRadius.sm,
-    },
-    priceItem: {
         alignItems: 'center',
+        ...Shadows.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
-    priceLabel: {
-    fontSize: moderateScale(10),
-    color: Colors.text.tertiary,
-    marginBottom: moderateVerticalScale(2),
-  },
-  bmrpValue: {
-    fontSize: moderateScale(Typography.fontSize.sm),
-    color: Colors.text.secondary,
-    // textDecorationLine: 'line-through',
-  },
-  salesPriceValue: {
-    fontSize: moderateScale(Typography.fontSize.base),
-    fontWeight: '700',
-    color: Colors.primary.main,
-  },
-  stockItem: {
-    minWidth: moderateScale(60),
-  },
-  stockLabel: {
-    fontSize: moderateScale(10),
-    color: Colors.text.tertiary,
-    marginBottom: moderateVerticalScale(2),
-  },
-  stockValue: {
-    fontSize: moderateScale(Typography.fontSize.lg),
-    fontWeight: '800',
-  },
+    bottomItem: {
+        flex: 1,
+        alignItems: 'flex-start',
+    },
+    bottomSeparator: {
+        width: 1,
+        height: 24,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        marginHorizontal: 15,
+    },
+    bottomLabel: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 9,
+        fontWeight: "800",
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    bottomValue: {
+        color: '#fff',
+        fontSize: 22,
+        fontWeight: "900",
+        letterSpacing: 0.5,
+    },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 50,
+        paddingTop: 60,
     },
     loadingText: {
-        marginTop: Spacing.md,
+        marginTop: 12,
         color: Colors.text.secondary,
-        fontSize: Typography.fontSize.base,
+        fontSize: 14,
+        fontWeight: '600',
     },
     emptyText: {
-        marginTop: Spacing.md,
+        marginTop: 12,
         color: Colors.text.disabled,
-        fontSize: Typography.fontSize.lg,
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
-
