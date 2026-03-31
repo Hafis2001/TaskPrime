@@ -317,13 +317,13 @@ export default function CustomerLedgerScreen() {
             <View>
               <Text style={styles.balanceLabelLight}>Current Balance</Text>
               <Text style={styles.balanceValueLight}>
-                â‚¹{closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                {closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.balanceLabelLight}>Opening</Text>
               <Text style={styles.balanceValueLightSmall}>
-                â‚¹{openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                {openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </Text>
             </View>
           </View>
@@ -333,13 +333,13 @@ export default function CustomerLedgerScreen() {
           <ModernCard style={[styles.totalCard, { marginRight: Spacing.sm }]} elevated={false}>
             <Text style={styles.totalLabel}>Total Credit</Text>
             <Text style={[styles.totalValue, { color: Colors.error.main }]}>
-              â‚¹{totalCredit.toLocaleString("en-IN")}
+              {totalCredit.toLocaleString("en-IN")}
             </Text>
           </ModernCard>
           <ModernCard style={[styles.totalCard, { marginLeft: Spacing.sm }]} elevated={false}>
             <Text style={styles.totalLabel}>Total Debit</Text>
             <Text style={[styles.totalValue, { color: Colors.success.main }]}>
-              â‚¹{totalDebit.toLocaleString("en-IN")}
+              {totalDebit.toLocaleString("en-IN")}
             </Text>
           </ModernCard>
         </View>

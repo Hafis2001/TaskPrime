@@ -13,6 +13,10 @@ import {
   Text,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
@@ -328,20 +332,30 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
   }
 
   return (
-    <LinearGradient
-      colors={['#FFFFFF', '#FFF5EB', '#FFE6CC', '#ff6600']}
-      locations={[0, 0.3, 0.7, 1]}
+    <KeyboardAvoidingView 
       style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <LinearGradient
+          colors={['#FFFFFF', '#FFF5EB', '#FFE6CC', '#ff6600']}
+          locations={[0, 0.3, 0.7, 1]}
+          style={styles.container}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View
+              style={[
+                styles.content,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Image
@@ -396,14 +410,21 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
         <Text style={styles.footerText}>
           Need help? Contact support@taskprime.app
         </Text>
-      </Animated.View>
-    </LinearGradient>
+            </Animated.View>
+          </ScrollView>
+        </LinearGradient>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
   },
 
   loadingContainer: {
