@@ -26,7 +26,7 @@ export default function DrawerLayout() {
   const navigation = useNavigation();
   const { refreshModules } = useLicenseModules();
 
-  const [user, setUser] = useState({ name: "", customerName: "" });
+  const [user, setUser] = useState({ name: "", customerName: "", place: "" });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -48,22 +48,28 @@ export default function DrawerLayout() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const [storedUser, storedCustomerName] = await Promise.all([
+        const [storedUser, storedCustomerName, storedPlace] = await Promise.all([
           AsyncStorage.getItem("user"),
           AsyncStorage.getItem("customerName"),
+          AsyncStorage.getItem("shopPlace"),
         ]);
 
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
           setUser({
             name: parsed.name || "User",
-            customerName: storedCustomerName || "TaskPrime Partner"
+            customerName: storedCustomerName || "TaskPrime Partner",
+            place: storedPlace || ""
           });
           setCurrentClientId(parsed.clientId || "");
         }
         const storedLicenses = await AsyncStorage.getItem("knownLicenses");
         if (storedLicenses) {
-          setShops(JSON.parse(storedLicenses));
+          const parsedShops = JSON.parse(storedLicenses);
+          setShops(parsedShops);
+          
+          // Enrich missing places
+          fetchMissingPlaces(parsedShops);
         }
       } catch (err) {
         console.error("Error loading user:", err);
@@ -73,6 +79,42 @@ export default function DrawerLayout() {
     };
     loadUser();
   }, []);
+
+  const fetchMissingPlaces = async (currentShops) => {
+    try {
+      const CLIENT_LIST_API = "https://activate.imcbs.com/client-id-list/get-client-ids/";
+      const response = await fetch(CLIENT_LIST_API);
+      const data = await response.json();
+      
+      if (data.status && data.data) {
+        let updated = false;
+        const updatedShops = currentShops.map(shop => {
+          if (!shop.place) {
+            const client = data.data.find(c => c.client_id === shop.clientId);
+            if (client && client.place) {
+              updated = true;
+              return { ...shop, place: client.place };
+            }
+          }
+          return shop;
+        });
+
+        if (updated) {
+          setShops(updatedShops);
+          await AsyncStorage.setItem("knownLicenses", JSON.stringify(updatedShops));
+          
+          // Update current user's place if it was updated
+          const currentShop = updatedShops.find(s => s.clientId === currentClientId);
+          if (currentShop && currentShop.place) {
+            setUser(prev => ({ ...prev, place: currentShop.place }));
+            await AsyncStorage.setItem("shopPlace", currentShop.place);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch missing places in drawer", e);
+    }
+  };
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
@@ -165,10 +207,15 @@ export default function DrawerLayout() {
       await AsyncStorage.setItem("loginTimestamp", Date.now().toString());
       await AsyncStorage.setItem("clientId", shop.clientId);
       await AsyncStorage.setItem("customerName", shop.customerName);
+      if (shop.place) {
+        await AsyncStorage.setItem("shopPlace", shop.place);
+      } else {
+        await AsyncStorage.removeItem("shopPlace");
+      }
 
       try { await refreshModules(); } catch (e) { }
 
-      setUser({ name: userData.name, customerName: shop.customerName });
+      setUser({ name: userData.name, customerName: shop.customerName, place: shop.place || "" });
       setCurrentClientId(userData.clientId);
 
       router.replace("/(drawer)/(tabs)");
@@ -211,6 +258,9 @@ export default function DrawerLayout() {
               <View style={styles.headerInfo}>
                 <Text style={styles.userName} numberOfLines={1}>{user.name}</Text>
                 <Text style={styles.shopName} numberOfLines={1}>{user.customerName}</Text>
+                {user.place ? (
+                  <Text style={styles.shopPlaceHeader} numberOfLines={1}>{user.place}</Text>
+                ) : null}
                 <View style={styles.idBadge}>
                   <Text style={styles.idText}>ID: {currentClientId || "N/A"}</Text>
                 </View>
@@ -382,7 +432,15 @@ export default function DrawerLayout() {
                             <Text style={[styles.shopItemName, item.clientId === currentClientId && { color: Colors.primary.main }]}>
                               {item.customerName}
                             </Text>
-                            <Text style={styles.shopItemId}>Client ID: {item.clientId}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Text style={styles.shopItemId}>ID: {item.clientId}</Text>
+                              {item.place ? (
+                                <>
+                                  <Text style={styles.shopItemId}> • </Text>
+                                  <Text style={styles.shopItemId}>{item.place}</Text>
+                                </>
+                              ) : null}
+                            </View>
                           </View>
                           {item.clientId === currentClientId && (
                             <Ionicons name="checkmark-circle" size={moderateScale(22)} color={Colors.primary.main} />
@@ -452,7 +510,13 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(13),
     color: '#64748B',
     marginTop: moderateVerticalScale(2),
-    fontWeight: '500',
+    fontWeight: '700',
+  },
+  shopPlaceHeader: {
+    fontSize: moderateScale(11),
+    color: Colors.primary.main,
+    marginTop: moderateVerticalScale(1),
+    fontWeight: '600',
   },
   idBadge: {
     alignSelf: 'flex-start',

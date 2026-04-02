@@ -230,37 +230,10 @@ export default function StockReportScreen() {
             />
 
             <View style={styles.content}>
-                <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={moderateScale(20)} color={Colors.primary.main} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search products by name or code..."
-                        placeholderTextColor={Colors.text.tertiary}
-                        value={searchQuery}
-                        onChangeText={(text) => {
-                            setSearchQuery(text);
-                            handleSearch(text);
-                        }}
-                    />
-                    <TouchableOpacity
-                        style={[styles.filterBtn, showStockOnly && styles.filterBtnActive]}
-                        onPress={toggleStockFilter}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="layers" size={moderateScale(16)} color={showStockOnly ? "#fff" : Colors.primary.main} />
-                        <Text style={[styles.filterBtnText, showStockOnly && styles.filterBtnTextActive]}>Stock</Text>
-                    </TouchableOpacity>
-                </View>
-
                 {loading && !refreshing ? (
                     <View style={styles.centered}>
                         <ActivityIndicator size="large" color={Colors.primary.main} />
                         <Text style={styles.loadingText}>Loading inventory...</Text>
-                    </View>
-                ) : filteredData.length === 0 ? (
-                    <View style={styles.centered}>
-                        <Ionicons name="search-outline" size={moderateScale(64)} color={Colors.text.disabled} />
-                        <Text style={styles.emptyText}>No matching products</Text>
                     </View>
                 ) : (
                     <>
@@ -270,10 +243,39 @@ export default function StockReportScreen() {
                             key={Screen.isTablet ? 'tablet' : 'phone'}
                             keyExtractor={(item, index) => index.toString()}
                             renderItem={renderStockItem}
+                            ListHeaderComponent={
+                                <View style={styles.searchContainer}>
+                                    <Ionicons name="search" size={moderateScale(20)} color={Colors.primary.main} style={styles.searchIcon} />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Search products by name or code..."
+                                        placeholderTextColor={Colors.text.tertiary}
+                                        value={searchQuery}
+                                        onChangeText={(text) => {
+                                            setSearchQuery(text);
+                                            handleSearch(text);
+                                        }}
+                                    />
+                                    <TouchableOpacity
+                                        style={[styles.filterBtn, showStockOnly && styles.filterBtnActive]}
+                                        onPress={toggleStockFilter}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="layers" size={moderateScale(16)} color={showStockOnly ? "#fff" : Colors.primary.main} />
+                                        <Text style={[styles.filterBtnText, showStockOnly && styles.filterBtnTextActive]}>Stock</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            }
                             contentContainerStyle={[
                                 styles.listContent,
-                                { paddingBottom: insets.bottom + Spacing.xl + 100 }
+                                { paddingBottom: insets.bottom + Spacing.xl + 120 }
                             ]}
+                            ListEmptyComponent={
+                                <View style={styles.centered}>
+                                    <Ionicons name="search-outline" size={moderateScale(64)} color={Colors.text.disabled} />
+                                    <Text style={styles.emptyText}>No matching products</Text>
+                                </View>
+                            }
                             columnWrapperStyle={Screen.isTablet ? styles.columnWrapper : null}
                             showsVerticalScrollIndicator={false}
                             refreshControl={

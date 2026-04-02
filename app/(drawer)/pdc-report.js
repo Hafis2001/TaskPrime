@@ -228,54 +228,10 @@ export default function PDCReportScreen() {
             />
 
             <View style={styles.content}>
-                {/* Modern Tab Switcher */}
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'I' && styles.activeTab]}
-                        onPress={() => handleTabChange('I')}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="download-outline" size={moderateScale(18)} color={activeTab === 'I' ? '#fff' : Colors.text.secondary} />
-                        <Text style={[styles.tabText, activeTab === 'I' && styles.activeTabText]}>Incoming</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'O' && styles.activeTab]}
-                        onPress={() => handleTabChange('O')}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="paper-plane-outline" size={moderateScale(18)} color={activeTab === 'O' ? '#fff' : Colors.text.secondary} />
-                        <Text style={[styles.tabText, activeTab === 'O' && styles.activeTabText]}>Outgoing</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.searchContainer}>
-                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search party or cheque no..."
-                        placeholderTextColor={Colors.text.disabled}
-                        value={searchQuery}
-                        onChangeText={handleSearch}
-                    />
-                    {searchQuery !== "" && (
-                        <Ionicons
-                            name="close-circle"
-                            size={moderateScale(18)}
-                            color={Colors.text.disabled}
-                            onPress={() => handleSearch("")}
-                        />
-                    )}
-                </View>
-
                 {loading && !refreshing ? (
                     <View style={styles.centered}>
                         <ActivityIndicator size="large" color={Colors.primary.main} />
                         <Text style={styles.loadingText}>Fetching PDC Records...</Text>
-                    </View>
-                ) : filteredData.length === 0 ? (
-                    <View style={styles.centered}>
-                        <Ionicons name="document-text-outline" size={moderateScale(64)} color={Colors.text.disabled} />
-                        <Text style={styles.emptyText}>No {activeTab === 'I' ? 'Incoming' : 'Outgoing'} records found.</Text>
                     </View>
                 ) : (
                     <FlatList
@@ -284,6 +240,54 @@ export default function PDCReportScreen() {
                         numColumns={Screen.isTablet ? 2 : 1}
                         key={Screen.isTablet ? 'tablet' : 'phone'}
                         keyExtractor={(item, index) => index.toString()}
+                        ListHeaderComponent={
+                            <>
+                                {/* Modern Tab Switcher */}
+                                <View style={styles.tabContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.tab, activeTab === 'I' && styles.activeTab]}
+                                        onPress={() => handleTabChange('I')}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Ionicons name="download-outline" size={moderateScale(18)} color={activeTab === 'I' ? '#fff' : Colors.text.secondary} />
+                                        <Text style={[styles.tabText, activeTab === 'I' && styles.activeTabText]}>Incoming</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.tab, activeTab === 'O' && styles.activeTab]}
+                                        onPress={() => handleTabChange('O')}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Ionicons name="paper-plane-outline" size={moderateScale(18)} color={activeTab === 'O' ? '#fff' : Colors.text.secondary} />
+                                        <Text style={[styles.tabText, activeTab === 'O' && styles.activeTabText]}>Outgoing</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.searchContainer}>
+                                    <Ionicons name="search-outline" size={moderateScale(20)} color={Colors.text.tertiary} style={styles.searchIcon} />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Search party or cheque no..."
+                                        placeholderTextColor={Colors.text.disabled}
+                                        value={searchQuery}
+                                        onChangeText={handleSearch}
+                                    />
+                                    {searchQuery !== "" && (
+                                        <Ionicons
+                                            name="close-circle"
+                                            size={moderateScale(18)}
+                                            color={Colors.text.disabled}
+                                            onPress={() => handleSearch("")}
+                                        />
+                                    )}
+                                </View>
+                            </>
+                        }
+                        ListEmptyComponent={
+                            <View style={styles.centered}>
+                                <Ionicons name="document-text-outline" size={moderateScale(64)} color={Colors.text.disabled} />
+                                <Text style={styles.emptyText}>No {activeTab === 'I' ? 'Incoming' : 'Outgoing'} records found.</Text>
+                            </View>
+                        }
                         contentContainerStyle={[
                             styles.listContent,
                             { paddingBottom: insets.bottom + Spacing.xl }

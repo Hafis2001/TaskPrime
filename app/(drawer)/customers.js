@@ -228,34 +228,37 @@ export default function DebtorsScreen() {
       />
 
       <View style={styles.content}>
-        <ModernCard style={styles.summaryCard} gradient>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Stores</Text>
-              <Text style={styles.summaryValue}>{totalStores}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Balance</Text>
-              <Text style={styles.summaryValue}>{Math.round(totalBalance).toLocaleString('en-IN')}</Text>
-            </View>
-          </View>
-        </ModernCard>
-
-        <View style={styles.searchContainer}>
-          <ModernInput
-            placeholder="Search by Name, Place or Phone"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            leftIcon={<Ionicons name="search" size={moderateScale(20)} color={Colors.text.tertiary} />}
-            containerStyle={styles.searchBox}
-          />
-        </View>
-
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderCard}
+          ListHeaderComponent={
+            <>
+              <ModernCard style={styles.summaryCard} gradient>
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Stores</Text>
+                    <Text style={styles.summaryValue}>{totalStores}</Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Balance</Text>
+                    <Text style={styles.summaryValue}>{Math.round(totalBalance).toLocaleString('en-IN')}</Text>
+                  </View>
+                </View>
+              </ModernCard>
+
+              <View style={styles.searchContainer}>
+                <ModernInput
+                  placeholder="Search by Name, Place or Phone"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  leftIcon={<Ionicons name="search" size={moderateScale(20)} color={Colors.text.tertiary} />}
+                  containerStyle={styles.searchBox}
+                />
+              </View>
+            </>
+          }
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={

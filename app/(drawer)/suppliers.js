@@ -206,31 +206,6 @@ export default function SuppliersScreen() {
       />
 
       <View style={styles.content}>
-        <ModernCard style={styles.summaryCard} gradient>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Suppliers</Text>
-              <Text style={styles.summaryValue}>{totalSuppliers}</Text>
-            </View>
-            <View style={styles.totalDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Balance</Text>
-              <Text style={styles.summaryValue}>
-                {Math.abs(totalBalance).toLocaleString('en-IN')}
-                {/* <Text style={styles.miniDrCr}>{totalBalance < 0 ? " DR" : " CR"}</Text> */}
-              </Text>
-            </View>
-          </View>
-        </ModernCard>
-
-        <ModernInput
-          placeholder="Search Name, Place or Phone"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          leftIcon={<Ionicons name="search" size={moderateScale(20)} color={Colors.text.tertiary} />}
-          containerStyle={styles.searchBox}
-        />
-
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary.main} />
@@ -240,6 +215,33 @@ export default function SuppliersScreen() {
             data={filtered}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderCard}
+            ListHeaderComponent={
+              <>
+                <ModernCard style={styles.summaryCard} gradient>
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Suppliers</Text>
+                      <Text style={styles.summaryValue}>{totalSuppliers}</Text>
+                    </View>
+                    <View style={styles.totalDivider} />
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Total Balance</Text>
+                      <Text style={styles.summaryValue}>
+                        {Math.abs(totalBalance).toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+                  </View>
+                </ModernCard>
+
+                <ModernInput
+                  placeholder="Search Name, Place or Phone"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  leftIcon={<Ionicons name="search" size={moderateScale(20)} color={Colors.text.tertiary} />}
+                  containerStyle={styles.searchBox}
+                />
+              </>
+            }
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={

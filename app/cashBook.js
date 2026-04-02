@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -209,30 +209,33 @@ export default function CashBookScreen() {
       />
 
       <View style={styles.content}>
-        <ModernInput
-          placeholder="Search by name"
-          value={query}
-          onChangeText={setQuery}
-          leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
-          rightIcon={
-            query.length > 0 ? (
-              <TouchableOpacity onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={20} color={Colors.text.tertiary} />
-              </TouchableOpacity>
-            ) : null
-          }
-          containerStyle={styles.searchBox}
-        />
-
-        <View style={styles.headerRow}>
-          <Text style={styles.headerText}>Account Name</Text>
-          <Text style={styles.headerText}>Balance</Text>
-        </View>
-
         <FlatList
           data={filtered}
           keyExtractor={(it) => String(it.id)}
           renderItem={renderRow}
+          ListHeaderComponent={
+            <>
+              <ModernInput
+                placeholder="Search by name"
+                value={query}
+                onChangeText={setQuery}
+                leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
+                rightIcon={
+                  query.length > 0 ? (
+                    <TouchableOpacity onPress={() => setQuery("")}>
+                      <Ionicons name="close-circle" size={20} color={Colors.text.tertiary} />
+                    </TouchableOpacity>
+                  ) : null
+                }
+                containerStyle={styles.searchBox}
+              />
+
+              <View style={styles.headerRow}>
+                <Text style={styles.headerText}>Account Name</Text>
+                <Text style={styles.headerText}>Balance</Text>
+              </View>
+            </>
+          }
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />}
           contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
           showsVerticalScrollIndicator={false}

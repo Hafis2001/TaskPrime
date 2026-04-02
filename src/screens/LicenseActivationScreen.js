@@ -172,26 +172,47 @@ export default function LicenseActivationScreen({ onActivationSuccess, onCancel,
   };
 
   const saveLicense = async (key, dId, name, cId) => {
+    let place = "";
+    try {
+      const CLIENT_LIST_API = "https://activate.imcbs.com/client-id-list/get-client-ids/";
+      const response = await fetch(CLIENT_LIST_API);
+      const data = await response.json();
+      if (data.status && data.data) {
+        const client = data.data.find(c => c.client_id === cId);
+        if (client) {
+          place = client.place || "";
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch place for license", e);
+    }
+
     const newLicense = {
       licenseKey: key,
       deviceId: dId,
       customerName: name,
-      clientId: cId
+      clientId: cId,
+      place: place
     };
 
     const storedLicenses = await AsyncStorage.getItem("knownLicenses");
     let licenses = storedLicenses ? JSON.parse(storedLicenses) : [];
 
-    if (!licenses.some(l => l.licenseKey === key)) {
+    // Update existing or add new
+    const index = licenses.findIndex(l => l.licenseKey === key);
+    if (index !== -1) {
+      licenses[index] = newLicense;
+    } else {
       licenses.push(newLicense);
-      await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
     }
+    await AsyncStorage.setItem("knownLicenses", JSON.stringify(licenses));
 
     await AsyncStorage.setItem("licenseActivated", "true");
     await AsyncStorage.setItem("licenseKey", key);
     await AsyncStorage.setItem("deviceId", dId);
     await AsyncStorage.setItem("customerName", name);
     await AsyncStorage.setItem("clientId", cId);
+    await AsyncStorage.setItem("shopPlace", place);
   };
 
   const handleActivate = async () => {
@@ -436,6 +457,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
+    width: Screen.isTablet ? 480 : '100%',
+    alignSelf: 'center',
     padding: moderateScale(Spacing['2xl']),
   },
 

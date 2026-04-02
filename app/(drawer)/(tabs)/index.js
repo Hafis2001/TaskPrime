@@ -216,7 +216,11 @@ export default function DashboardScreen() {
     const breakdownItems = breakdownData;
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScrollView 
+            style={[styles.container, { paddingTop: insets.top }]}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+        >
             {/* ── Header ── */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
@@ -234,8 +238,8 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* ── Flex body: fills ALL remaining space ── */}
-            <View style={[styles.body, { paddingBottom: insets.bottom + moderateVerticalScale(8) }]}>
+            {/* ── Body content ── */}
+            <View style={[styles.body, { paddingBottom: insets.bottom + moderateVerticalScale(24) }]}>
 
                 {/* ── Sales card + chart: biggest section ── */}
                 <ModernCard style={styles.salesCard} elevated>
@@ -285,7 +289,7 @@ export default function DashboardScreen() {
                 </View>
 
                 <ModernCard style={styles.breakdownCard} elevated={false}>
-                    <ScrollView style={{ maxHeight: verticalScale(310) }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+                    <View style={{ maxHeight: verticalScale(310) }}>
                         {breakdownItems.length === 0 && !loading ? (
                             <Text style={styles.emptyBreakdown}>No data available</Text>
                         ) : (
@@ -295,21 +299,23 @@ export default function DashboardScreen() {
                                     style={[styles.breakdownRow, index > 0 && styles.breakdownBorder]}
                                 >
                                     <View style={styles.breakdownDot} />
-                                    <Text style={styles.breakdownLabel} numberOfLines={1}>
-                                        {item.date
-                                            ? new Date(item.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-                                            : item.month_name}
-                                    </Text>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.breakdownLabel} numberOfLines={1}>
+                                            {item.date
+                                                ? new Date(item.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+                                                : item.month_name}
+                                        </Text>
+                                    </View>
                                     <Text style={styles.breakdownValue}>
                                         {Math.floor(parseFloat(item.total_amount || 0)).toFixed(3)}
                                     </Text>
                                 </View>
                             ))
                         )}
-                    </ScrollView>
+                    </View>
                 </ModernCard>
             </View>
-        </View>
+        </ScrollView>
     );
 }
 
@@ -318,6 +324,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#F1F5F9",
+    },
+    scrollContent: {
+        flexGrow: 1,
     },
 
     // Header
@@ -378,15 +387,17 @@ const styles = StyleSheet.create({
     // Flex body — replaces ScrollView
     body: {
         flex: 1,
-        padding: moderateScale(12),
-        gap: moderateVerticalScale(10),
+        width: Screen.isTablet ? moderateScale(600) : "100%",
+        alignSelf: "center",
+        padding: moderateScale(16),
+        gap: moderateVerticalScale(16),
     },
 
     // Sales card — grows to fill available vertical space
     salesCard: {
-        minHeight: verticalScale(300),
-        padding: moderateScale(15),
-        borderRadius: moderateScale(20),
+        minHeight: verticalScale(Screen.isTablet ? 350 : 300),
+        padding: moderateScale(20),
+        borderRadius: moderateScale(24),
     },
 
     // Chart stretches inside the card
@@ -533,9 +544,9 @@ const styles = StyleSheet.create({
 
     // Breakdown card — grows to fill leftover space
     breakdownCard: {
-        height: verticalScale(260),
+        minHeight: verticalScale(200),
         padding: 0,
-        borderRadius: moderateScale(16),
+        borderRadius: moderateScale(20),
         overflow: "hidden",
         backgroundColor: "#ffffff",
         ...Shadows.sm,

@@ -31,6 +31,7 @@ export default function LoginScreen({ onAddLicense }) {
 
   const [clientId, setClientId] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [place, setPlace] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,7 @@ export default function LoginScreen({ onAddLicense }) {
       try {
         const storedClientId = await AsyncStorage.getItem("clientId");
         const storedCustomerName = await AsyncStorage.getItem("customerName");
+        const storedPlace = await AsyncStorage.getItem("shopPlace");
         const storedLicenses = await AsyncStorage.getItem("knownLicenses");
 
         if (storedClientId) {
@@ -54,8 +56,15 @@ export default function LoginScreen({ onAddLicense }) {
         if (storedCustomerName) {
           setCustomerName(storedCustomerName.trim());
         }
+        if (storedPlace) {
+          setPlace(storedPlace.trim());
+        }
         if (storedLicenses) {
-          setShops(JSON.parse(storedLicenses));
+          const parsedShops = JSON.parse(storedLicenses);
+          setShops(parsedShops);
+          
+          // Check if any shop is missing a place and update it
+          fetchMissingPlaces(parsedShops);
         }
       } catch (e) {
         console.error("Failed to load client ID", e);
@@ -65,6 +74,42 @@ export default function LoginScreen({ onAddLicense }) {
     };
     loadConfig();
   }, []);
+
+  const fetchMissingPlaces = async (currentShops) => {
+    try {
+      const CLIENT_LIST_API = "https://activate.imcbs.com/client-id-list/get-client-ids/";
+      const response = await fetch(CLIENT_LIST_API);
+      const data = await response.json();
+      
+      if (data.status && data.data) {
+        let updated = false;
+        const updatedShops = currentShops.map(shop => {
+          if (!shop.place) {
+            const client = data.data.find(c => c.client_id === shop.clientId);
+            if (client && client.place) {
+              updated = true;
+              return { ...shop, place: client.place };
+            }
+          }
+          return shop;
+        });
+
+        if (updated) {
+          setShops(updatedShops);
+          await AsyncStorage.setItem("knownLicenses", JSON.stringify(updatedShops));
+          
+          // Also update current shop's place if it was updated
+          const currentShop = updatedShops.find(s => s.clientId === clientId);
+          if (currentShop && currentShop.place) {
+            setPlace(currentShop.place);
+            await AsyncStorage.setItem("shopPlace", currentShop.place);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch missing places", e);
+    }
+  };
 
   useEffect(() => {
     if (!initializing) {
@@ -355,6 +400,13 @@ export default function LoginScreen({ onAddLicense }) {
       await AsyncStorage.setItem("deviceId", shop.deviceId);
       await AsyncStorage.setItem("customerName", shop.customerName);
       await AsyncStorage.setItem("clientId", shop.clientId);
+      if (shop.place) {
+        await AsyncStorage.setItem("shopPlace", shop.place);
+        setPlace(shop.place);
+      } else {
+        await AsyncStorage.removeItem("shopPlace");
+        setPlace("");
+      }
 
       setClientId(shop.clientId);
       setCustomerName(shop.customerName);
@@ -382,7 +434,15 @@ export default function LoginScreen({ onAddLicense }) {
           ]}>
             {item.customerName}
           </Text>
-          <Text style={styles.shopItemSub}>ID: {item.clientId}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.shopItemSub}>ID: {item.clientId}</Text>
+            {item.place ? (
+              <>
+                <Text style={styles.shopItemSub}> • </Text>
+                <Text style={styles.shopItemSub}>{item.place}</Text>
+              </>
+            ) : null}
+          </View>
         </View>
         {item.clientId === clientId && shopModalTab === "switch" && (
           <View style={styles.activeIndicator} />
@@ -460,9 +520,16 @@ export default function LoginScreen({ onAddLicense }) {
               </View>
 
               {customerName ? (
-                <Text style={styles.shopName} numberOfLines={1}>
-                  {customerName}
-                </Text>
+                <View style={{ alignItems: 'center', marginBottom: moderateVerticalScale(Spacing.md) }}>
+                  <Text style={styles.shopName} numberOfLines={1}>
+                    {customerName}
+                  </Text>
+                  {place ? (
+                    <Text style={styles.shopPlace} numberOfLines={1}>
+                      {place}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
 
               <ModernInput
@@ -634,8 +701,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    width: Screen.isTablet ? moderateScale(450) : '100%',
+    width: Screen.isTablet ? 480 : '100%',
     alignSelf: 'center',
+    paddingBottom: moderateVerticalScale(40),
   },
 
   logoContainer: {
@@ -709,9 +777,16 @@ const styles = StyleSheet.create({
   shopName: {
     textAlign: 'center',
     fontSize: moderateScale(Typography.fontSize.lg),
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.primary.main,
-    marginBottom: moderateVerticalScale(Spacing.md),
+    marginBottom: moderateVerticalScale(2),
+  },
+
+  shopPlace: {
+    textAlign: 'center',
+    fontSize: moderateScale(Typography.fontSize.sm),
+    fontWeight: '600',
+    color: Colors.text.secondary,
   },
 
   input: {
