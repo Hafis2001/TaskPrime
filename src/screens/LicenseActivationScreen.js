@@ -21,7 +21,7 @@ import {
 import ModernButton from "../../components/ui/ModernButton";
 import ModernInput from "../../components/ui/ModernInput";
 import { BorderRadius, Colors, Spacing, Typography, Shadows } from "../../constants/modernTheme";
-import { moderateScale, moderateVerticalScale, verticalScale } from "../utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, Screen } from "../utils/Responsive";
 
 export default function LicenseActivationScreen({ onActivationSuccess, onCancel, isAddingNew }) {
   const [licenseKey, setLicenseKey] = useState("");
