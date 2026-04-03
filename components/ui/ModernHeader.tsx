@@ -63,17 +63,17 @@ const styles = StyleSheet.create({
     headerBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: verticalScale(56),
+        height: 56,
         paddingHorizontal: Spacing.sm,
     },
 
     leftAction: {
-        width: moderateScale(48),
+        width: 48,
         alignItems: 'flex-start',
     },
 
     rightAction: {
-        width: moderateScale(48),
+        width: 48,
         alignItems: 'flex-end',
     },
 
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     },
 
     subtitle: {
-        fontSize: moderateScale(10),
+        fontSize: 10,
         color: Colors.text.secondary,
         marginTop: 0,
         textAlign: 'center',

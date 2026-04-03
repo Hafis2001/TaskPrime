@@ -457,14 +457,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
-    width: Screen.isTablet ? 480 : '100%',
+    width: Screen.isTablet ? 600 : '100%',
     alignSelf: 'center',
-    padding: moderateScale(Spacing['2xl']),
+    padding: Spacing['2xl'],
   },
 
   logoContainer: {
     alignItems: "center",
-    marginBottom: moderateVerticalScale(Spacing['2xl']),
+    marginBottom: Spacing['2xl'],
   },
 
   logoCircle: {
@@ -487,78 +487,78 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: moderateScale(Typography.fontSize['3xl']),
+    fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.dark.main,
     textAlign: "center",
-    marginBottom: moderateVerticalScale(Spacing.sm),
+    marginBottom: Spacing.sm,
   },
 
   subtitle: {
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
     textAlign: "center",
-    marginBottom: moderateVerticalScale(Spacing['2xl']),
-    paddingHorizontal: moderateScale(Spacing.base),
+    marginBottom: Spacing['2xl'],
+    paddingHorizontal: Spacing.base,
   },
 
   infoBox: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    padding: moderateScale(Spacing.base),
-    borderRadius: moderateScale(BorderRadius.md),
-    marginBottom: moderateVerticalScale(Spacing.xl),
+    padding: Spacing.base,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xl,
     borderWidth: 1,
     borderColor: 'rgba(255, 102, 0, 0.2)',
   },
 
   infoRow: {
-    marginBottom: moderateVerticalScale(Spacing.sm),
+    marginBottom: Spacing.sm,
   },
 
   infoLabel: {
     color: Colors.text.secondary,
-    fontSize: moderateScale(Typography.fontSize.xs),
+    fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.bold,
     textTransform: 'uppercase',
-    marginBottom: moderateVerticalScale(4),
+    marginBottom: 4,
   },
 
   infoValue: {
     color: Colors.dark.main,
-    fontSize: moderateScale(Typography.fontSize.sm),
+    fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
   },
 
   inputContainer: {
-    marginBottom: moderateVerticalScale(Spacing.xl),
+    marginBottom: Spacing.xl,
   },
 
   button: {
-    marginBottom: moderateVerticalScale(Spacing.md),
+    marginBottom: Spacing.md,
   },
 
   cancelButton: {
-    padding: moderateScale(Spacing.md),
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: moderateVerticalScale(Spacing.lg),
+    marginBottom: Spacing.lg,
   },
 
   cancelButtonText: {
     color: Colors.text.secondary,
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
     fontWeight: '600',
   },
 
   loadingText: {
-    marginTop: moderateVerticalScale(Spacing.base),
+    marginTop: Spacing.base,
     color: Colors.text.secondary,
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
   },
 
   footerText: {
     textAlign: 'center',
     color: Colors.text.tertiary,
-    fontSize: moderateScale(Typography.fontSize.sm),
-    marginTop: moderateVerticalScale(Spacing.base),
+    fontSize: Typography.fontSize.sm,
+    marginTop: Spacing.base,
   },
 });

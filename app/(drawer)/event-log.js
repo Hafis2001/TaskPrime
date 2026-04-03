@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../constants/modernTheme";
-import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const EVENT_LOG_API_URL = "https://taskprime.app/api/get-eventlog/";
@@ -245,20 +245,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.background.primary,
-    borderRadius: moderateScale(BorderRadius.lg),
-    paddingHorizontal: moderateScale(Spacing.md),
-    marginBottom: moderateVerticalScale(Spacing.md),
-    height: verticalScale(52),
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    height: 52,
     borderWidth: 1,
     borderColor: Colors.border.light,
     ...Shadows.sm,
+    width: Screen.isTablet ? 600 : '100%',
+    alignSelf: 'center',
   },
     searchIcon: {
         marginRight: Spacing.sm,
     },
     searchInput: {
     flex: 1,
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
     fontWeight: "500",
   },
@@ -278,9 +280,9 @@ const styles = StyleSheet.create({
         gap: Spacing.md,
     },
     avatarCircle: {
-    width: moderateScale(40),
-    height: moderateScale(40),
-    borderRadius: moderateScale(20),
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.primary.lightest,
     justifyContent: "center",
     alignItems: "center",
@@ -293,15 +295,15 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
     },
     userName: {
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
     fontWeight: "700",
     color: Colors.text.primary,
   },
     dateTimeRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: moderateVerticalScale(2),
-    gap: moderateScale(4),
+    marginTop: 2,
+    gap: 4,
   },
     dateTimeText: {
         fontSize: 11,
@@ -319,9 +321,9 @@ const styles = StyleSheet.create({
     eventDescriptionBox: {
     flexDirection: "row",
     backgroundColor: Colors.background.secondary,
-    padding: moderateScale(Spacing.md),
-    borderRadius: moderateScale(BorderRadius.md),
-    borderLeftWidth: moderateScale(4),
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderLeftWidth: 4,
     borderLeftColor: Colors.primary.main,
   },
     eventIcon: {
@@ -330,9 +332,9 @@ const styles = StyleSheet.create({
     },
     eventDescription: {
     flex: 1,
-    fontSize: moderateScale(Typography.fontSize.sm),
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    lineHeight: moderateVerticalScale(20),
+    lineHeight: 20,
     fontWeight: "500",
   },
     centered: {

@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ModernCard from "../../../components/ui/ModernCard";
-import { Colors, Shadows } from "../../../constants/modernTheme";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../../../constants/modernTheme";
 import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../../src/utils/Responsive";
 import { useLicenseModules } from "../../../src/utils/useLicenseModules";
 
@@ -387,17 +387,17 @@ const styles = StyleSheet.create({
     // Flex body — replaces ScrollView
     body: {
         flex: 1,
-        width: Screen.isTablet ? moderateScale(600) : "100%",
+        width: Screen.isTablet ? 600 : "100%",
         alignSelf: "center",
-        padding: moderateScale(16),
-        gap: moderateVerticalScale(16),
+        padding: Spacing.base,
+        gap: Spacing.base,
     },
 
     // Sales card — grows to fill available vertical space
     salesCard: {
-        minHeight: verticalScale(Screen.isTablet ? 350 : 300),
-        padding: moderateScale(20),
-        borderRadius: moderateScale(24),
+        minHeight: Screen.isTablet ? 350 : 300,
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.xl,
     },
 
     // Chart stretches inside the card
@@ -418,10 +418,10 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     salesTotal: {
-        fontSize: moderateScale(30),
+        fontSize: Typography.fontSize['3xl'],
         fontWeight: "900",
         color: Colors.dark.main,
-        marginTop: moderateVerticalScale(2),
+        marginTop: 2,
     },
     salesCount: {
         fontSize: moderateScale(11),
@@ -468,9 +468,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     animatedBar: {
-        width: Screen.isTablet ? moderateScale(18) : moderateScale(10),
-        borderRadius: moderateScale(5),
-        marginBottom: moderateVerticalScale(6),
+        width: Screen.isTablet ? 18 : 10,
+        borderRadius: 5,
+        marginBottom: 6,
         overflow: "hidden",
     },
     barTop: {

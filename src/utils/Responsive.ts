@@ -21,14 +21,24 @@ export const verticalScale = (size: number) => (height / guidelineBaseHeight) * 
  * @param size Value to scale
  * @param factor Factor of scaling (0.5 is default)
  */
-export const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+export const moderateScale = (size: number, factor = 0.5) => {
+    const s = scale(size);
+    // If it's a tablet, we reduce the scaling impact slightly to prevent "huge" UI components on iPad.
+    const finalFactor = isTablet ? factor * 0.7 : factor; 
+    return size + (s - size) * finalFactor;
+};
 
 /**
  * Vertical Scaled value with a factor
  * @param size Value to scale
  * @param factor Factor of scaling (0.5 is default)
  */
-export const moderateVerticalScale = (size: number, factor = 0.5) => size + (verticalScale(size) - size) * factor;
+export const moderateVerticalScale = (size: number, factor = 0.5) => {
+    const s = verticalScale(size);
+    // If it's a tablet, we reduce the scaling impact slightly
+    const finalFactor = isTablet ? factor * 0.7 : factor; 
+    return size + (s - size) * finalFactor;
+};
 
 /**
  * Helper to detect if device is a tablet

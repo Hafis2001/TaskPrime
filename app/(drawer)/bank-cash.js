@@ -14,7 +14,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
@@ -156,51 +156,53 @@ const styles = StyleSheet.create({
     padding: moderateScale(Spacing.lg),
   },
   sectionTitle: {
-    fontSize: moderateScale(Typography.fontSize.sm),
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    marginBottom: moderateVerticalScale(Spacing.xl),
+    marginBottom: Spacing.xl,
     textAlign: 'center',
   },
   cardsWrapper: {
     gap: Spacing.lg,
+    width: Screen.isTablet ? 600 : '100%',
+    alignSelf: 'center',
   },
   cardContainer: {
     marginBottom: Spacing.md,
   },
   card: {
     padding: 0,
-    borderRadius: moderateScale(BorderRadius.xl),
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     ...Shadows.md,
   },
   cardGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: moderateScale(Spacing.xl),
-    minHeight: verticalScale(120),
+    padding: Spacing.xl,
+    minHeight: 120, // Removed verticalScale() to prevent height clipping with large fonts
   },
   iconWrap: {
-    width: moderateScale(56),
-    height: moderateScale(56),
-    borderRadius: moderateScale(16),
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
-    marginRight: moderateScale(Spacing.lg),
+    marginRight: Spacing.lg,
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
     color: "#fff",
-    fontSize: moderateScale(Typography.fontSize.xl),
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
-    marginBottom: moderateVerticalScale(4),
+    marginBottom: 4,
   },
   cardSubtitle: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: moderateScale(Typography.fontSize.sm),
-    lineHeight: moderateVerticalScale(20),
+    fontSize: Typography.fontSize.sm,
+    lineHeight: 20,
   },
   arrowWrap: {
     marginLeft: Spacing.sm,

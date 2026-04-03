@@ -701,20 +701,20 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    width: Screen.isTablet ? 480 : '100%',
+    width: Screen.isTablet ? 600 : '100%',
     alignSelf: 'center',
-    paddingBottom: moderateVerticalScale(40),
+    paddingBottom: 40,
   },
 
   logoContainer: {
     alignItems: "center",
-    marginBottom: moderateVerticalScale(Spacing['3xl']),
+    marginBottom: Spacing['3xl'],
   },
 
   logoCircle: {
-    width: moderateScale(120),
-    height: moderateScale(120),
-    borderRadius: moderateScale(60),
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: Colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -727,27 +727,27 @@ const styles = StyleSheet.create({
   },
 
   logoImage: {
-    width: moderateScale(100),
-    height: moderateScale(70),
+    width: 100,
+    height: 70,
   },
 
   appName: {
-    fontSize: moderateScale(Typography.fontSize['3xl']),
+    fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.dark.main,
-    marginBottom: moderateVerticalScale(Spacing.xs),
+    marginBottom: Spacing.xs,
   },
 
   tagline: {
-    fontSize: moderateScale(Typography.fontSize.sm),
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
   },
 
   loginCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: moderateScale(BorderRadius.lg),
-    padding: moderateScale(Spacing.xl),
-    paddingBottom: moderateVerticalScale(Spacing['2xl']),
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    paddingBottom: Spacing['2xl'],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -757,45 +757,45 @@ const styles = StyleSheet.create({
 
   badgeContainer: {
     alignItems: "center",
-    marginBottom: moderateVerticalScale(Spacing.lg),
+    marginBottom: Spacing.lg,
   },
 
   badge: {
-    borderRadius: moderateScale(BorderRadius.xl),
-    paddingVertical: moderateVerticalScale(Spacing.md),
-    paddingHorizontal: moderateScale(Spacing.xl),
-    minWidth: moderateScale(200),
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    minWidth: 200,
     alignItems: 'center',
   },
 
   badgeText: {
     color: Colors.text.inverse,
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.bold,
   },
 
   shopName: {
     textAlign: 'center',
-    fontSize: moderateScale(Typography.fontSize.lg),
+    fontSize: Typography.fontSize.lg,
     fontWeight: '700',
     color: Colors.primary.main,
-    marginBottom: moderateVerticalScale(2),
+    marginBottom: 2,
   },
 
   shopPlace: {
     textAlign: 'center',
-    fontSize: moderateScale(Typography.fontSize.sm),
+    fontSize: Typography.fontSize.sm,
     fontWeight: '600',
     color: Colors.text.secondary,
   },
 
   input: {
-    marginBottom: moderateVerticalScale(Spacing.base),
+    marginBottom: Spacing.base,
   },
 
   loginButton: {
-    marginTop: moderateVerticalScale(Spacing.base),
-    marginBottom: moderateVerticalScale(Spacing.lg),
+    marginTop: Spacing.base,
+    marginBottom: Spacing.lg,
   },
 
   actionRow: {
