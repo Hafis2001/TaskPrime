@@ -1,6 +1,7 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,11 +15,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLicenseModules } from "../src/utils/useLicenseModules";
+import { moderateScale, moderateVerticalScale, verticalScale, isTablet, Screen } from "../src/utils/Responsive";
 
 import ModernCard from "../components/ui/ModernCard";
 import ModernHeader from "../components/ui/ModernHeader";
 import ModernInput from "../components/ui/ModernInput";
-import { Colors, Shadows, Spacing, Typography } from "../constants/modernTheme";
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from "../constants/modernTheme";
 
 const API_URL = "https://taskprime.app/api/get-bank-book-data/";
 
@@ -110,6 +112,10 @@ export default function BankBookScreen() {
     const q = query.trim().toLowerCase();
     return data.filter((r) => r.name.toLowerCase().includes(q));
   }, [data, query]);
+
+  const totalBalance = useMemo(() => {
+    return data.reduce((acc, it) => acc + (it.balance || 0), 0);
+  }, [data]);
 
   if (isLicensed === null) {
     return (
@@ -203,30 +209,50 @@ export default function BankBookScreen() {
       />
 
       <View style={styles.content}>
-        <ModernInput
-          placeholder="Search by name"
-          value={query}
-          onChangeText={setQuery}
-          leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
-          rightIcon={
-            query.length > 0 ? (
-              <TouchableOpacity onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={20} color={Colors.text.tertiary} />
-              </TouchableOpacity>
-            ) : null
-          }
-          containerStyle={styles.searchBox}
-        />
-
-        <View style={styles.headerRow}>
-          <Text style={styles.headerText}>Bank Name</Text>
-          <Text style={styles.headerText}>Balance</Text>
-        </View>
-
         <FlatList
           data={filtered}
           keyExtractor={(it) => String(it.id)}
           renderItem={renderRow}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <LinearGradient
+                colors={["#4e73df", "#224abe"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.totalCard}
+              >
+                <View style={styles.totalInfo}>
+                  <Text style={styles.totalLabel}>Total Bank Balance</Text>
+                  <Text style={styles.totalAmount}>
+                    {Math.abs(totalBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </Text>
+                </View>
+                <View style={styles.totalIconBg}>
+                  <Ionicons name="card" size={32} color="rgba(255,255,255,0.3)" />
+                </View>
+              </LinearGradient>
+
+              <ModernInput
+                placeholder="Search by name"
+                value={query}
+                onChangeText={setQuery}
+                leftIcon={<Ionicons name="search" size={20} color={Colors.text.tertiary} />}
+                rightIcon={
+                  query.length > 0 ? (
+                    <TouchableOpacity onPress={() => setQuery("")}>
+                      <Ionicons name="close-circle" size={20} color={Colors.text.tertiary} />
+                    </TouchableOpacity>
+                  ) : null
+                }
+                containerStyle={styles.searchBox}
+              />
+
+              <View style={styles.headerRow}>
+                <Text style={styles.headerText}>Bank Name</Text>
+                <Text style={styles.headerText}>Balance</Text>
+              </View>
+            </View>
+          }
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary.main]} />
           }
@@ -257,7 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: Spacing['3xl'],
+    paddingTop: 50,
   },
   searchBox: {
     marginBottom: Spacing.md,
@@ -274,9 +300,50 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textTransform: "uppercase",
   },
+  listHeader: {
+    paddingBottom: Spacing.xs,
+    width: Screen.isTablet ? 600 : '100%',
+    alignSelf: 'center',
+  },
+  totalCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    marginBottom: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  totalInfo: {
+    flex: 1,
+  },
+  totalLabel: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  totalAmount: {
+    color: "#ffffff",
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: "900",
+  },
+  totalIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   card: {
     marginBottom: Spacing.sm,
     padding: Spacing.md,
+    width: Screen.isTablet ? 600 : '100%',
+    alignSelf: 'center',
     ...Platform.select({
       ios: Shadows.sm,
       android: { elevation: 2 },

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -21,8 +22,8 @@ import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 const API_URLS = {
   today: "https://taskprime.app/api/purchasetoday/",
-  month: "https://taskprime.app/api/purchasemonth/",
-  overall: "https://taskprime.app/api/purchaseoverall/",
+  month: "https://taskprime.app/api/purchasemonthwise/",
+  daywise: "https://taskprime.app/api/purchasedaywise/",
 };
 
 export default function PurchaseReportScreen() {
@@ -116,30 +117,97 @@ export default function PurchaseReportScreen() {
   if (!isLicensed) return null;
 
   const totalPurchase = purchaseData.reduce(
-    (sum, item) => sum + parseFloat(item.nettotal || 0),
+    (sum, item) => {
+      const amount = parseFloat(item.net || item.total_amount || item.total || 0);
+      return sum + amount;
+    },
     0
   );
 
-  const renderItem = ({ item }) => (
-    <ModernCard style={styles.transactionCard} elevated={false}>
-      <View style={styles.row}>
-        <View style={styles.rowLeft}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="cart-outline" size={moderateScale(20)} color={Colors.primary.main} />
+  const renderItem = ({ item }) => {
+    if (selectedSummary === "daywise") {
+      const formattedDate = item.date
+        ? new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
+      return (
+        <ModernCard style={styles.transactionCard} elevated={true}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <LinearGradient
+                colors={['rgba(79,70,229,0.15)', 'rgba(99,102,241,0.08)']}
+                style={styles.iconCircle}
+              >
+                <Ionicons name="calendar" size={moderateScale(22)} color="#4F46E5" />
+              </LinearGradient>
+              <View style={styles.infoContainer}>
+                <Text style={[styles.name, { color: '#1e1b4b' }]} numberOfLines={1}>{formattedDate}</Text>
+                <View style={styles.daywiseStatsRow}>
+                  <View style={styles.daywiseBillBadge}>
+                    <Ionicons name="receipt-outline" size={moderateScale(11)} color="#4F46E5" />
+                    <Text style={styles.daywiseBillText}>{item.total_bills} {item.total_bills === 1 ? 'Bill' : 'Bills'}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <View style={styles.amountContainer}>
+              <Text style={[styles.amount, { color: '#4F46E5' }]} numberOfLines={1}>
+                ₹{parseFloat(item.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
           </View>
-          <View style={styles.infoContainer}>
-            <Text style={styles.name} numberOfLines={1}>{item.suppliername}</Text>
-            <Text style={styles.time}>Bill No: {item.billno}</Text>
+        </ModernCard>
+      );
+    }
+
+    if (selectedSummary === "month") {
+      return (
+        <ModernCard style={styles.transactionCard} elevated={true}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconCircle, { backgroundColor: 'rgba(0, 150, 136, 0.1)' }]}>
+                <Ionicons name="calendar-outline" size={moderateScale(22)} color="#009688" />
+              </View>
+              <View style={styles.infoContainer}>
+                <Text style={styles.name} numberOfLines={1}>{item.month_name}</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>{item.total_bills} {item.total_bills === 1 ? 'Bill' : 'Bills'}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.amountContainer}>
+              <Text style={styles.amount} numberOfLines={1}>
+                ₹{parseFloat(item.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          </View>
+        </ModernCard>
+      );
+    }
+
+    return (
+      <ModernCard style={styles.transactionCard} elevated={true}>
+        <View style={styles.row}>
+          <View style={styles.rowLeft}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="cart-outline" size={moderateScale(22)} color={Colors.primary.main} />
+            </View>
+            <View style={styles.infoContainer}>
+              <Text style={styles.name} numberOfLines={1}>{item.suppliername || "Unknown Supplier"}</Text>
+              <Text style={styles.time}>Bill No: {item.billno || "N/A"}</Text>
+              {item.date && (
+                <Text style={styles.dateText}>{new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+              )}
+            </View>
+          </View>
+          <View style={styles.amountContainer}>
+            <Text style={styles.amount} numberOfLines={1}>
+              ₹{parseFloat(item.net || item.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </Text>
           </View>
         </View>
-        <View style={styles.amountContainer}>
-          <Text style={styles.amount} numberOfLines={1}>
-            â‚¹{parseFloat(item.nettotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </Text>
-        </View>
-      </View>
-    </ModernCard>
-  );
+      </ModernCard>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -164,7 +232,7 @@ export default function PurchaseReportScreen() {
             items={[
               { label: "Today's Purchase", value: "today" },
               { label: "Monthly Purchase", value: "month" },
-              { label: "Overall Summary", value: "overall" },
+              { label: "Day Wise Purchase", value: "daywise" },
             ]}
             style={{
               inputIOS: styles.inputGradient,
@@ -190,12 +258,27 @@ export default function PurchaseReportScreen() {
           <>
             {/* Top Summary Card */}
             <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
-              <Text style={styles.summaryTitle}>Total Purchase</Text>
-              <Text style={styles.totalValue}>â‚¹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+              <View style={styles.summaryHeader}>
+                <Ionicons name="analytics" size={moderateScale(20)} color="rgba(255,255,255,0.9)" style={{marginRight: moderateScale(Spacing.xs)}} />
+                <Text style={styles.summaryTitle}>
+                  {selectedSummary === 'daywise' ? 'Day Wise Total' : 'Total Purchase'}
+                </Text>
+              </View>
+              <Text style={styles.totalValue}>₹{totalPurchase.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+              {selectedSummary === 'daywise' && (
+                <View style={styles.summarySubRow}>
+                  <Ionicons name="layers-outline" size={moderateScale(13)} color="rgba(255,255,255,0.75)" />
+                  <Text style={styles.summarySubText}>
+                    {purchaseData.reduce((s, i) => s + (i.total_bills || 0), 0)} Total Bills · {purchaseData.length} Days
+                  </Text>
+                </View>
+              )}
             </ModernCard>
 
             {/* All Transactions */}
-            <Text style={styles.sectionTitle}>All Purchases</Text>
+            <Text style={styles.sectionTitle}>
+              {selectedSummary === 'daywise' ? 'Day Wise Breakdown' : 'All Purchases'}
+            </Text>
             <FlatList
               data={purchaseData}
               keyExtractor={(item, index) => index.toString()}
@@ -247,35 +330,44 @@ const styles = StyleSheet.create({
   summaryCard: {
     marginBottom: Spacing.lg,
     alignItems: "center",
+    borderRadius: moderateScale(BorderRadius.xl),
+    ...Shadows.md,
+  },
+  summaryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   summaryTitle: {
     fontSize: moderateScale(Typography.fontSize.sm),
     color: 'rgba(255,255,255,0.9)',
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   totalValue: {
-    fontSize: moderateScale(Typography.fontSize['3xl']),
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: moderateVerticalScale(Spacing.xs),
+    fontSize: moderateScale(32),
+    fontWeight: "900",
+    color: "#ffffff",
+    marginTop: moderateVerticalScale(Spacing.sm),
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   sectionTitle: {
-    fontSize: moderateScale(Typography.fontSize.xs),
+    fontSize: moderateScale(Typography.fontSize.sm),
     fontWeight: "800",
-    marginBottom: moderateVerticalScale(Spacing.sm),
-    color: Colors.text.tertiary,
+    marginBottom: moderateVerticalScale(Spacing.md),
+    color: Colors.text.secondary,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginLeft: moderateScale(4),
   },
   transactionCard: {
-    padding: moderateScale(Spacing.md),
-    marginBottom: moderateVerticalScale(Spacing.sm),
+    padding: moderateScale(Spacing.lg),
+    marginBottom: moderateVerticalScale(Spacing.md),
     backgroundColor: Colors.background.primary,
-    borderColor: Colors.border.light,
-    borderWidth: 1,
+    borderRadius: moderateScale(BorderRadius.lg),
+    ...Shadows.sm,
   },
   row: {
     flexDirection: "row",
@@ -289,40 +381,94 @@ const styles = StyleSheet.create({
     gap: moderateScale(Spacing.md),
   },
   iconCircle: {
-    width: moderateScale(40),
-    height: moderateScale(40),
+    width: moderateScale(48),
+    height: moderateScale(48),
     backgroundColor: Colors.primary.lightest,
-    borderRadius: moderateScale(20),
+    borderRadius: moderateScale(24),
     justifyContent: 'center',
     alignItems: 'center',
   },
   infoContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   name: {
-    fontWeight: "700",
+    fontWeight: "800",
     color: Colors.text.primary,
-    fontSize: moderateScale(Typography.fontSize.base)
+    fontSize: moderateScale(Typography.fontSize.base),
+    marginBottom: moderateVerticalScale(2),
   },
   time: {
     color: Colors.text.secondary,
     fontSize: moderateScale(Typography.fontSize.xs),
+    fontWeight: "500",
+  },
+  dateText: {
+    color: Colors.text.tertiary,
+    fontSize: moderateScale(10),
     marginTop: moderateVerticalScale(2),
+  },
+  badgeContainer: {
+    backgroundColor: 'rgba(0, 150, 136, 0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateVerticalScale(2),
+    borderRadius: moderateScale(12),
+    marginTop: moderateVerticalScale(4),
+  },
+  badgeText: {
+    color: '#009688',
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+  },
+  daywiseStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: moderateVerticalScale(5),
+    gap: moderateScale(6),
+  },
+  daywiseBillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(4),
+    backgroundColor: 'rgba(79,70,229,0.1)',
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateVerticalScale(3),
+    borderRadius: moderateScale(12),
+  },
+  daywiseBillText: {
+    color: '#4F46E5',
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+  },
+  summarySubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: moderateVerticalScale(6),
+    gap: moderateScale(4),
+  },
+  summarySubText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: moderateScale(11),
+    fontWeight: '600',
   },
   amountContainer: {
     alignItems: 'flex-end',
     minWidth: moderateScale(90),
     marginLeft: moderateScale(Spacing.sm),
+    justifyContent: 'center',
   },
   amount: {
     color: Colors.primary.main,
-    fontWeight: "700",
-    fontSize: moderateScale(Typography.fontSize.base),
+    fontWeight: "800",
+    fontSize: moderateScale(Typography.fontSize.lg || 18),
     textAlign: "right",
   },
   emptyText: {
     color: Colors.text.secondary,
     fontSize: Typography.fontSize.base,
+    marginTop: moderateVerticalScale(Spacing.sm),
+    fontWeight: "500",
   },
 });
 

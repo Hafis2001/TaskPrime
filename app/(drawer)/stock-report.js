@@ -32,6 +32,7 @@ export default function StockReportScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showStockOnly, setShowStockOnly] = useState(false);
     const [user, setUser] = useState(null);
+    const [totalValue, setTotalValue] = useState(0);
     const router = useRouter();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
@@ -115,6 +116,14 @@ export default function StockReportScreen() {
                     initialFiltered = initialFiltered.filter((item) => parseFloat(item.quantity) > 0);
                 }
                 setFilteredData(initialFiltered);
+
+                // Calculate total stock value
+                const total = json.data.reduce((acc, item) => {
+                    const cost = parseFloat(item.cost || 0);
+                    const qty = parseFloat(item.quantity || 0);
+                    return acc + (cost * qty);
+                }, 0);
+                setTotalValue(total);
             } else {
                 setStockData([]);
                 setFilteredData([]);
@@ -200,21 +209,30 @@ export default function StockReportScreen() {
                 <View style={styles.cardBody}>
                     <View style={styles.infoGrid}>
                         <View style={styles.infoItem}>
-                            <Text style={styles.infoLabel}>BMRP</Text>
-                            <Text style={styles.bmrpValue}>{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
+                            <Text style={styles.infoLabel}>MRP</Text>
+                            <Text style={styles.bmrpValue}>₹{parseFloat(item.bmrp || 0).toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>Cost</Text>
+                            <Text style={styles.costValue}>₹{parseFloat(item.cost || 0).toFixed(2)}</Text>
                         </View>
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Price</Text>
-                            <Text style={styles.salesPriceValue}>{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
+                            <Text style={styles.salesPriceValue}>₹{parseFloat(item.salesprice || 0).toFixed(2)}</Text>
                         </View>
                         <View style={[styles.infoItem, { alignItems: 'flex-end' }]}>
-                            <Text style={[styles.infoLabel, { textAlign: 'right' }]}>Quantity</Text>
+                            <Text style={[styles.infoLabel, { textAlign: 'right' }]}>Qty</Text>
                             <View style={[styles.qtyBadge, { backgroundColor: isInStock ? Colors.success.bg : Colors.error.bg }]}>
                                 <Text style={[styles.qtyText, { color: isInStock ? Colors.success.dark : Colors.error.dark }]}>
                                     {parseFloat(item.quantity || 0)}
                                 </Text>
                             </View>
                         </View>
+                    </View>
+                    
+                    <View style={styles.valueRow}>
+                        <Text style={styles.valueLabel}>Stock Value:</Text>
+                        <Text style={styles.valueText}>₹{(parseFloat(item.cost || 0) * parseFloat(item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
                     </View>
                 </View>
             </ModernCard>
@@ -298,8 +316,15 @@ export default function StockReportScreen() {
                                 <View style={styles.bottomSeparator} />
                                 <View style={styles.bottomItem}>
                                     <Text style={styles.bottomLabel}>IN STOCK</Text>
-                                    <Text style={styles.bottomValue}>
+                                    <Text style={[styles.bottomValue, { fontSize: 18 }]}>
                                         {stockData.filter(i => i.quantity > 0).length}
+                                    </Text>
+                                </View>
+                                <View style={styles.bottomSeparator} />
+                                <View style={[styles.bottomItem, { flex: 1.5 }]}>
+                                    <Text style={styles.bottomLabel}>TOTAL VALUE</Text>
+                                    <Text style={[styles.bottomValue, { fontSize: 18 }]}>
+                                        ₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                     </Text>
                                 </View>
                             </LinearGradient>
@@ -445,16 +470,19 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     bmrpValue: {
-        fontSize: 13,
+        fontSize: moderateScale(11),
         color: Colors.text.secondary,
         fontWeight: '600',
-        textDecorationLine: 'line-through',
-        opacity: 0.7,
     },
     salesPriceValue: {
-        fontSize: 18,
+        fontSize: moderateScale(14),
         fontWeight: '900',
         color: Colors.primary.main,
+    },
+    costValue: {
+        fontSize: moderateScale(11),
+        color: Colors.success.main,
+        fontWeight: '700',
     },
     qtyBadge: {
         paddingHorizontal: 12,
@@ -526,5 +554,24 @@ const styles = StyleSheet.create({
         color: Colors.text.disabled,
         fontSize: 16,
         fontWeight: '700',
+    },
+    valueRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#F5F5F5',
+    },
+    valueLabel: {
+        fontSize: moderateScale(11),
+        color: Colors.text.secondary,
+        fontWeight: '600',
+    },
+    valueText: {
+        fontSize: moderateScale(14),
+        fontWeight: '900',
+        color: Colors.dark.main,
     },
 });

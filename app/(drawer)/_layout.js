@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer"; // ✅ Correct import
 import { useNavigation, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -36,6 +37,7 @@ export default function DrawerLayout() {
   const [showShopModal, setShowShopModal] = useState(false);
   const [switchingShop, setSwitchingShop] = useState(false);
   const [salesMenuExpanded, setSalesMenuExpanded] = useState(false);
+  const [stockMenuExpanded, setStockMenuExpanded] = useState(false);
 
   const SALES_SUB_ITEMS = [
     { label: "Today Sales", type: "today", icon: "today-outline" },
@@ -43,6 +45,12 @@ export default function DrawerLayout() {
     { label: "Month Wise", type: "item", icon: "stats-chart-outline" },
     { label: "Type Wise", type: "typeWise", icon: "pie-chart-outline" },
     { label: "User Summary", type: "userSummary", icon: "people-outline" },
+  ];
+
+  const STOCK_SUB_ITEMS = [
+    { label: "Stock Summary", route: "/(drawer)/stock-summary", icon: "pie-chart-outline" },
+    { label: "Stock Report", route: "/(drawer)/stock-report", icon: "cube-outline" },
+    { label: "Analysis Report", route: "/(drawer)/analysis", icon: "bar-chart-outline" },
   ];
 
   useEffect(() => {
@@ -300,6 +308,39 @@ export default function DrawerLayout() {
                 <Text style={[styles.customLabel, props.state.routes[props.state.index].name === "suppliers" && styles.customActiveLabel]}>Suppliers</Text>
               </TouchableOpacity>
 
+              {/* Nested Stock Report */}
+              <View>
+                <TouchableOpacity
+                  style={[styles.customDrawerItem, (props.state.routes[props.state.index].name === "stock-report" || props.state.routes[props.state.index].name === "stock-summary" || props.state.routes[props.state.index].name === "analysis") && styles.customActiveDrawerItem]}
+                  onPress={() => setStockMenuExpanded(!stockMenuExpanded)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Ionicons name="cube-outline" size={20} color={(props.state.routes[props.state.index].name === "stock-report" || props.state.routes[props.state.index].name === "stock-summary" || props.state.routes[props.state.index].name === "analysis") ? Colors.primary.main : "#64748B"} style={styles.customIcon} />
+                    <Text style={[styles.customLabel, (props.state.routes[props.state.index].name === "stock-report" || props.state.routes[props.state.index].name === "stock-summary" || props.state.routes[props.state.index].name === "analysis") && styles.customActiveLabel]}> Reports </Text>
+                  </View>
+                  <Ionicons 
+                    name={stockMenuExpanded ? "chevron-up" : "chevron-down"} 
+                    size={16} 
+                    color="#64748B" 
+                  />
+                </TouchableOpacity>
+
+                {stockMenuExpanded && (
+                  <View style={styles.subMenuContainer}>
+                    {STOCK_SUB_ITEMS.map((subItem) => (
+                      <TouchableOpacity
+                        key={subItem.label}
+                        style={styles.subMenuItem}
+                        onPress={() => router.push(subItem.route)}
+                      >
+                        <Ionicons name={subItem.icon} size={18} color="#64748B" style={styles.subIcon} />
+                        <Text style={styles.subLabel}>{subItem.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
               {/* Nested Sales Report */}
               <View>
                 <TouchableOpacity
@@ -462,13 +503,15 @@ export default function DrawerLayout() {
         <Drawer.Screen name="sales-return" options={{ title: "Sales Return", drawerIcon: ({ color }) => <Ionicons name="return-up-back-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="purchase-report" options={{ title: "Purchase Report", drawerIcon: ({ color }) => <Ionicons name="cart-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="bank-cash" options={{ title: "Bank & Cash", drawerIcon: ({ color }) => <Ionicons name="wallet-outline" size={20} color={color} /> }} />
-        <Drawer.Screen name="stock-report" options={{ title: "Stock Report", drawerIcon: ({ color }) => <Ionicons name="cube-outline" size={20} color={color} /> }} />
+        <Drawer.Screen name="stock-summary" options={{ title: "Stock Summary", drawerItemStyle: { display: 'none' } }} />
         <Drawer.Screen name="pdc-report" options={{ title: "PDC Report", drawerIcon: ({ color }) => <Ionicons name="receipt-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="refresh-tag" options={{ title: "Refresh Tag", drawerIcon: ({ color }) => <Ionicons name="sync-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="event-log" options={{ title: "Event Log", drawerIcon: ({ color }) => <Ionicons name="list-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="tender-cash" options={{ title: "Tender Cash", drawerIcon: ({ color }) => <Ionicons name="cash-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="company-info" options={{ title: "Company Info", drawerIcon: ({ color }) => <Ionicons name="information-circle-outline" size={20} color={color} /> }} />
         <Drawer.Screen name="license-info" options={{ title: "License", drawerIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={20} color={color} /> }} />
+        <Drawer.Screen name="stock-report" options={{ title: "Stock Report", drawerItemStyle: { display: 'none' } }} />
+        <Drawer.Screen name="analysis" options={{ title: "Sales & Return Analysis", drawerItemStyle: { display: 'none' } }} />
       </Drawer>
     </View>
   );

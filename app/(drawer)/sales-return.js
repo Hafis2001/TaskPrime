@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import RNPickerSelect from "react-native-picker-select";
 import {
   ActivityIndicator,
   Alert,
@@ -12,16 +14,20 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { moderateScale, moderateVerticalScale, verticalScale, isTablet } from "../../src/utils/Responsive";
+import { moderateScale, moderateVerticalScale } from "../../src/utils/Responsive";
 import { useLicenseModules } from "../../src/utils/useLicenseModules";
 
 import ModernCard from "../../components/ui/ModernCard";
 import ModernHeader from "../../components/ui/ModernHeader";
 import { Colors, Spacing, Typography } from "../../constants/modernTheme";
 
-const BASE_API_URL = "https://taskprime.app/api/sales-return/get-data/";
+const API_URLS = {
+  day: "https://taskprime.app/api/salesreturndaywise",
+  month: "https://taskprime.app/api/salesreturnmonthwise",
+};
 
 export default function SalesReturnScreen() {
+  const [selectedSummary, setSelectedSummary] = useState("day");
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -33,7 +39,8 @@ export default function SalesReturnScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const runCheck = async () => { setIsLicensed(null);
+      const runCheck = async () => {
+        setIsLicensed(null);
         const allowed = await checkModule("MOD018", "Sales Return", () => {
           router.push("/(drawer)/(tabs)");
         });
@@ -43,7 +50,7 @@ export default function SalesReturnScreen() {
           return;
         }
         setIsLicensed(true);
-        getClientIdAndFetch();
+        getClientIdAndFetch(selectedSummary);
       };
       runCheck();
 
@@ -56,10 +63,10 @@ export default function SalesReturnScreen() {
         backAction
       );
       return () => backHandler.remove();
-    }, [])
+    }, [selectedSummary])
   );
 
-  const getClientIdAndFetch = async () => {
+  const getClientIdAndFetch = async (type) => {
     try {
       const storedUser = await AsyncStorage.getItem("user");
       if (!storedUser) {
@@ -80,17 +87,17 @@ export default function SalesReturnScreen() {
       const cleanClientId = storedClientId.trim().replace(/O/g, "0");
       const token = parsedUser.token;
 
-      fetchSalesReturnData(cleanClientId, token);
+      fetchSalesReturnData(cleanClientId, token, type);
     } catch (error) {
       console.error("Error initializing screen:", error);
       setLoading(false);
     }
   };
 
-  const fetchSalesReturnData = async (storedClientId, token) => {
+  const fetchSalesReturnData = async (storedClientId, token, type) => {
     try {
       setLoading(true);
-      const url = `${BASE_API_URL}?client_id=${storedClientId}`;
+      const url = `${API_URLS[type]}?client_id=${storedClientId}`;
 
       const response = await fetch(url, {
         headers: {
@@ -103,14 +110,16 @@ export default function SalesReturnScreen() {
       if (result && result.success) {
         const data = Array.isArray(result.data) ? result.data : [];
         setSalesData(data);
-        const total = data.reduce((sum, item) => sum + (parseFloat(item.net) || 0), 0);
+        const total = data.reduce((sum, item) => sum + (parseFloat(item.net || item.total_amount || item.total || 0)), 0);
         setTotalAmount(total);
       } else {
         setSalesData([]);
+        setTotalAmount(0);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
       setSalesData([]);
+      setTotalAmount(0);
     } finally {
       setLoading(false);
     }
@@ -134,28 +143,89 @@ export default function SalesReturnScreen() {
     });
   };
 
-  const renderItem = ({ item }) => (
-    <ModernCard style={styles.transactionCard} elevated={false}>
-      <View style={styles.row}>
-        <View style={styles.rowLeft}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="return-down-back-outline" size={moderateScale(20)} color={Colors.error.main} />
+  const renderItem = ({ item }) => {
+    if (selectedSummary === "day") {
+      const formattedDate = item.date
+        ? new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
+      return (
+        <ModernCard style={styles.transactionCard} elevated={true}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <LinearGradient
+                colors={['rgba(244,63,94,0.15)', 'rgba(251,113,133,0.08)']}
+                style={styles.iconCircle}
+              >
+                <Ionicons name="calendar-clear" size={moderateScale(20)} color={Colors.error.main} />
+              </LinearGradient>
+              <View style={styles.nameContainer}>
+                <Text style={[styles.name, { color: '#4c0519' }]} numberOfLines={1}>{formattedDate}</Text>
+                <View style={styles.daywiseStatsRow}>
+                  <View style={styles.daywiseBillBadge}>
+                    <Ionicons name="receipt-outline" size={moderateScale(11)} color={Colors.error.main} />
+                    <Text style={styles.daywiseBillText}>{item.total_bills} {item.total_bills === 1 ? 'Bill' : 'Bills'}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <View style={styles.amountContainer}>
+              <Text style={[styles.amount, { color: Colors.error.main }]} numberOfLines={1}>
+                ₹{parseFloat(item.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
           </View>
-          <View style={styles.nameContainer}>
-            <Text style={styles.name} numberOfLines={1}>{item.customername}</Text>
-            <Text style={styles.time}>
-              {formatDate(item.date)} {item.invno}
+        </ModernCard>
+      );
+    }
+
+    if (selectedSummary === "month") {
+      return (
+        <ModernCard style={styles.transactionCard} elevated={false}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconCircle, { backgroundColor: 'rgba(0, 150, 136, 0.1)' }]}>
+                <Ionicons name="calendar-outline" size={moderateScale(22)} color="#009688" />
+              </View>
+              <View style={styles.nameContainer}>
+                <Text style={styles.name} numberOfLines={1}>{item.month_name}</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeTextAlt}>{item.total_bills} {item.total_bills === 1 ? 'Bill' : 'Bills'}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.amountContainer}>
+              <Text style={styles.amount} numberOfLines={1}>
+                {parseFloat(item.total_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          </View>
+        </ModernCard>
+      );
+    }
+
+    return (
+      <ModernCard style={styles.transactionCard} elevated={false}>
+        <View style={styles.row}>
+          <View style={styles.rowLeft}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="return-down-back-outline" size={moderateScale(20)} color={Colors.error.main} />
+            </View>
+            <View style={styles.nameContainer}>
+              <Text style={styles.name} numberOfLines={1}>{item.customername || "Unknown Customer"}</Text>
+              <Text style={styles.time}>
+                {item.date ? formatDate(item.date) : ""} {item.invno || ""}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.amountContainer}>
+            <Text style={styles.amount} numberOfLines={1}>
+              {parseFloat(item.net || item.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </Text>
           </View>
         </View>
-        <View style={styles.amountContainer}>
-          <Text style={styles.amount} numberOfLines={1}>
-            {parseFloat(item.net).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </Text>
-        </View>
-      </View>
-    </ModernCard>
-  );
+      </ModernCard>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -166,15 +236,51 @@ export default function SalesReturnScreen() {
       />
 
       <View style={styles.content}>
+        {/* Dropdown */}
+        <LinearGradient
+          colors={[Colors.primary.main, Colors.primary.light]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradientBox}
+        >
+          <RNPickerSelect
+            onValueChange={(value) => setSelectedSummary(value)}
+            value={selectedSummary}
+            placeholder={{}}
+            items={[
+              { label: "Day Wise Return", value: "day" },
+              { label: "Monthly Returns", value: "month" },
+            ]}
+            style={{
+              inputIOS: styles.inputGradient,
+              inputAndroid: styles.inputGradient,
+              iconContainer: { top: 18, right: 15 },
+            }}
+            useNativeAndroidPickerStyle={false}
+            Icon={() => <Ionicons name="chevron-down" size={moderateScale(20)} color="#fff" />}
+          />
+        </LinearGradient>
+
         <ModernCard style={styles.summaryCard} gradient padding={moderateScale(Spacing.xl)}>
-          <Text style={styles.summaryTitle}>Total Returns</Text>
-          <Text style={styles.totalValue}>{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+          <View style={styles.summaryHeader}>
+            <Ionicons name="stats-chart" size={moderateScale(18)} color="rgba(255,255,255,0.9)" style={{marginRight: moderateScale(6)}} />
+            <Text style={styles.summaryTitle}>
+              {selectedSummary === 'day' ? 'Day Wise Total' : 'Total Returns'}
+            </Text>
+          </View>
+          <Text style={styles.totalValue}>₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{salesData.length} Invoices</Text>
+            <Text style={styles.badgeText}>
+              {selectedSummary === 'day' 
+                ? `${salesData.reduce((s, i) => s + (i.total_bills || 0), 0)} Total Bills · ${salesData.length} Days`
+                : `${salesData.length} Invoices`}
+            </Text>
           </View>
         </ModernCard>
 
-        <Text style={styles.sectionTitle}>Recent Returns</Text>
+        <Text style={styles.sectionTitle}>
+          {selectedSummary === 'day' ? 'Day Wise Breakdown' : 'Recent Returns'}
+        </Text>
 
         {loading ? (
           <View style={styles.centered}>
@@ -207,6 +313,23 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: moderateScale(Spacing.base),
+  },
+  gradientBox: {
+    borderRadius: moderateScale(12),
+    marginBottom: moderateVerticalScale(Spacing.md),
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  inputGradient: {
+    fontSize: moderateScale(Typography.fontSize.base),
+    paddingVertical: moderateVerticalScale(14),
+    paddingHorizontal: moderateScale(16),
+    color: "#fff",
+    fontWeight: "600",
+    backgroundColor: "transparent",
   },
   centered: {
     flex: 1,
@@ -292,6 +415,19 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(Typography.fontSize.xs),
     marginTop: moderateVerticalScale(2),
   },
+  badgeContainer: {
+    backgroundColor: 'rgba(0, 150, 136, 0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateVerticalScale(2),
+    borderRadius: moderateScale(12),
+    marginTop: moderateVerticalScale(4),
+  },
+  badgeTextAlt: {
+    color: '#009688',
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+  },
   amountContainer: {
     alignItems: 'flex-end',
     minWidth: moderateScale(90),
@@ -307,6 +443,31 @@ const styles = StyleSheet.create({
     marginTop: Spacing.base,
     color: Colors.text.secondary,
     fontSize: Typography.fontSize.base,
+  },
+  daywiseStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: moderateVerticalScale(5),
+    gap: moderateScale(6),
+  },
+  daywiseBillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(4),
+    backgroundColor: 'rgba(244,63,94,0.1)',
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateVerticalScale(3),
+    borderRadius: moderateScale(12),
+  },
+  daywiseBillText: {
+    color: Colors.error.main,
+    fontSize: moderateScale(10),
+    fontWeight: '700',
+  },
+  summaryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: moderateVerticalScale(2),
   },
 });
 
