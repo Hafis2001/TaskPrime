@@ -22,14 +22,14 @@
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.imcbs.TaskPrime"
+      "bundleIdentifier": "com.hafis2001.TaskPrime"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/TaskPrime-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.imcbs.TaskPrime"
+      "package": "com.hafis2001.TaskPrime"
     },
     "web": {
       "favicon": "./assets/images/TaskPrime-icon.png"
