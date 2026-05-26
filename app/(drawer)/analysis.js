@@ -55,7 +55,7 @@ export default function AnalysisScreen() {
 
       setAnalysisData({
         todaySales: sToday?.grand_total || 0,
-        todayReturn: rDay?.success ? (rDay.data?.[0]?.total_amount || 0) : 0,
+        todayReturn: rDay?.success ? (rDay.data?.find((d) => d.date === new Date().toISOString().split('T')[0])?.total_amount || 0) : 0,
         monthSales: sMonth?.success ? (sMonth.data?.[0]?.total_amount || 0) : 0,
         monthReturn: rMonth?.success ? (rMonth.data?.[0]?.total_amount || 0) : 0,
       });

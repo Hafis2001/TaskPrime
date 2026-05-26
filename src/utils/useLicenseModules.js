@@ -291,6 +291,15 @@ export function useLicenseModules() {
         return false;
     };
 
+    const calculateDaysRemaining = (expiryStr) => {
+        if (!expiryStr) return null;
+        const expiry = new Date(expiryStr);
+        const today = new Date();
+        expiry.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        return Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    };
+
     return {
         hasModule,
         checkModule,
@@ -298,7 +307,7 @@ export function useLicenseModules() {
         moduleCodes: state.moduleCodes,
         demoInfo: state.demoInfo,
         licenseValidity: state.licenseValidity,
-        isDemoExpired: !!(state.demoInfo && new Date() > new Date(state.demoInfo.expires_at)),
-        isRegularExpired: !!(state.licenseValidity && (state.licenseValidity.is_expired || (state.licenseValidity.expiry_date && new Date() > new Date(state.licenseValidity.expiry_date))))
+        isDemoExpired: !!(state.demoInfo && calculateDaysRemaining(state.demoInfo.expires_at) <= 0),
+        isRegularExpired: !!(state.licenseValidity && calculateDaysRemaining(state.licenseValidity.expiry_date) <= 0)
     };
 }

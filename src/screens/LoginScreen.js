@@ -168,34 +168,44 @@ export default function LoginScreen({ onAddLicense }) {
 
       if (!matched) return { ok: false, reason: "not_found" };
 
+      const calculateDays = (expiryStr) => {
+        if (!expiryStr) return null;
+        const expiry = new Date(expiryStr);
+        const today = new Date();
+        // Normalize both to start of day for accurate comparison
+        expiry.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        const diffTime = expiry.getTime() - today.getTime();
+        return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      };
+
+      let daysRemaining = null;
+
       // Regular License Expiry Check (via license_validity)
-      if (matched.license_validity) {
-          if (matched.license_validity.is_expired || (matched.license_validity.remaining_days !== undefined && matched.license_validity.remaining_days <= 0)) {
-              return { ok: false, reason: "expired_license", expiresAt: matched.license_validity.expiry_date };
-          }
-          // Double check with date comparison if remaining_days is missing
-          if (matched.license_validity.expiry_date) {
-              const expiry = new Date(matched.license_validity.expiry_date);
-              if (new Date() > expiry) {
-                  return { ok: false, reason: "expired_license", expiresAt: matched.license_validity.expiry_date };
-              }
-          }
+      if (matched.license_validity && matched.license_validity.expiry_date) {
+        daysRemaining = calculateDays(matched.license_validity.expiry_date);
+        if (daysRemaining <= 0) {
+          return { ok: false, reason: "expired_license", expiresAt: matched.license_validity.expiry_date };
+        }
       }
 
       // Demo Expiry Check
       const isDemoMatch = data.demo_licenses?.some(d => d.demo_license === matched.license_key || d.demo_license === matched.demo_license);
       if (isDemoMatch) {
-          const demo = data.demo_licenses.find(d => d.demo_license === matched.license_key || d.demo_license === matched.demo_license);
-          if (demo && demo.expires_at) {
-              const expiry = new Date(demo.expires_at);
-              const now = new Date();
-              if (now > expiry) {
-                  return { ok: false, reason: "expired_demo", expiresAt: demo.expires_at };
-              }
+        const demo = data.demo_licenses.find(d => d.demo_license === matched.license_key || d.demo_license === matched.demo_license);
+        if (demo && demo.expires_at) {
+          const demoDays = calculateDays(demo.expires_at);
+          // If demo expiry is sooner than regular expiry, use it
+          if (daysRemaining === null || demoDays < daysRemaining) {
+            daysRemaining = demoDays;
           }
+          if (demoDays <= 0) {
+            return { ok: false, reason: "expired_demo", expiresAt: demo.expires_at };
+          }
+        }
       }
 
-      return { ok: true, customer: matched };
+      return { ok: true, customer: matched, daysRemaining };
     } catch {
       return { ok: false, reason: "network" };
     }
@@ -240,6 +250,20 @@ export default function LoginScreen({ onAddLicense }) {
           Alert.alert("License Error", "Unable to validate license.");
       }
       return;
+    }
+
+    // License Expiry Warning (3, 2, 1 days)
+    if (licenseResult.daysRemaining !== null && licenseResult.daysRemaining > 0 && licenseResult.daysRemaining <= 3) {
+      let warningTitle = "License Renewal Reminder";
+      let warningMsg = `Your license will expire within ${licenseResult.daysRemaining} days. Please renew to avoid service interruption.`;
+      
+      if (licenseResult.daysRemaining === 1) {
+        warningMsg = "Your license will expire tomorrow. Please renew to avoid service interruption.";
+      }
+
+      await new Promise(resolve => {
+        Alert.alert(warningTitle, warningMsg, [{ text: "OK", onPress: resolve }], { cancelable: false });
+      });
     }
 
     try {

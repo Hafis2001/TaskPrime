@@ -1,7 +1,9 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Print from "expo-print";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -28,6 +30,7 @@ export default function CustomerLedgerScreen() {
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
   const [ledger, setLedger] = useState([]);
   const [filteredLedger, setFilteredLedger] = useState([]);
   const [openingBalance, setOpeningBalance] = useState(0);
@@ -217,6 +220,135 @@ export default function CustomerLedgerScreen() {
     calculateReverseBalances(ledger, Number(current_balance) || 0, false);
   };
 
+  const shareLedgerPDF = async () => {
+    if (filteredLedger.length === 0) {
+      Alert.alert("No Data", "There are no transactions to share.");
+      return;
+    }
+
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable) {
+      Alert.alert("Sharing Not Available", "Sharing is not supported on this device.");
+      return;
+    }
+
+    try {
+      setSharing(true);
+
+      const dateRangeLabel =
+        fromDate && toDate
+          ? `${formatDate(fromDate)} to ${formatDate(toDate)}`
+          : "All Dates";
+
+      const transactionRows = filteredLedger
+        .map((item) => {
+          const isCredit = item.credit && item.credit > 0;
+          const amount = isCredit ? item.credit : item.debit;
+          const type = isCredit ? "Credit" : "Debit";
+          const typeColor = isCredit ? "#e53e3e" : "#38a169";
+          return `
+            <tr>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; color:#4a5568;">${formatDate(item.entry_date)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; color:#2d3748; font-weight:500;">${item.particulars || "-"}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; color:#718096;">${item.narration || "-"}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; color:#718096;">${item.voucher_no || "-"}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; font-weight:600; color:${typeColor}; text-align:right;">${Math.abs(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #edf2f7; font-size:12px; font-weight:600; color:${typeColor}; text-align:center;">${type}</td>
+            </tr>`;
+        })
+        .join("");
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Customer Ledger - ${name}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; background: #f7fafc; padding: 24px; }
+            .header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; }
+            .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+            .header p { font-size: 13px; opacity: 0.85; }
+            .summary { display: flex; gap: 12px; margin-bottom: 20px; }
+            .summary-card { flex: 1; background: white; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); text-align: right; }
+            .summary-card .label { font-size: 11px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+            .summary-card .value { font-size: 16px; font-weight: 700; color: #2d3748; }
+            .summary-card.credit .value { color: #e53e3e; }
+            .summary-card.debit .value { color: #38a169; }
+            .table-wrap { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+            .table-title { padding: 14px 16px; font-size: 13px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #edf2f7; }
+            table { width: 100%; border-collapse: collapse; }
+            thead th { background: #f7fafc; padding: 10px; font-size: 11px; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; }
+            .footer { margin-top: 20px; text-align: center; font-size: 11px; color: #a0aec0; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${name || "Customer Ledger"}</h1>
+            <p>Account Code: ${code} &nbsp;&bull;&nbsp; Period: ${dateRangeLabel}</p>
+            <p style="margin-top:6px;">Generated on: ${formatDate(new Date().toISOString())}</p>
+          </div>
+
+          <div class="summary" style="margin-bottom:16px;">
+            <div class="summary-card">
+              <div class="label">Opening Balance</div>
+              <div class="value">${openingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-title">Transactions (${filteredLedger.length})</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align:left;">Date</th>
+                  <th style="text-align:left;">Particulars</th>
+                  <th style="text-align:left;">Narration</th>
+                  <th style="text-align:left;">Ref No.</th>
+                  <th style="text-align:right;">Amount</th>
+                  <th style="text-align:center;">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${transactionRows}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="summary" style="margin-top:20px;">
+            <div class="summary-card debit">
+              <div class="label">Total Debit</div>
+              <div class="value">${totalDebit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div class="summary-card credit">
+              <div class="label">Total Credit</div>
+              <div class="value">${totalCredit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div class="summary-card">
+              <div class="label">Closing Balance</div>
+              <div class="value">${closingBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+
+          <div class="footer">TaskPrime &bull; Customer Ledger Report &bull; ${name}</div>
+        </body>
+        </html>`;
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      await Sharing.shareAsync(uri, {
+        mimeType: "application/pdf",
+        dialogTitle: `Share ${name} Ledger`,
+        UTI: "com.adobe.pdf",
+      });
+    } catch (err) {
+      console.error("PDF Share Error:", err);
+      Alert.alert("Error", "Failed to generate or share the PDF.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const renderItem = ({ item }) => {
     const isCredit = item.credit && item.credit > 0;
     const amount = isCredit ? item.credit : item.debit;
@@ -245,14 +377,14 @@ export default function CustomerLedgerScreen() {
               {item.particulars}
             </Text>
             <Text style={styles.subText}>
-              {formatDate(item.entry_date)} {item.narration ? `â€¢ ${item.narration}` : ""}
+              {formatDate(item.entry_date)} {item.narration ? ` ${item.narration}` : ""}
             </Text>
             <Text style={styles.voucherText}>Ref: {item.voucher_no || "-"}</Text>
           </View>
         </View>
         <View style={styles.amountContainer}>
           <Text style={[styles.amountText, { color }]}>
-            â‚¹{Math.abs(amount || 0).toLocaleString("en-IN")}
+            {Math.abs(amount || 0).toLocaleString("en-IN")}
           </Text>
           {/* <Text style={[styles.drCrText, { color }]}>{isCredit ? "DR" : "CR"}</Text> */}
         </View>
@@ -276,8 +408,22 @@ export default function CustomerLedgerScreen() {
         subtitle={fromDate && toDate ? `${formatDate(fromDate)} â†’ ${formatDate(toDate)}` : "All Transactions"}
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
         onLeftPress={() => router.back()}
-        rightIcon={<Ionicons name="refresh" size={22} color={Colors.primary.main} />}
-        onRightPress={refreshAll}
+        rightIcon={
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity onPress={refreshAll} style={styles.headerActionBtn}>
+              <Ionicons name="refresh" size={22} color={Colors.primary.main} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={shareLedgerPDF}
+              style={[styles.headerActionBtn, styles.shareBtn]}
+              disabled={sharing}
+            >
+              {sharing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="logo-whatsapp" size={20} color="#fff" />}
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       {/* Date Filter Bar */}
@@ -368,6 +514,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  shareBtn: {
+    backgroundColor: '#25D366',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   loader: {
     flex: 1,
