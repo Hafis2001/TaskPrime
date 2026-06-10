@@ -10,8 +10,8 @@ import { moderateScale } from "../src/utils/Responsive";
 
 SplashScreen.preventAutoHideAsync(); // Keep splash visible
 
-// Session valid for 20 hours (token expires at 24h, so 20h gives a safe margin)
-const SESSION_DURATION_MS = 20 * 60 * 60 * 1000;
+// Session valid indefinitely as requested
+// const SESSION_DURATION_MS = 20 * 60 * 60 * 1000;
 
 export default function Index() {
   const router = useRouter();
@@ -28,18 +28,12 @@ export default function Index() {
         const isActivated = await AsyncStorage.getItem("licenseActivated");
         setLicenseActivated(isActivated === "true");
 
-        // Check if an existing session is still valid (< 20 hours old)
+        // Check if an existing session is still valid (indefinite now)
         if (isActivated === "true") {
-          const [storedUser, storedTimestamp] = await Promise.all([
-            AsyncStorage.getItem("user"),
-            AsyncStorage.getItem("loginTimestamp"),
-          ]);
+          const storedUser = await AsyncStorage.getItem("user");
 
-          if (storedUser && storedTimestamp) {
-            const elapsed = Date.now() - parseInt(storedTimestamp, 10);
-            if (elapsed < SESSION_DURATION_MS) {
-              setSessionValid(true);
-            }
+          if (storedUser) {
+            setSessionValid(true);
           }
         }
 

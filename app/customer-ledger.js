@@ -14,6 +14,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLicenseModules } from "../src/utils/useLicenseModules";
@@ -205,11 +206,22 @@ export default function CustomerLedgerScreen() {
     if (selectedDate) {
       if (datePickerMode === "from") {
         setFromDate(selectedDate);
-        if (toDate) filterByDateRange(selectedDate, toDate);
+        if (Platform.OS !== "ios" && toDate) filterByDateRange(selectedDate, toDate);
       } else if (datePickerMode === "to") {
         setToDate(selectedDate);
-        if (fromDate) filterByDateRange(fromDate, selectedDate);
+        if (Platform.OS !== "ios" && fromDate) filterByDateRange(fromDate, selectedDate);
       }
+    }
+  };
+
+  const closeIOSDatePicker = () => {
+    setShowDatePicker(false);
+    if (fromDate && toDate) {
+      filterByDateRange(fromDate, toDate);
+    } else if (fromDate || toDate) {
+      // If only one date is selected, wait for the other, or refresh based on one
+      // But usually range needs both. We can filter if both exist.
+      filterByDateRange(fromDate || new Date(), toDate || new Date());
     }
   };
 
@@ -448,12 +460,32 @@ export default function CustomerLedgerScreen() {
       </View>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={new Date()}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
+        Platform.OS === 'ios' ? (
+          <Modal transparent={true} animationType="slide">
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+              <View style={{ backgroundColor: '#fff', paddingBottom: insets.bottom || 20 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                  <TouchableOpacity onPress={closeIOSDatePicker}>
+                    <Text style={{ color: Colors.primary.main, fontWeight: 'bold', fontSize: 16 }}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={(datePickerMode === "from" && fromDate) ? fromDate : (datePickerMode === "to" && toDate) ? toDate : new Date()}
+                  mode="date"
+                  display="spinner"
+                  onChange={onDateChange}
+                />
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={(datePickerMode === "from" && fromDate) ? fromDate : (datePickerMode === "to" && toDate) ? toDate : new Date()}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+          />
+        )
       )}
 
       {/* Summary Cards */}
@@ -494,6 +526,7 @@ export default function CustomerLedgerScreen() {
       <Text style={styles.sectionHeader}>Transactions</Text>
 
       <FlatList
+        style={{ flex: 1 }}
         data={filteredLedger}
         keyExtractor={(_, i) => i.toString()}
         renderItem={renderItem}

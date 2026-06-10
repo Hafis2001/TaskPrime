@@ -2,7 +2,7 @@
   "expo": {
     "name": "TaskPrime",
     "slug": "TaskPrime",
-    "version": "1.1.0",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/TaskPrime-icon.png",
     "scheme": "taskprime",
@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "backgroundColor": "#ffffff",
       "icon": "./assets/images/TaskPrime-icon.png",
-      "buildNumber": "3", 
+      "buildNumber": "5", 
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
@@ -31,7 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.imcbs.TaskPrime",
-      "versionCode": 4
+      "versionCode": 6
     },
     "web": {
       "favicon": "./assets/images/TaskPrime-icon.png"
