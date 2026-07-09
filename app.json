@@ -2,7 +2,7 @@
   "expo": {
     "name": "TaskPrime",
     "slug": "TaskPrime",
-    "version": "1.1.2",
+    "version": "2.2.2",
     "orientation": "portrait",
     "icon": "./assets/images/TaskPrime-icon.png",
     "scheme": "taskprime",
@@ -17,21 +17,21 @@
       "supportsTablet": true,
       "backgroundColor": "#ffffff",
       "icon": "./assets/images/TaskPrime-icon.png",
-      "buildNumber": "5", 
+      "buildNumber": "6", 
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.imcbs.TaskPrime"
+      "bundleIdentifier": "com.hafis2001.TaskPrime"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/TaskPrime-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.imcbs.TaskPrime",
-      "versionCode": 6
+      "package": "com.hafis2001.TaskPrime",
+      "versionCode": 7
     },
     "web": {
       "favicon": "./assets/images/TaskPrime-icon.png"

@@ -438,6 +438,12 @@ export default function CustomerLedgerScreen() {
         }
       />
 
+      {/* 15-days info note */}
+      <View style={styles.infoNote}>
+        <Ionicons name="information-circle-outline" size={14} color="#6366f1" />
+        <Text style={styles.infoNoteText}>Showing last 15 days of ledger entries</Text>
+      </View>
+
       {/* Date Filter Bar */}
       <View style={styles.filterBar}>
         <TouchableOpacity
@@ -547,6 +553,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.secondary
+  },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    backgroundColor: '#eef2ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#c7d2fe',
+  },
+  infoNoteText: {
+    fontSize: 12,
+    color: '#4f46e5',
+    fontWeight: '500',
   },
   headerRightActions: {
     flexDirection: 'row',

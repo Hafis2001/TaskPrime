@@ -429,8 +429,6 @@ export default function DrawerLayout() {
                 </View>
               </View>
             </Modal>
-
-            {/* Switch Shop Modal */}
             <Modal
               transparent
               animationType="slide"

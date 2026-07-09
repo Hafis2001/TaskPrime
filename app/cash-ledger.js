@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -31,9 +31,7 @@ export default function CashLedgerScreen() {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(null); // null = no date filter (show all)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [closingBalance, setClosingBalance] = useState(
@@ -156,20 +154,19 @@ export default function CashLedgerScreen() {
         setData(processedAsc);
         setDailyBalances(balances);
 
-        const today = new Date().toISOString().split("T")[0];
-        const todaysEntries = dailyMap[today]?.entries || [];
-        setFilteredData(todaysEntries);
-        setSelectedDate(today);
+        // Show ALL entries by default (no date filter)
+        setFilteredData(processedAsc);
+        setSelectedDate(null);
 
-        if (balances[today]) {
-          setOpeningBalance(balances[today].opening);
-          setClosingBalance(balances[today].closing);
-        } else {
-          setOpeningBalance(parseFloat(previous_balance) || 0);
-        }
+        // Opening = earliest date's opening, Closing = from previous_balance
+        const firstDate = dates[0];
+        setOpeningBalance(balances[firstDate]?.opening ?? parseFloat(previous_balance) ?? 0);
+        setClosingBalance(parseFloat(previous_balance) || 0);
 
-        setTotalDebit(dailyMap[today]?.debit || 0);
-        setTotalCredit(dailyMap[today]?.credit || 0);
+        let allDebit = 0, allCredit = 0;
+        processedAsc.forEach((i) => { allDebit += i.debit; allCredit += i.credit; });
+        setTotalDebit(allDebit);
+        setTotalCredit(allCredit);
       } else {
         setData([]);
         setFilteredData([]);
@@ -236,9 +233,17 @@ export default function CashLedgerScreen() {
   };
 
   const clearDateFilter = () => {
-    const today = new Date().toISOString().split("T")[0];
-    setSelectedDate(today);
-    calculateOpeningForDate(today);
+    // Reset to show all entries
+    setSelectedDate(null);
+    setFilteredData(data);
+    let allDebit = 0, allCredit = 0;
+    data.forEach((i) => { allDebit += i.debit; allCredit += i.credit; });
+    setTotalDebit(allDebit);
+    setTotalCredit(allCredit);
+    const dates = Object.keys(dailyBalances).sort();
+    const firstDate = dates[0];
+    setOpeningBalance(dailyBalances[firstDate]?.opening ?? parseFloat(previous_balance) ?? 0);
+    setClosingBalance(parseFloat(previous_balance) || 0);
   };
 
   const getFilteredList = () => {
@@ -314,12 +319,28 @@ export default function CashLedgerScreen() {
     <View style={styles.container}>
       <ModernHeader
         title={account_name || "Cash Ledger"}
-        subtitle={selectedDate}
+        subtitle={selectedDate ? selectedDate : "All Transactions"}
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
         onLeftPress={() => router.back()}
-        rightIcon={<Ionicons name="calendar-outline" size={22} color={Colors.primary.main} />}
-        onRightPress={() => setShowDatePicker(true)}
+        rightIcon={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {selectedDate && (
+              <TouchableOpacity onPress={clearDateFilter}>
+                <Ionicons name="close-circle-outline" size={22} color={Colors.primary.main} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <Ionicons name="calendar-outline" size={22} color={Colors.primary.main} />
+            </TouchableOpacity>
+          </View>
+        }
       />
+
+      {/* 15-days info note */}
+      <View style={styles.infoNote}>
+        <Ionicons name="information-circle-outline" size={14} color="#6366f1" />
+        <Text style={styles.infoNoteText}>Showing last 15 days of ledger entries</Text>
+      </View>
 
       <View style={styles.content}>
 
@@ -417,7 +438,7 @@ export default function CashLedgerScreen() {
 
       {showDatePicker && (
         <DateTimePicker
-          value={new Date(selectedDate)}
+          value={selectedDate ? new Date(selectedDate) : new Date()}
           mode="date"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={onDateChange}
@@ -435,6 +456,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.base,
+  },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    backgroundColor: '#eef2ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#c7d2fe',
+  },
+  infoNoteText: {
+    fontSize: 12,
+    color: '#4f46e5',
+    fontWeight: '500',
   },
   balanceRow: {
     flexDirection: 'row',

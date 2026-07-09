@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -31,9 +31,7 @@ export default function BankLedgerScreen() {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(null); // null = no date filter (show all)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [closingBalance, setClosingBalance] = useState(
@@ -143,20 +141,14 @@ export default function BankLedgerScreen() {
         setData(processed);
         setDailyBalances(balanceMap);
 
-        // Default to today
-        const today = new Date().toISOString().split("T")[0];
-        const todaysEntries = grouped[today]?.entries || [];
-        setFilteredData(todaysEntries);
-        setSelectedDate(today);
+        // Show ALL entries by default (no date filter)
+        setFilteredData(processed);
+        setSelectedDate(null);
 
-        if (balanceMap[today]) {
-          setOpeningBalance(balanceMap[today].opening);
-          setClosingBalance(balanceMap[today].closing);
-        } else {
-          // If no entry for today, keep last known
-          setOpeningBalance(parseFloat(previous_balance) || 0);
-          setClosingBalance(parseFloat(previous_balance) || 0);
-        }
+        // Opening from earliest date, closing = previous_balance
+        const firstDate = dates[0];
+        setOpeningBalance(balanceMap[firstDate]?.opening ?? parseFloat(previous_balance) ?? 0);
+        setClosingBalance(parseFloat(previous_balance) || 0);
       } else {
         setData([]);
         setFilteredData([]);
@@ -171,14 +163,14 @@ export default function BankLedgerScreen() {
     }
   };
 
-  // âœ… Update balances when dailyBalances or selectedDate changes
+  // ✅ Update balances when dailyBalances or selectedDate changes
   useEffect(() => {
-    if (!loading && dailyBalances && Object.keys(dailyBalances).length > 0) {
+    if (!loading && selectedDate && dailyBalances && Object.keys(dailyBalances).length > 0) {
       if (dailyBalances[selectedDate]) {
         setOpeningBalance(dailyBalances[selectedDate].opening);
         setClosingBalance(dailyBalances[selectedDate].closing);
       } else {
-        // âœ… Correct fallback: if date has no entries, today's opening = current closing
+        // ✅ Correct fallback: if date has no entries, keep previous_balance
         setOpeningBalance(parseFloat(previous_balance) || 0);
         setClosingBalance(parseFloat(previous_balance) || 0);
       }
@@ -201,6 +193,16 @@ export default function BankLedgerScreen() {
   const updateForDate = (date) => {
     const entries = data.filter((i) => i.dateOnly === date);
     setFilteredData(entries);
+  };
+
+  const clearDateFilter = () => {
+    // Reset to show all entries
+    setSelectedDate(null);
+    setFilteredData(data);
+    const dates = Object.keys(dailyBalances).sort();
+    const firstDate = dates[0];
+    setOpeningBalance(dailyBalances[firstDate]?.opening ?? parseFloat(previous_balance) ?? 0);
+    setClosingBalance(parseFloat(previous_balance) || 0);
   };
 
   const getFilteredList = () => {
@@ -277,12 +279,28 @@ export default function BankLedgerScreen() {
     <View style={styles.container}>
       <ModernHeader
         title={account_name || "Bank Ledger"}
-        subtitle={new Date(selectedDate).toDateString()}
+        subtitle={selectedDate ? new Date(selectedDate).toDateString() : "All Transactions"}
         leftIcon={<Ionicons name="arrow-back" size={24} color={Colors.primary.main} />}
         onLeftPress={() => router.back()}
-        rightIcon={<Ionicons name="calendar-outline" size={22} color={Colors.primary.main} />}
-        onRightPress={() => setShowDatePicker(true)}
+        rightIcon={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {selectedDate && (
+              <TouchableOpacity onPress={clearDateFilter}>
+                <Ionicons name="close-circle-outline" size={22} color={Colors.primary.main} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <Ionicons name="calendar-outline" size={22} color={Colors.primary.main} />
+            </TouchableOpacity>
+          </View>
+        }
       />
+
+      {/* 15-days info note */}
+      <View style={styles.infoNote}>
+        <Ionicons name="information-circle-outline" size={14} color="#6366f1" />
+        <Text style={styles.infoNoteText}>Showing last 15 days of ledger entries</Text>
+      </View>
 
       <View style={styles.content}>
         {/* Balances */}
@@ -367,7 +385,7 @@ export default function BankLedgerScreen() {
 
       {showDatePicker && (
         <DateTimePicker
-          value={new Date(selectedDate)}
+          value={selectedDate ? new Date(selectedDate) : new Date()}
           mode="date"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={onDateChange}
@@ -385,6 +403,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.base,
+  },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    backgroundColor: '#eef2ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#c7d2fe',
+  },
+  infoNoteText: {
+    fontSize: 12,
+    color: '#4f46e5',
+    fontWeight: '500',
   },
   balanceCard: {
     padding: Spacing.lg,

@@ -173,8 +173,8 @@ export default function LicenseInfoScreen() {
                         <InfoRow label="Customer" value={customerName} icon="business-outline" />
                         <InfoRow label="License Key" value={licenseKey} icon="key-outline" />
                         <InfoRow label="Device ID" value={deviceId} icon="hardware-chip-outline" />
-                        <InfoRow label="APP version" value="2.1.1" icon="apps-outline" />
-                        <InfoRow label="Generated Date" value="25/04/2026" icon="calendar-outline" />
+                        <InfoRow label="APP version" value="3.1.1" icon="apps-outline" />
+                        <InfoRow label="Generated Date" value="17/06/2026" icon="calendar-outline" />
                     </View>
                 </ModernCard>
 
